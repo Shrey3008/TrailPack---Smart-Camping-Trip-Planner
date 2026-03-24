@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrailPack - Smart Camping Trip Planner</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>TrailPack</h1>
+      <span class="tagline">Smart Camping Trip Planner</span>
+    </div>
+  </nav>
+
+  <main class="container">
+    <header class="dashboard-header">
+      <h2>Your Trips</h2>
+      <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
+        + Create New Trip
+      </button>
+    </header>
+
+    <div id="trips-container" class="trips-grid">
+      <!-- Trips will be loaded here dynamically -->
+    </div>
+
+    <div id="empty-state" class="empty-state" style="display: none;">
+      <div class="empty-icon">🏕️</div>
+      <h3>No trips yet</h3>
+      <p>Create your first camping trip to get started!</p>
+      <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
+        Create Trip
+      </button>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // Load trips when page loads
+    document.addEventListener('DOMContentLoaded', loadTrips);
+  </script>
+</body>
+</html>

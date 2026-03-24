@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Trip - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>TrailPack</h1>
+      <span class="tagline">Smart Camping Trip Planner</span>
+    </div>
+    <a href="index.html" class="nav-link">← Back to Dashboard</a>
+  </nav>
+
+  <main class="container">
+    <div class="form-container">
+      <h2>Create New Trip</h2>
+      <p class="form-subtitle">Fill in the details to generate your custom packing checklist</p>
+
+      <form id="create-trip-form">
+        <div class="form-group">
+          <label for="trip-name">Trip Name *</label>
+          <input type="text" id="trip-name" name="name" required placeholder="e.g., Weekend Mountain Adventure">
+        </div>
+
+        <div class="form-group">
+          <label for="terrain">Terrain Type *</label>
+          <select id="terrain" name="terrain" required>
+            <option value="">Select terrain...</option>
+            <option value="Mountain">Mountain</option>
+            <option value="Forest">Forest</option>
+            <option value="Desert">Desert</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="season">Season *</label>
+          <select id="season" name="season" required>
+            <option value="">Select season...</option>
+            <option value="Spring">Spring</option>
+            <option value="Summer">Summer</option>
+            <option value="Fall">Fall</option>
+            <option value="Winter">Winter</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="duration">Duration (days) *</label>
+          <input type="number" id="duration" name="duration" required min="1" max="30" placeholder="e.g., 3">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Create Trip
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    document.getElementById('create-trip-form').addEventListener('submit', handleCreateTrip);
+  </script>
+</body>
+</html>
