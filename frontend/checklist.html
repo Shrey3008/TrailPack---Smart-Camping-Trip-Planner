@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checklist - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>TrailPack</h1>
+      <span class="tagline">Smart Camping Trip Planner</span>
+    </div>
+    <a href="index.html" class="nav-link">← Back to Dashboard</a>
+  </nav>
+
+  <main class="container">
+    <div id="trip-details" class="trip-details">
+      <!-- Trip info will be loaded here -->
+    </div>
+
+    <div class="checklist-container">
+      <div class="checklist-header">
+        <h2>Packing Checklist</h2>
+        <div class="progress-section">
+          <span id="progress-text">0/0 items packed</span>
+          <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="add-item-section">
+        <h3>Add Custom Item</h3>
+        <form id="add-item-form" class="add-item-form">
+          <input type="text" id="new-item-name" placeholder="Item name" required>
+          <select id="new-item-category" required>
+            <option value="">Select category</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Shelter">Shelter</option>
+            <option value="Food & Water">Food & Water</option>
+            <option value="Safety">Safety</option>
+            <option value="Tools">Tools</option>
+          </select>
+          <button type="submit" class="btn btn-secondary">Add Item</button>
+        </form>
+      </div>
+
+      <div id="checklist-categories">
+        <!-- Checklist items will be organized by category here -->
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    // Load checklist when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tripId = urlParams.get('id');
+      if (tripId) {
+        loadChecklist(tripId);
+      } else {
+        window.location.href = 'index.html';
+      }
+    });
+
+    document.getElementById('add-item-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const urlParams = new URLSearchParams(window.location.search);
+      const tripId = urlParams.get('id');
+      handleAddItem(tripId);
+    });
+  </script>
+</body>
+</html>
