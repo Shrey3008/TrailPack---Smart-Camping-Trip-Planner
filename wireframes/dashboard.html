@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wireframe - Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    /* Navbar */
+    .navbar { background: #333; color: white; padding: 20px; margin-bottom: 30px; }
+    .navbar h1 { font-size: 24px; }
+    .navbar span { font-size: 14px; color: #aaa; }
+    
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header h2 { font-size: 28px; color: #333; }
+    .btn { padding: 12px 24px; border: none; cursor: pointer; font-size: 16px; }
+    .btn-primary { background: #4CAF50; color: white; }
+    
+    /* Wireframe elements */
+    .wireframe-box { border: 2px dashed #999; background: white; padding: 20px; margin-bottom: 20px; }
+    .wireframe-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 10px; }
+    
+    /* Trip cards grid */
+    .trips-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .trip-card { border: 2px solid #ddd; padding: 20px; background: white; }
+    .trip-card h3 { font-size: 20px; margin-bottom: 10px; }
+    .trip-meta { color: #666; font-size: 14px; margin-bottom: 15px; }
+    .trip-actions { display: flex; gap: 10px; }
+    .btn-small { padding: 8px 16px; font-size: 14px; }
+    .btn-secondary { background: #2196F3; color: white; }
+    .btn-danger { background: #f44336; color: white; }
+    
+    /* Empty state */
+    .empty-state { text-align: center; padding: 60px 20px; border: 2px dashed #ccc; }
+    .empty-icon { font-size: 48px; margin-bottom: 20px; }
+    .empty-state h3 { font-size: 24px; color: #666; margin-bottom: 10px; }
+    .empty-state p { color: #999; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <h1>TrailPack <span>Smart Camping Trip Planner</span></h1>
+  </div>
+  
+  <div class="container">
+    <div class="header">
+      <h2>Your Trips</h2>
+      <button class="btn btn-primary">+ Create New Trip</button>
+    </div>
+    
+    <!-- Wireframe annotation -->
+    <div class="wireframe-box">
+      <div class="wireframe-label">Wireframe: Dashboard Page</div>
+      <p><strong>Purpose:</strong> Main landing page showing all user trips</p>
+      <p><strong>Key Elements:</strong></p>
+      <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Navbar with branding</li>
+        <li>Page title + "Create Trip" CTA button</li>
+        <li>Grid of trip cards</li>
+        <li>Each card: Name, Terrain, Season, Duration, Actions</li>
+        <li>Empty state for new users</li>
+      </ul>
+    </div>
+    
+    <!-- Example: With trips -->
+    <div class="trips-grid">
+      <div class="trip-card">
+        <h3>Weekend Mountain Adventure</h3>
+        <div class="trip-meta">Mountain • Summer • 3 days</div>
+        <div class="trip-actions">
+          <button class="btn btn-secondary btn-small">View Checklist</button>
+          <button class="btn btn-danger btn-small">Delete</button>
+        </div>
+      </div>
+      
+      <div class="trip-card">
+        <h3>Forest Camping</h3>
+        <div class="trip-meta">Forest • Fall • 2 days</div>
+        <div class="trip-actions">
+          <button class="btn btn-secondary btn-small">View Checklist</button>
+          <button class="btn btn-danger btn-small">Delete</button>
+        </div>
+      </div>
+      
+      <div class="trip-card">
+        <h3>Desert Expedition</h3>
+        <div class="trip-meta">Desert • Spring • 5 days</div>
+        <div class="trip-actions">
+          <button class="btn btn-secondary btn-small">View Checklist</button>
+          <button class="btn btn-danger btn-small">Delete</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Example: Empty state -->
+    <div style="margin-top: 40px;">
+      <div class="wireframe-label">Alternative: Empty State (for new users)</div>
+      <div class="empty-state">
+        <div class="empty-icon">🏕️</div>
+        <h3>No trips yet</h3>
+        <p>Create your first camping trip to get started!</p>
+        <button class="btn btn-primary">Create Trip</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wireframe - Create Trip</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    
+    /* Navbar */
+    .navbar { background: #333; color: white; padding: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+    .navbar h1 { font-size: 24px; }
+    .navbar span { font-size: 14px; color: #aaa; display: block; }
+    .nav-link { color: white; text-decoration: none; }
+    
+    /* Form container */
+    .form-container { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .form-header { margin-bottom: 30px; }
+    .form-header h2 { font-size: 28px; color: #333; margin-bottom: 10px; }
+    .form-header p { color: #666; }
+    
+    /* Wireframe annotation */
+    .wireframe-box { border: 2px dashed #999; background: #fafafa; padding: 15px; margin-bottom: 30px; }
+    .wireframe-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 10px; }
+    
+    /* Form fields */
+    .form-group { margin-bottom: 25px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
+    .form-group label .required { color: #f44336; }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+      border-color: #4CAF50;
+      outline: none;
+    }
+    
+    /* Form actions */
+    .form-actions { display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px; }
+    .btn { padding: 12px 24px; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; }
+    .btn-primary { background: #4CAF50; color: white; }
+    .btn-secondary { background: #f5f5f5; color: #333; border: 2px solid #ddd; }
+    
+    /* Validation message */
+    .validation-msg { color: #f44336; font-size: 14px; margin-top: 5px; display: none; }
+    .validation-msg.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div>
+      <h1>TrailPack</h1>
+      <span>Smart Camping Trip Planner</span>
+    </div>
+    <a href="#" class="nav-link">← Back to Dashboard</a>
+  </div>
+  
+  <div class="container">
+    <div class="form-container">
+      <!-- Wireframe annotation -->
+      <div class="wireframe-box">
+        <div class="wireframe-label">Wireframe: Create Trip Page</div>
+        <p><strong>Purpose:</strong> Form to create a new camping trip</p>
+        <p><strong>Key Elements:</strong></p>
+        <ul style="margin-left: 20px; margin-top: 10px;">
+          <li>Navbar with back button</li>
+          <li>Form title + subtitle</li>
+          <li>4 required fields (all with validation)</li>
+          <li>Cancel and Submit buttons</li>
+          <li>Success → redirects to checklist</li>
+        </ul>
+      </div>
+      
+      <div class="form-header">
+        <h2>Create New Trip</h2>
+        <p>Fill in the details to generate your custom packing checklist</p>
+      </div>
+      
+      <form>
+        <!-- Trip Name -->
+        <div class="form-group">
+          <label for="trip-name">Trip Name <span class="required">*</span></label>
+          <input type="text" id="trip-name" placeholder="e.g., Weekend Mountain Adventure" required>
+          <div class="validation-msg">Please enter a trip name</div>
+        </div>
+        
+        <!-- Terrain -->
+        <div class="form-group">
+          <label for="terrain">Terrain Type <span class="required">*</span></label>
+          <select id="terrain" required>
+            <option value="">Select terrain...</option>
+            <option value="Mountain">Mountain</option>
+            <option value="Forest">Forest</option>
+            <option value="Desert">Desert</option>
+          </select>
+          <div class="validation-msg">Please select a terrain type</div>
+        </div>
+        
+        <!-- Season -->
+        <div class="form-group">
+          <label for="season">Season <span class="required">*</span></label>
+          <select id="season" required>
+            <option value="">Select season...</option>
+            <option value="Spring">Spring</option>
+            <option value="Summer">Summer</option>
+            <option value="Fall">Fall</option>
+            <option value="Winter">Winter</option>
+          </select>
+          <div class="validation-msg">Please select a season</div>
+        </div>
+        
+        <!-- Duration -->
+        <div class="form-group">
+          <label for="duration">Duration (days) <span class="required">*</span></label>
+          <input type="number" id="duration" min="1" max="30" placeholder="e.g., 3" required>
+          <div class="validation-msg">Please enter a valid duration (1-30 days)</div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

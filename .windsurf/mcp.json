@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "figma": {
+      "type": "remote",
+      "url": "https://mcp.figma.com",
+      "disabled": false
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"],
+      "timeout": 30,
+      "disabled": false
+    }
+  }
+}

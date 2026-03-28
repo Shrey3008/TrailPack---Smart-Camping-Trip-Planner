@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wireframe - Checklist</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    
+    /* Navbar */
+    .navbar { background: #333; color: white; padding: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+    .navbar h1 { font-size: 24px; }
+    .navbar span { font-size: 14px; color: #aaa; display: block; }
+    .nav-link { color: white; text-decoration: none; }
+    
+    /* Wireframe annotation */
+    .wireframe-box { border: 2px dashed #999; background: #fafafa; padding: 15px; margin-bottom: 30px; }
+    .wireframe-label { font-size: 12px; color: #666; text-transform: uppercase; margin-bottom: 10px; }
+    
+    /* Trip details */
+    .trip-details { background: white; padding: 25px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .trip-details h2 { font-size: 24px; margin-bottom: 15px; color: #333; }
+    .trip-meta { display: flex; gap: 20px; color: #666; font-size: 14px; }
+    .trip-meta span { background: #f5f5f5; padding: 5px 12px; border-radius: 4px; }
+    
+    /* Checklist container */
+    .checklist-container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    
+    /* Progress section */
+    .checklist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #f5f5f5; }
+    .checklist-header h3 { font-size: 22px; color: #333; }
+    .progress-section { text-align: right; }
+    .progress-text { font-size: 16px; color: #666; margin-bottom: 8px; }
+    .progress-bar { width: 200px; height: 8px; background: #f5f5f5; border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #4CAF50; width: 60%; }
+    
+    /* Add item section */
+    .add-item-section { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+    .add-item-section h4 { margin-bottom: 15px; color: #333; }
+    .add-item-form { display: flex; gap: 10px; }
+    .add-item-form input,
+    .add-item-form select { flex: 1; padding: 10px; border: 2px solid #ddd; border-radius: 4px; }
+    .btn { padding: 10px 20px; border: none; cursor: pointer; border-radius: 4px; }
+    .btn-secondary { background: #2196F3; color: white; }
+    
+    /* Category sections */
+    .category { margin-bottom: 25px; }
+    .category-header { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #4CAF50; display: flex; align-items: center; gap: 10px; }
+    .category-count { font-size: 14px; color: #666; font-weight: normal; }
+    
+    /* Checklist items */
+    .checklist-items { list-style: none; }
+    .item { display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee; }
+    .item:hover { background: #fafafa; }
+    .item input[type="checkbox"] { width: 20px; height: 20px; margin-right: 15px; cursor: pointer; }
+    .item label { flex: 1; cursor: pointer; font-size: 16px; }
+    .item.checked label { text-decoration: line-through; color: #999; }
+    .item-actions { display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s; }
+    .item:hover .item-actions { opacity: 1; }
+    .btn-small { padding: 6px 12px; font-size: 12px; }
+    .btn-danger { background: #f44336; color: white; }
+    
+    /* Category icons */
+    .icon { font-size: 20px; }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div>
+      <h1>TrailPack</h1>
+      <span>Smart Camping Trip Planner</span>
+    </div>
+    <a href="#" class="nav-link">← Back to Dashboard</a>
+  </div>
+  
+  <div class="container">
+    <!-- Wireframe annotation -->
+    <div class="wireframe-box">
+      <div class="wireframe-label">Wireframe: Checklist Page</div>
+      <p><strong>Purpose:</strong> View and manage packing checklist for a trip</p>
+      <p><strong>Key Elements:</strong></p>
+      <ul style="margin-left: 20px; margin-top: 10px;">
+        <li>Navbar with back button</li>
+        <li>Trip details header (name, terrain, season, duration)</li>
+        <li>Progress indicator (packed/total + progress bar)</li>
+        <li>Add custom item form</li>
+        <li>Categorized checklist with checkboxes</li>
+        <li>Delete option on item hover</li>
+      </ul>
+    </div>
+    
+    <!-- Trip Details -->
+    <div class="trip-details">
+      <h2>Weekend Mountain Adventure</h2>
+      <div class="trip-meta">
+        <span>🏔️ Mountain</span>
+        <span>☀️ Summer</span>
+        <span>📅 3 days</span>
+      </div>
+    </div>
+    
+    <!-- Checklist -->
+    <div class="checklist-container">
+      <div class="checklist-header">
+        <h3>Packing Checklist</h3>
+        <div class="progress-section">
+          <div class="progress-text">9/15 items packed</div>
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Add Custom Item -->
+      <div class="add-item-section">
+        <h4>Add Custom Item</h4>
+        <div class="add-item-form">
+          <input type="text" placeholder="Item name">
+          <select>
+            <option value="">Select category</option>
+            <option value="Clothing">Clothing</option>
+            <option value="Shelter">Shelter</option>
+            <option value="Food & Water">Food & Water</option>
+            <option value="Safety">Safety</option>
+            <option value="Tools">Tools</option>
+          </select>
+          <button class="btn btn-secondary">Add Item</button>
+        </div>
+      </div>
+      
+      <!-- Clothing Category -->
+      <div class="category">
+        <div class="category-header">
+          <span class="icon">👕</span> Clothing
+          <span class="category-count">(2/4 packed)</span>
+        </div>
+        <ul class="checklist-items">
+          <li class="item checked">
+            <input type="checkbox" checked id="item1">
+            <label for="item1">Hiking boots</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item checked">
+            <input type="checkbox" checked id="item2">
+            <label for="item2">Warm layers</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item">
+            <input type="checkbox" id="item3">
+            <label for="item3">Lightweight clothing</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item">
+            <input type="checkbox" id="item4">
+            <label for="item4">Sun hat</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <!-- Shelter Category -->
+      <div class="category">
+        <div class="category-header">
+          <span class="icon">⛺</span> Shelter
+          <span class="category-count">(1/2 packed)</span>
+        </div>
+        <ul class="checklist-items">
+          <li class="item checked">
+            <input type="checkbox" checked id="item5">
+            <label for="item5">Tent</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item">
+            <input type="checkbox" id="item6">
+            <label for="item6">Sleeping pad</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <!-- Food & Water Category -->
+      <div class="category">
+        <div class="category-header">
+          <span class="icon">🍽️</span> Food & Water
+          <span class="category-count">(2/3 packed)</span>
+        </div>
+        <ul class="checklist-items">
+          <li class="item checked">
+            <input type="checkbox" checked id="item7">
+            <label for="item7">Water bottle</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item checked">
+            <input type="checkbox" checked id="item8">
+            <label for="item8">Camping stove</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item">
+            <input type="checkbox" id="item9">
+            <label for="item9">Food supplies</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <!-- Safety Category -->
+      <div class="category">
+        <div class="category-header">
+          <span class="icon">🛡️</span> Safety
+          <span class="category-count">(2/4 packed)</span>
+        </div>
+        <ul class="checklist-items">
+          <li class="item checked">
+            <input type="checkbox" checked id="item10">
+            <label for="item10">First aid kit</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item checked">
+            <input type="checkbox" checked id="item11">
+            <label for="item11">Sunscreen</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item">
+            <input type="checkbox" id="item12">
+            <label for="item12">Flashlight/Headlamp</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item">
+            <input type="checkbox" id="item13">
+            <label for="item13">Whistle</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+      
+      <!-- Tools Category -->
+      <div class="category">
+        <div class="category-header">
+          <span class="icon">🛠️</span> Tools
+          <span class="category-count">(2/2 packed)</span>
+        </div>
+        <ul class="checklist-items">
+          <li class="item checked">
+            <input type="checkbox" checked id="item14">
+            <label for="item14">Backpack</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+          <li class="item checked">
+            <input type="checkbox" checked id="item15">
+            <label for="item15">Map and compass</label>
+            <div class="item-actions">
+              <button class="btn btn-danger btn-small">Delete</button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
