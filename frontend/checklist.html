@@ -12,7 +12,10 @@
       <h1>TrailPack</h1>
       <span class="tagline">Smart Camping Trip Planner</span>
     </div>
-    <a href="index.html" class="nav-link">← Back to Dashboard</a>
+    <div class="nav-links">
+      <span id="user-name" class="user-greeting"></span>
+      <a href="dashboard.html" class="nav-link">← Back to Dashboard</a>
+    </div>
   </nav>
 
   <main class="container">
@@ -50,19 +53,27 @@
       <div id="checklist-categories">
         <!-- Checklist items will be organized by category here -->
       </div>
+
+      <div id="recommendations-section" class="recommendations-section" style="display: none;">
+        <h3>💡 Smart Recommendations</h3>
+        <div id="recommendations-list"></div>
+      </div>
     </div>
   </main>
 
+  <script src="auth.js"></script>
   <script src="app.js"></script>
   <script>
     // Load checklist when page loads
     document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
       const urlParams = new URLSearchParams(window.location.search);
       const tripId = urlParams.get('id');
       if (tripId) {
         loadChecklist(tripId);
+        loadRecommendations(tripId);
       } else {
-        window.location.href = 'index.html';
+        window.location.href = 'dashboard.html';
       }
     });
 

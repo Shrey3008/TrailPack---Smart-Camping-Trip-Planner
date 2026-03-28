@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="auth-header">
+        <h1>TrailPack</h1>
+        <p>Smart Camping Trip Planner</p>
+      </div>
+      
+      <form id="register-form" class="auth-form">
+        <h2>Create Account</h2>
+        
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" required placeholder="Enter your full name">
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required 
+                 minlength="6" placeholder="Create a password (min 6 characters)">
+          <small class="help-text">Must be at least 6 characters</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input type="password" id="confirm-password" name="confirm-password" required 
+                 placeholder="Confirm your password">
+        </div>
+        
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        <div id="success-message" class="success-message" style="display: none;"></div>
+        
+        <button type="submit" class="btn btn-primary btn-full">Create Account</button>
+        
+        <div class="auth-links">
+          <p>Already have an account? <a href="login.html">Login</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // Handle register form submission
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      const errorDiv = document.getElementById('error-message');
+      const successDiv = document.getElementById('success-message');
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      
+      // Validation
+      if (password !== confirmPassword) {
+        errorDiv.textContent = 'Passwords do not match';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      
+      if (password.length < 6) {
+        errorDiv.textContent = 'Password must be at least 6 characters';
+        errorDiv.style.display = 'block';
+        return;
+      }
+      
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating account...';
+        errorDiv.style.display = 'none';
+        successDiv.style.display = 'none';
+        
+        const response = await fetch('http://localhost:3000/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Registration failed');
+        }
+        
+        // Show success message
+        successDiv.textContent = 'Account created successfully! Redirecting to login...';
+        successDiv.style.display = 'block';
+        
+        // Store token and redirect after short delay
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1500);
+        
+      } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Account';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,232 @@
+/* Dashboard Styles */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Stats Section */
+.stats-section {
+  margin-bottom: 30px;
+}
+
+.stats-section h2 {
+  color: var(--primary-color);
+  margin-bottom: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* Quick Actions */
+.quick-actions {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.btn-large {
+  padding: 15px 40px;
+  font-size: 1.1rem;
+}
+
+/* Upcoming Section */
+.upcoming-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 25px;
+  margin-bottom: 30px;
+}
+
+.upcoming-section h3 {
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.upcoming-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+}
+
+.upcoming-item {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.upcoming-item h4 {
+  margin-bottom: 5px;
+}
+
+.upcoming-item .days-until {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+/* Analytics Section */
+.analytics-section {
+  margin-bottom: 30px;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.analytics-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.analytics-card h3 {
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
+
+.stats-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.stat-bar-label {
+  min-width: 100px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.stat-bar-track {
+  flex: 1;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.stat-bar-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.stat-bar-value {
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Trips Section */
+.trips-section {
+  margin-bottom: 30px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h2 {
+  color: var(--primary-color);
+}
+
+.link-primary {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link-primary:hover {
+  text-decoration: underline;
+}
+
+/* Trip Progress Bar */
+.trip-card {
+  position: relative;
+}
+
+.trip-progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e0e0e0;
+}
+
+.trip-progress-fill {
+  height: 100%;
+  background: #4caf50;
+  transition: width 0.3s ease;
+}
+
+/* User Greeting */
+.user-greeting {
+  color: white;
+  margin-right: 20px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+  }
+  
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}

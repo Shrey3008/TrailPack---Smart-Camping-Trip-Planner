@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>TrailPack</h1>
+      <span class="tagline">Admin Dashboard</span>
+    </div>
+    <div class="nav-links">
+      <span id="user-name" class="user-greeting"></span>
+      <a href="dashboard.html" class="nav-link">Dashboard</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+      <button class="btn btn-secondary" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="container admin-dashboard">
+    <header class="admin-header">
+      <h2>📊 Admin Dashboard</h2>
+      <p>Manage users, view system statistics, and monitor activity</p>
+    </header>
+
+    <!-- Overview Stats -->
+    <section class="admin-grid">
+      <div class="admin-card">
+        <h3>👥 Total Users</h3>
+        <div class="admin-stat-large" id="total-users">0</div>
+        <div class="admin-stat-label">registered users</div>
+      </div>
+      <div class="admin-card">
+        <h3>🏕️ Total Trips</h3>
+        <div class="admin-stat-large" id="total-trips">0</div>
+        <div class="admin-stat-label">trips created</div>
+      </div>
+      <div class="admin-card">
+        <h3>📦 Total Items</h3>
+        <div class="admin-stat-large" id="total-items">0</div>
+        <div class="admin-stat-label">checklist items</div>
+      </div>
+      <div class="admin-card">
+        <h3>📈 New This Month</h3>
+        <div style="display: flex; gap: 20px; margin-top: 15px;">
+          <div>
+            <div class="admin-stat-large" style="font-size: 1.8rem;" id="new-users">0</div>
+            <div class="admin-stat-label">new users</div>
+          </div>
+          <div>
+            <div class="admin-stat-large" style="font-size: 1.8rem;" id="new-trips">0</div>
+            <div class="admin-stat-label">new trips</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Role Distribution -->
+    <section class="analytics-section">
+      <div class="analytics-grid">
+        <div class="analytics-card">
+          <h3>👤 User Role Distribution</h3>
+          <div id="role-stats" class="stats-bars"></div>
+        </div>
+        <div class="analytics-card">
+          <h3>🎯 Trip Status Distribution</h3>
+          <div id="status-stats" class="stats-bars"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Top Users -->
+    <section class="trips-section">
+      <div class="section-header">
+        <h2>🏆 Top Active Users</h2>
+      </div>
+      <div class="admin-card" style="overflow-x: auto;">
+        <table class="users-table" id="top-users-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Total Trips</th>
+              <th>Items Packed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Top users will be loaded here -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- All Users Management -->
+    <section class="trips-section">
+      <div class="section-header">
+        <h2>👥 User Management</h2>
+        <div style="display: flex; gap: 10px;">
+          <select id="role-filter" class="form-select">
+            <option value="">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="organizer">Organizer</option>
+            <option value="user">User</option>
+          </select>
+          <select id="status-filter" class="form-select">
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-card" style="overflow-x: auto;">
+        <table class="users-table" id="users-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Joined</th>
+              <th>Last Login</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Users will be loaded here -->
+          </tbody>
+        </table>
+        <div id="users-pagination" class="pagination"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Role Edit Modal -->
+  <div id="role-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <span class="close" onclick="closeRoleModal()">&times;</span>
+      <h3>Change User Role</h3>
+      <p id="role-modal-user"></p>
+      <select id="new-role" class="form-select">
+        <option value="user">User</option>
+        <option value="organizer">Organizer</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button class="btn btn-primary" onclick="saveUserRole()" style="margin-top: 15px;">Save Changes</button>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script src="admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      checkAdminAccess();
+      loadAdminDashboard();
+      loadUsers();
+    });
+  </script>
+</body>
+</html>

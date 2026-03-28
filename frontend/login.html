@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body class="auth-page">
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="auth-header">
+        <h1>TrailPack</h1>
+        <p>Smart Camping Trip Planner</p>
+      </div>
+      
+      <form id="login-form" class="auth-form">
+        <h2>Welcome Back</h2>
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required placeholder="Enter your email">
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required placeholder="Enter your password">
+        </div>
+        
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        
+        <button type="submit" class="btn btn-primary btn-full">Login</button>
+        
+        <div class="auth-links">
+          <p>Don't have an account? <a href="register.html">Sign up</a></p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="auth.js"></script>
+  <script>
+    // Handle login form submission
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorDiv = document.getElementById('error-message');
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      
+      try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Logging in...';
+        errorDiv.style.display = 'none';
+        
+        const response = await fetch('http://localhost:3000/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Login failed');
+        }
+        
+        // Store token and user data
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Redirect to dashboard
+        window.location.href = 'dashboard.html';
+        
+      } catch (error) {
+        errorDiv.textContent = error.message;
+        errorDiv.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Login';
+      }
+    });
+  </script>
+</body>
+</html>

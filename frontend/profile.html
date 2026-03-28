@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>TrailPack</h1>
+      <span class="tagline">Smart Camping Trip Planner</span>
+    </div>
+    <div class="nav-links">
+      <span id="user-name" class="user-greeting"></span>
+      <a href="dashboard.html" class="nav-link">Dashboard</a>
+      <a href="#" class="nav-link" id="admin-link" style="display: none;">Admin</a>
+      <button class="btn btn-secondary" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="container profile-container">
+    <div class="profile-header">
+      <h2>👤 My Profile</h2>
+    </div>
+
+    <div class="profile-grid">
+      <!-- Profile Info Card -->
+      <div class="profile-card">
+        <h3>Profile Information</h3>
+        <form id="profile-form">
+          <div class="form-group">
+            <label for="profile-name">Full Name</label>
+            <input type="text" id="profile-name" name="name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="profile-email">Email</label>
+            <input type="email" id="profile-email" name="email" disabled>
+          </div>
+          
+          <div class="form-group">
+            <label for="profile-role">Role</label>
+            <input type="text" id="profile-role" name="role" disabled>
+          </div>
+          
+          <div class="form-group">
+            <label for="profile-phone">Phone Number</label>
+            <input type="tel" id="profile-phone" name="phone" placeholder="Enter your phone number">
+          </div>
+          
+          <div id="profile-message" class="message" style="display: none;"></div>
+          
+          <button type="submit" class="btn btn-primary">Update Profile</button>
+        </form>
+      </div>
+
+      <!-- Stats Card -->
+      <div class="profile-card">
+        <h3>📊 My Statistics</h3>
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="stat-total-trips">0</div>
+            <div class="profile-stat-label">Total Trips</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="stat-completed">0</div>
+            <div class="profile-stat-label">Completed</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="stat-items-packed">0</div>
+            <div class="profile-stat-label">Items Packed</div>
+          </div>
+          <div class="profile-stat">
+            <div class="profile-stat-value" id="stat-member-since">-</div>
+            <div class="profile-stat-label">Member Since</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Change Password Card -->
+      <div class="profile-card">
+        <h3>🔐 Change Password</h3>
+        <form id="password-form">
+          <div class="form-group">
+            <label for="current-password">Current Password</label>
+            <input type="password" id="current-password" name="currentPassword" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="new-password">New Password</label>
+            <input type="password" id="new-password" name="newPassword" required minlength="6">
+          </div>
+          
+          <div class="form-group">
+            <label for="confirm-new-password">Confirm New Password</label>
+            <input type="password" id="confirm-new-password" name="confirmNewPassword" required>
+          </div>
+          
+          <div id="password-message" class="message" style="display: none;"></div>
+          
+          <button type="submit" class="btn btn-primary">Change Password</button>
+        </form>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="profile-card">
+        <h3>🔔 Notification Settings</h3>
+        <form id="notification-form">
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="email-notifications" name="emailNotifications">
+              <span>Email Notifications</span>
+            </label>
+          </div>
+          
+          <div class="form-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="checklist-reminders" name="checklistReminders">
+              <span>Checklist Reminders</span>
+            </label>
+          </div>
+          
+          <div id="notification-message" class="message" style="display: none;"></div>
+          
+          <button type="submit" class="btn btn-primary">Save Settings</button>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="auth.js"></script>
+  <script src="profile.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadProfile();
+    });
+  </script>
+</body>
+</html>
