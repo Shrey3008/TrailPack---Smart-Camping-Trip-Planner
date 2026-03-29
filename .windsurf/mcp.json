@@ -1,10 +1,6 @@
 {
   "mcpServers": {
-    "figma": {
-      "type": "remote",
-      "url": "https://mcp.figma.com",
-      "disabled": false
-    },
+
     "playwright": {
       "type": "stdio",
       "command": "npx",
@@ -14,3 +10,4 @@
     }
   }
 }
+
