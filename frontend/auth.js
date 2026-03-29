@@ -1,6 +1,12 @@
 // Authentication utilities
 
-const API_URL = 'http://localhost:3000';
+// Detect environment and set API URL
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const API_URL = isLocalhost 
+  ? 'http://localhost:3000'  // Local development
+  : 'http://trailpack-backend-env.elasticbeanstalk.com';  // AWS Elastic Beanstalk - UPDATE THIS AFTER DEPLOYMENT
+
+console.log('API URL:', API_URL);
 
 // Check if user is authenticated
 function checkAuth() {
