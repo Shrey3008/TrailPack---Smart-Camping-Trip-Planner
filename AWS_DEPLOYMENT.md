@@ -1,7 +1,7 @@
 # AWS Deployment Guide for TrailPack
 
 ## Prerequisites
-1. AWS Account (ID: 783476057304) - Free Tier
+1. AWS Account (ID: 173480719972) - Free Tier
 2. AWS CLI installed and configured
 3. EB CLI installed (for Elastic Beanstalk)
 
@@ -66,22 +66,22 @@ eb create trailpack-backend-env --single --envvars \
 
 ### Create S3 Bucket
 ```bash
-aws s3 mb s3://trailpack-frontend-783476057304 --region us-east-1
+aws s3 mb s3://trailpack-frontend-173480719972 --region us-east-1
 ```
 
 ### Configure for Static Website Hosting
 ```bash
-aws s3 website s3://trailpack-frontend-783476057304 --index-document login.html --error-document login.html
+aws s3 website s3://trailpack-frontend-173480719972 --index-document login.html --error-document login.html
 ```
 
 ### Set Bucket Policy
 ```bash
-aws s3api put-bucket-policy --bucket trailpack-frontend-783476057304 --policy file://bucket-policy.json
+aws s3api put-bucket-policy --bucket trailpack-frontend-173480719972 --policy file://bucket-policy.json
 ```
 
 ### Upload Frontend
 ```bash
-aws s3 sync frontend/ s3://trailpack-frontend-783476057304 --delete
+aws s3 sync frontend/ s3://trailpack-frontend-173480719972 --delete
 ```
 
 ## Step 4: Environment Variables
@@ -104,7 +104,7 @@ Update to point to your Elastic Beanstalk URL
 Update `backend/server.js` CORS settings for production:
 ```javascript
 app.use(cors({
-  origin: 'http://trailpack-frontend-783476057304.s3-website-us-east-1.amazonaws.com',
+  origin: 'http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com',
   credentials: true
 }));
 ```
@@ -129,7 +129,7 @@ app.use(cors({
 
 ## Post-Deployment URLs
 
-- **Frontend**: http://trailpack-frontend-783476057304.s3-website-us-east-1.amazonaws.com
+- **Frontend**: http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com
 - **Backend**: http://trailpack-backend-env.xxx.elasticbeanstalk.com
 
 ## Troubleshooting

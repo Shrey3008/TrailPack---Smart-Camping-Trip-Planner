@@ -6,7 +6,7 @@
       "Effect": "Allow",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::trailpack-frontend-783476057304/*"
+      "Resource": "arn:aws:s3:::trailpack-frontend-173480719972/*"
     }
   ]
 }
