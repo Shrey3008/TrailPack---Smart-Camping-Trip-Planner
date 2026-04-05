@@ -7,7 +7,7 @@ This guide will help you deploy TrailPack to AWS Free Tier using:
 - Backend: Elastic Beanstalk (750 hrs/month Free)
 - Database: MongoDB Atlas (512MB Free tier)
 
-Account ID: 783476057304
+Account ID: 173480719972
 
 ## Step 1: MongoDB Atlas (Free Database)
 
@@ -42,13 +42,13 @@ const API_URL = 'http://trailpack-backend-env.xxx.elasticbeanstalk.com';
 
 Deploy to S3:
 cd frontend
-aws s3 mb s3://trailpack-frontend-783476057304 --region us-east-1
-aws s3 website s3://trailpack-frontend-783476057304 --index-document login.html --error-document login.html
-aws s3 sync . s3://trailpack-frontend-783476057304
+aws s3 mb s3://trailpack-frontend-173480719972 --region us-east-1
+aws s3 website s3://trailpack-frontend-173480719972 --index-document login.html --error-document login.html
+aws s3 sync . s3://trailpack-frontend-173480719972
 
 ## Final URLs
 
-Frontend: http://trailpack-frontend-783476057304.s3-website-us-east-1.amazonaws.com
+Frontend: http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com
 Backend: http://trailpack-backend-env.xxx.elasticbeanstalk.com
 
 ## Estimated Costs

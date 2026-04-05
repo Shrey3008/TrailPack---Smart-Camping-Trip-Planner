@@ -1,6 +1,6 @@
 @echo off
 REM AWS Deployment Script for TrailPack
-REM Account ID: 783476057304
+REM Account ID: 173480719972
 
 echo ==========================================
 echo TrailPack AWS Deployment Script
@@ -17,7 +17,7 @@ if errorlevel 1 (
 
 REM Set AWS region
 set AWS_REGION=us-east-1
-set BUCKET_NAME=trailpack-frontend-783476057304
+set BUCKET_NAME=trailpack-frontend-173480719972
 set APP_NAME=trailpack-backend
 set ENV_NAME=trailpack-backend-env
 

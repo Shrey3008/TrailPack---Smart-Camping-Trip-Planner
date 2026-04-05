@@ -1,6 +1,6 @@
 #!/bin/bash
 # AWS Deployment Script for TrailPack (Linux/Mac)
-# Account ID: 783476057304
+# Account ID: 173480719972
 
 set -e
 
@@ -11,7 +11,7 @@ echo ""
 
 # Configuration
 AWS_REGION="us-east-1"
-BUCKET_NAME="trailpack-frontend-783476057304"
+BUCKET_NAME="trailpack-frontend-173480719972"
 APP_NAME="trailpack-backend"
 ENV_NAME="trailpack-backend-env"
 
