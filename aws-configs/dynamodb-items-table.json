@@ -1,0 +1,41 @@
+{
+  "TableName": "TrailPack-Items",
+  "KeySchema": [
+    {
+      "AttributeName": "itemId",
+      "KeyType": "HASH"
+    }
+  ],
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "itemId",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "tripId",
+      "AttributeType": "S"
+    }
+  ],
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "TripIdIndex",
+      "KeySchema": [
+        {
+          "AttributeName": "tripId",
+          "KeyType": "HASH"
+        }
+      ],
+      "Projection": {
+        "ProjectionType": "ALL"
+      },
+      "ProvisionedThroughput": {
+        "ReadCapacityUnits": 5,
+        "WriteCapacityUnits": 5
+      }
+    }
+  ],
+  "ProvisionedThroughput": {
+    "ReadCapacityUnits": 5,
+    "WriteCapacityUnits": 5
+  }
+}
