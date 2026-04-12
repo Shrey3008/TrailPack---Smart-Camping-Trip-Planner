@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ChecklistItem = require('../models/ChecklistItem');
-const Trip = require('../models/Trip');
+const { dynamoDBService } = require('../services/dynamoDBService');
 const checklistService = require('../services/checklistService');
 const { authenticate } = require('../middleware/auth');
 
@@ -11,21 +10,23 @@ router.use(authenticate);
 // GET /trips/:id/items - Get all checklist items for a trip
 router.get('/trips/:id/items', async (req, res) => {
   try {
-    // Verify user has access to the trip
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id },
-        { 'settings.isPublic': true }
-      ]
-    });
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     
+    // Verify user has access to the trip
+    const trip = await dynamoDBService.getTripById(tripId);
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
     }
     
-    const items = await ChecklistItem.find({ tripId: req.params.id });
+    // Check access (owner or public)
+    const isOwner = trip.userId === userId;
+    const isPublic = trip.settings?.isPublic === true;
+    if (!isOwner && !isPublic) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    const items = await dynamoDBService.getItemsByTrip(tripId);
     res.json(items);
   } catch (error) {
     console.error('Error fetching checklist items:', error);
@@ -36,24 +37,25 @@ router.get('/trips/:id/items', async (req, res) => {
 // GET /trips/:id/items/category/:category - Get items by category
 router.get('/trips/:id/items/category/:category', async (req, res) => {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
+    const category = req.params.category;
     
+    const trip = await dynamoDBService.getTripById(tripId);
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
     }
     
-    const items = await ChecklistItem.find({
-      tripId: req.params.id,
-      category: req.params.category
-    });
+    const isOwner = trip.userId === userId;
+    const isPublic = trip.settings?.isPublic === true;
+    if (!isOwner && !isPublic) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
     
-    res.json(items);
+    const items = await dynamoDBService.getItemsByTrip(tripId);
+    const filteredItems = items.filter(item => item.category === category);
+    
+    res.json(filteredItems);
   } catch (error) {
     console.error('Error fetching category items:', error);
     res.status(500).json({ message: 'Error fetching category items' });
@@ -63,20 +65,26 @@ router.get('/trips/:id/items/category/:category', async (req, res) => {
 // GET /trips/:id/progress - Get trip packing progress
 router.get('/trips/:id/progress', async (req, res) => {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     
+    const trip = await dynamoDBService.getTripById(tripId);
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
     }
     
-    const progress = await checklistService.updateTripProgress(req.params.id);
-    res.json(progress);
+    const isOwner = trip.userId === userId;
+    const isPublic = trip.settings?.isPublic === true;
+    if (!isOwner && !isPublic) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    const items = await dynamoDBService.getItemsByTrip(tripId);
+    const totalItems = items.length;
+    const packedItems = items.filter(item => item.isChecked).length;
+    const progress = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
+    
+    res.json({ totalItems, packedItems, progress });
   } catch (error) {
     console.error('Error fetching progress:', error);
     res.status(500).json({ message: 'Error fetching progress' });
@@ -86,43 +94,25 @@ router.get('/trips/:id/progress', async (req, res) => {
 // PUT /items/:id - Update packed status
 router.put('/:id', async (req, res) => {
   try {
+    const itemId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     const { packed, notes } = req.body;
     
-    // Find item and verify trip ownership
-    const item = await ChecklistItem.findById(req.params.id);
+    const item = await dynamoDBService.getItemById(itemId);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
     
-    const trip = await Trip.findOne({
-      _id: item.tripId,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
-    
-    if (!trip) {
+    const trip = await dynamoDBService.getTripById(item.tripId);
+    if (!trip || trip.userId !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    // Update item
     const updates = {};
-    if (packed !== undefined) updates.packed = packed;
+    if (packed !== undefined) updates.isChecked = packed;
     if (notes !== undefined) updates.notes = notes;
     
-    const updatedItem = await ChecklistItem.findByIdAndUpdate(
-      req.params.id,
-      updates,
-      { new: true }
-    );
-    
-    // Update trip progress
-    await checklistService.updateTripProgress(item.tripId);
-    
-    // Update user stats
-    await req.user.updateStats();
-    
+    const updatedItem = await dynamoDBService.updateItem(itemId, updates);
     res.json(updatedItem);
   } catch (error) {
     console.error('Error updating item:', error);
