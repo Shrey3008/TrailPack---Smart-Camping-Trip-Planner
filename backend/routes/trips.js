@@ -20,8 +20,7 @@ router.post('/', async (req, res) => {
     // Create trip in DynamoDB - ensure userId is a string
     const userId = String(req.user.userId || req.user.id);
     
-    const savedTrip = await dynamoDBService.createTrip({
-      userId,
+    const savedTrip = await dynamoDBService.createTrip(userId, {
       name,
       terrain,
       season,
