@@ -261,32 +261,21 @@ router.post('/bulk', async (req, res) => {
 // DELETE /items/:id - Delete a checklist item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await ChecklistItem.findById(req.params.id);
+    const itemId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     
+    const item = await dynamoDBService.getItemById(itemId);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
     
     // Verify trip ownership
-    const trip = await Trip.findOne({
-      _id: item.tripId,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
-    
-    if (!trip) {
+    const trip = await dynamoDBService.getTripById(item.tripId);
+    if (!trip || trip.userId !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    await ChecklistItem.findByIdAndDelete(req.params.id);
-    
-    // Update trip progress
-    await checklistService.updateTripProgress(item.tripId);
-    
-    // Update user stats
-    await req.user.updateStats();
+    await dynamoDBService.deleteItem(itemId);
     
     res.json({ message: 'Item deleted successfully' });
   } catch (error) {
