@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Trip = require('../models/Trip');
-const ChecklistItem = require('../models/ChecklistItem');
+const dynamoDBService = require('../services/dynamoDBService');
 const checklistService = require('../services/checklistService');
-const dashboardService = require('../services/dashboardService');
 const { authenticate, authorize } = require('../middleware/auth');
 
 // All trip routes require authentication
@@ -19,9 +17,9 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Name, terrain, season, and duration are required' });
     }
     
-    // Create trip with user association
-    const trip = new Trip({
-      userId: req.user._id,
+    // Create trip in DynamoDB
+    const savedTrip = await dynamoDBService.createTrip({
+      userId: req.user.userId,
       name,
       terrain,
       season,
@@ -29,31 +27,25 @@ router.post('/', async (req, res) => {
       startDate: startDate || null,
       endDate: endDate || null,
       settings: settings || {},
-      participants: [{ userId: req.user._id, role: 'organizer' }]
+      participants: [{ userId: req.user.userId, role: 'organizer' }]
     });
     
-    const savedTrip = await trip.save();
-    
     // Generate checklist items using business logic service
-    if (trip.settings.autoGenerateChecklist !== false) {
+    if (savedTrip.settings.autoGenerateChecklist !== false) {
       const checklistItems = await checklistService.generateChecklist(terrain, season, duration);
       
       // Save checklist items
       const itemPromises = checklistItems.map(item => {
-        const checklistItem = new ChecklistItem({
-          tripId: savedTrip._id,
+        return dynamoDBService.createItem({
+          tripId: savedTrip.tripId,
           name: item.name,
           category: item.category,
           priority: item.priority || 'medium'
         });
-        return checklistItem.save();
       });
       
       await Promise.all(itemPromises);
     }
-    
-    // Update user stats
-    await req.user.updateStats();
     
     res.status(201).json({
       message: 'Trip created successfully',
@@ -68,26 +60,20 @@ router.post('/', async (req, res) => {
 // GET /trips - Get all trips for current user
 router.get('/', async (req, res) => {
   try {
-    const { status, terrain, season, page = 1, limit = 20 } = req.query;
+    const { status, terrain, season } = req.query;
     
-    // Build filter
-    const filter = { userId: req.user._id };
-    if (status) filter.status = status;
-    if (terrain) filter.terrain = terrain;
-    if (season) filter.season = season;
+    // Get trips from DynamoDB
+    const trips = await dynamoDBService.getTripsByUser(req.user.userId);
     
-    const trips = await Trip.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-    
-    const count = await Trip.countDocuments(filter);
+    // Filter trips if needed
+    let filteredTrips = trips;
+    if (status) filteredTrips = filteredTrips.filter(t => t.status === status);
+    if (terrain) filteredTrips = filteredTrips.filter(t => t.terrain === terrain);
+    if (season) filteredTrips = filteredTrips.filter(t => t.season === season);
     
     res.json({
-      trips,
-      totalPages: Math.ceil(count / limit),
-      currentPage: parseInt(page),
-      total: count
+      trips: filteredTrips,
+      total: filteredTrips.length
     });
   } catch (error) {
     console.error('Error fetching trips:', error);
@@ -98,8 +84,16 @@ router.get('/', async (req, res) => {
 // GET /trips/dashboard - Get dashboard data for current user
 router.get('/dashboard/stats', async (req, res) => {
   try {
-    const dashboardData = await dashboardService.getUserDashboard(req.user._id);
-    res.json(dashboardData);
+    const trips = await dynamoDBService.getTripsByUser(req.user.userId);
+    const totalTrips = trips.length;
+    const activeTrips = trips.filter(t => t.status === 'active').length;
+    const completedTrips = trips.filter(t => t.status === 'completed').length;
+    
+    res.json({
+      totalTrips,
+      activeTrips,
+      completedTrips
+    });
   } catch (error) {
     console.error('Error fetching dashboard:', error);
     res.status(500).json({ message: 'Error fetching dashboard data' });
@@ -120,17 +114,19 @@ router.get('/admin/dashboard', authorize('admin'), async (req, res) => {
 // GET /trips/:id - Get a single trip
 router.get('/:id', async (req, res) => {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id },
-        { 'settings.isPublic': true }
-      ]
-    });
+    const trip = await dynamoDBService.getTripById(req.params.id);
     
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    // Check access (owner, participant, or public)
+    const isOwner = trip.userId === req.user.userId;
+    const isParticipant = trip.participants && trip.participants.some(p => p.userId === req.user.userId);
+    const isPublic = trip.settings && trip.settings.isPublic;
+    
+    if (!isOwner && !isParticipant && !isPublic) {
+      return res.status(403).json({ message: 'Access denied' });
     }
     
     res.json(trip);
@@ -145,30 +141,35 @@ router.put('/:id', async (req, res) => {
   try {
     const { name, terrain, season, duration, startDate, endDate, status, settings } = req.body;
     
-    // Find trip and check ownership
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants': { $elemMatch: { userId: req.user._id, role: 'organizer' } } }
-      ]
-    });
+    // Get trip and check ownership
+    const trip = await dynamoDBService.getTripById(req.params.id);
     
     if (!trip) {
-      return res.status(404).json({ message: 'Trip not found or access denied' });
+      return res.status(404).json({ message: 'Trip not found' });
     }
     
-    // Update fields
-    if (name) trip.name = name;
-    if (terrain) trip.terrain = terrain;
-    if (season) trip.season = season;
-    if (duration) trip.duration = parseInt(duration);
-    if (startDate !== undefined) trip.startDate = startDate;
-    if (endDate !== undefined) trip.endDate = endDate;
-    if (status) trip.status = status;
-    if (settings) trip.settings = { ...trip.settings, ...settings };
+    // Check if user is owner or organizer
+    const isOwner = trip.userId === req.user.userId;
+    const isOrganizer = trip.participants && trip.participants.some(
+      p => p.userId === req.user.userId && p.role === 'organizer'
+    );
     
-    const updatedTrip = await trip.save();
+    if (!isOwner && !isOrganizer) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Build update object
+    const updates = {};
+    if (name) updates.name = name;
+    if (terrain) updates.terrain = terrain;
+    if (season) updates.season = season;
+    if (duration) updates.duration = parseInt(duration);
+    if (startDate !== undefined) updates.startDate = startDate;
+    if (endDate !== undefined) updates.endDate = endDate;
+    if (status) updates.status = status;
+    if (settings) updates.settings = { ...trip.settings, ...settings };
+    
+    const updatedTrip = await dynamoDBService.updateTrip(req.params.id, updates);
     
     res.json({
       message: 'Trip updated successfully',
