@@ -80,14 +80,22 @@ const dynamoDBService = {
 
   // Trip Operations
   createTrip: async (userId, tripData) => {
-    const tripId = uuidv4();
+    const tripId = String(uuidv4());
     const item = {
-      tripId,
-      userId,
-      ...tripData,
+      tripId: tripId,
+      userId: String(userId),
+      name: String(tripData.name || ''),
+      terrain: String(tripData.terrain || ''),
+      season: String(tripData.season || ''),
+      duration: parseInt(tripData.duration) || 0,
+      status: String(tripData.status || 'planning'),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+    
+    // Only add optional fields if they exist
+    if (tripData.startDate) item.startDate = String(tripData.startDate);
+    if (tripData.endDate) item.endDate = String(tripData.endDate);
     
     await docClient.send(new PutCommand({
       TableName: TABLES.TRIPS,
