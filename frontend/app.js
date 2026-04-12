@@ -392,7 +392,7 @@ function updateTripStatusControls(trip) {
   const btnComplete = document.getElementById('btn-complete-trip');
   const btnCancel = document.getElementById('btn-cancel-trip');
   const btnReset = document.getElementById('btn-reset-trip');
-  const btnClearPacked = document.getElementById('btn-clear-packed');
+  const btnUncheckAll = document.getElementById('btn-uncheck-all');
   
   if (!controlsSection || !trip) return;
   
@@ -405,14 +405,14 @@ function updateTripStatusControls(trip) {
   btnComplete.style.display = status === 'active' ? 'inline-block' : 'none';
   btnCancel.style.display = (status === 'planning' || status === 'active') ? 'inline-block' : 'none';
   btnReset.style.display = (status === 'completed' || status === 'cancelled') ? 'inline-block' : 'none';
-  btnClearPacked.style.display = 'inline-block';
+  btnUncheckAll.style.display = 'inline-block';
   
   // Attach event handlers
   if (btnStart) btnStart.onclick = () => changeTripStatus(trip.tripId, 'active');
   if (btnComplete) btnComplete.onclick = () => changeTripStatus(trip.tripId, 'completed');
   if (btnCancel) btnCancel.onclick = () => changeTripStatus(trip.tripId, 'cancelled');
   if (btnReset) btnReset.onclick = () => changeTripStatus(trip.tripId, 'planning');
-  if (btnClearPacked) btnClearPacked.onclick = () => clearPackedItems(trip.tripId);
+  if (btnUncheckAll) btnUncheckAll.onclick = () => uncheckAllItems(trip.tripId);
 }
 
 // Change trip status
@@ -435,22 +435,30 @@ async function changeTripStatus(tripId, newStatus) {
   }
 }
 
-// Clear all packed items
-async function clearPackedItems(tripId) {
-  if (!confirm('Are you sure you want to remove all packed items?')) {
+// Uncheck all items (mark all as unpacked)
+async function uncheckAllItems(tripId) {
+  if (!confirm('Uncheck all items? This will mark everything as unpacked.')) {
     return;
   }
   
   try {
-    await apiCallWithAuth(`/trips/${tripId}/items/clear-packed`, {
-      method: 'DELETE'
-    });
+    // Get all items and uncheck them
+    const items = await apiCallWithAuth(`/trips/${tripId}/items`);
+    const packedItems = items.filter(item => item.isChecked);
     
-    alert('Packed items cleared successfully');
+    // Uncheck each packed item
+    for (const item of packedItems) {
+      await apiCallWithAuth(`/items/${item.itemId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ packed: false })
+      });
+    }
+    
+    alert(`${packedItems.length} items unchecked`);
     loadChecklist(tripId);
   } catch (error) {
-    console.error('Error clearing packed items:', error);
-    alert('Failed to clear packed items');
+    console.error('Error unchecking items:', error);
+    alert('Failed to uncheck items');
   }
 }
 
