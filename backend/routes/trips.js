@@ -17,13 +17,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Name, terrain, season, and duration are required' });
     }
     
-    // Debug logging
-    console.log('DEBUG req.user:', JSON.stringify(req.user));
-    console.log('DEBUG userId:', req.user.userId, 'Type:', typeof req.user.userId);
+    // Create trip in DynamoDB - ensure userId is a string
+    const userId = String(req.user.userId || req.user.id);
     
-    // Create trip in DynamoDB
     const savedTrip = await dynamoDBService.createTrip({
-      userId: req.user.userId,
+      userId,
       name,
       terrain,
       season,
@@ -31,7 +29,7 @@ router.post('/', async (req, res) => {
       startDate: startDate || null,
       endDate: endDate || null,
       settings: settings || {},
-      participants: [{ userId: req.user.userId, role: 'organizer' }]
+      participants: [{ userId, role: 'organizer' }]
     });
     
     // Generate checklist items using business logic service
