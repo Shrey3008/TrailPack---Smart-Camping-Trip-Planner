@@ -20,7 +20,7 @@ router.post('/', async (req, res) => {
     // Create trip in DynamoDB - ensure userId is a string
     const userId = String(req.user.userId || req.user.id);
     
-    // Prepare trip data with properly stringified values
+    // Prepare trip data - avoid nested objects for DynamoDB compatibility
     const tripData = {
       name: String(name),
       terrain: String(terrain),
@@ -28,8 +28,9 @@ router.post('/', async (req, res) => {
       duration: parseInt(duration),
       startDate: startDate ? String(startDate) : null,
       endDate: endDate ? String(endDate) : null,
-      settings: settings || {},
-      participants: [{ userId: String(userId), role: 'organizer' }]
+      status: 'planning',
+      settings: { autoGenerateChecklist: true },
+      participantCount: 1
     };
     
     const savedTrip = await dynamoDBService.createTrip(userId, tripData);
