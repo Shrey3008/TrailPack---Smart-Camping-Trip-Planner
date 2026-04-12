@@ -97,6 +97,9 @@ const dynamoDBService = {
     if (tripData.startDate) item.startDate = String(tripData.startDate);
     if (tripData.endDate) item.endDate = String(tripData.endDate);
     
+    console.log('DEBUG DynamoDB item:', JSON.stringify(item, null, 2));
+    console.log('DEBUG tripId type:', typeof item.tripId, 'userId type:', typeof item.userId);
+    
     await docClient.send(new PutCommand({
       TableName: TABLES.TRIPS,
       Item: item
