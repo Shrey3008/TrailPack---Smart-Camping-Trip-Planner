@@ -219,8 +219,9 @@ router.put('/:id/status', async (req, res) => {
       trip: updatedTrip
     });
   } catch (error) {
-    console.error('Error updating status:', error);
-    res.status(500).json({ message: 'Error updating trip status' });
+    console.error('Error updating status:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ message: 'Error updating trip status: ' + error.message });
   }
 });
 

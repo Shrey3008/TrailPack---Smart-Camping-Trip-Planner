@@ -145,7 +145,12 @@ async function loadChecklist(tripId) {
     displayTripDetails(trip);
     
     // Load checklist items
-    const items = await apiCallWithAuth(`/trips/${tripId}/items`);
+    console.log('Fetching items for tripId:', tripId);
+    const response = await apiCallWithAuth(`/trips/${tripId}/items`);
+    console.log('Raw response:', response, 'Type:', typeof response);
+    // Handle both array and object with items property
+    const items = Array.isArray(response) ? response : (response.items || []);
+    console.log('Processed items:', items, 'Count:', items.length);
     displayChecklist(items, tripId);
     updateProgress(items);
     checkCompletion(items);

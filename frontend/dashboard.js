@@ -33,10 +33,13 @@ function updateStatsCards(stats) {
   const completedTripsEl = document.getElementById('completed-trips');
   const packingProgressEl = document.getElementById('packing-progress');
   
-  if (totalTripsEl) totalTripsEl.textContent = stats.totalTrips || 0;
-  if (activeTripsEl) activeTripsEl.textContent = stats.activeTrips || 0;
-  if (completedTripsEl) completedTripsEl.textContent = stats.completedTrips || 0;
-  if (packingProgressEl) packingProgressEl.textContent = `${stats.overallProgress || 0}%`;
+  // Handle case where stats is undefined or null
+  const safeStats = stats || {};
+  
+  if (totalTripsEl) totalTripsEl.textContent = safeStats.totalTrips || 0;
+  if (activeTripsEl) activeTripsEl.textContent = safeStats.activeTrips || 0;
+  if (completedTripsEl) completedTripsEl.textContent = safeStats.completedTrips || 0;
+  if (packingProgressEl) packingProgressEl.textContent = `${safeStats.overallProgress || 0}%`;
 }
 
 // Update terrain stats with progress bars
