@@ -100,15 +100,20 @@ async function handleCreateTrip(e) {
       endDate: document.getElementById('end-date')?.value || null
     };
     
+    console.log('Creating trip with data:', formData);
+    
     const result = await apiCallWithAuth('/trips', {
       method: 'POST',
       body: JSON.stringify(formData)
     });
     
+    console.log('Trip created successfully:', result);
+    
     // Redirect to checklist page
     window.location.href = `checklist.html?id=${result.trip.tripId}`;
   } catch (error) {
-    alert('Failed to create trip. Please try again.');
+    console.error('Failed to create trip:', error);
+    alert('Failed to create trip: ' + error.message);
     submitBtn.disabled = false;
     submitBtn.textContent = 'Create Trip';
   }
