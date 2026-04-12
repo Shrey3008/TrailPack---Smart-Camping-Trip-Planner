@@ -148,6 +148,10 @@ async function loadChecklist(tripId) {
     const items = await apiCallWithAuth(`/trips/${tripId}/items`);
     displayChecklist(items, tripId);
     updateProgress(items);
+    checkCompletion(items);
+    
+    // Update status controls
+    updateTripStatusControls(trip);
   } catch (error) {
     document.querySelector('.checklist-container').innerHTML = `
       <div class="error-message">
@@ -379,4 +383,82 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Update trip status controls visibility
+function updateTripStatusControls(trip) {
+  const controlsSection = document.getElementById('trip-status-controls');
+  const btnStart = document.getElementById('btn-start-trip');
+  const btnComplete = document.getElementById('btn-complete-trip');
+  const btnCancel = document.getElementById('btn-cancel-trip');
+  const btnReset = document.getElementById('btn-reset-trip');
+  const btnClearPacked = document.getElementById('btn-clear-packed');
+  
+  if (!controlsSection || !trip) return;
+  
+  controlsSection.style.display = 'block';
+  
+  // Show/hide buttons based on current status
+  const status = trip.status || 'planning';
+  
+  btnStart.style.display = status === 'planning' ? 'inline-block' : 'none';
+  btnComplete.style.display = status === 'active' ? 'inline-block' : 'none';
+  btnCancel.style.display = (status === 'planning' || status === 'active') ? 'inline-block' : 'none';
+  btnReset.style.display = (status === 'completed' || status === 'cancelled') ? 'inline-block' : 'none';
+  btnClearPacked.style.display = 'inline-block';
+  
+  // Attach event handlers
+  if (btnStart) btnStart.onclick = () => changeTripStatus(trip.tripId, 'active');
+  if (btnComplete) btnComplete.onclick = () => changeTripStatus(trip.tripId, 'completed');
+  if (btnCancel) btnCancel.onclick = () => changeTripStatus(trip.tripId, 'cancelled');
+  if (btnReset) btnReset.onclick = () => changeTripStatus(trip.tripId, 'planning');
+  if (btnClearPacked) btnClearPacked.onclick = () => clearPackedItems(trip.tripId);
+}
+
+// Change trip status
+async function changeTripStatus(tripId, newStatus) {
+  try {
+    await apiCallWithAuth(`/trips/${tripId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: newStatus })
+    });
+    
+    alert(`Trip status updated to: ${newStatus}`);
+    
+    // Reload trip details
+    const trip = await apiCallWithAuth(`/trips/${tripId}`);
+    displayTripDetails(trip);
+    updateTripStatusControls(trip);
+  } catch (error) {
+    console.error('Error updating trip status:', error);
+    alert('Failed to update trip status');
+  }
+}
+
+// Clear all packed items
+async function clearPackedItems(tripId) {
+  if (!confirm('Are you sure you want to remove all packed items?')) {
+    return;
+  }
+  
+  try {
+    await apiCallWithAuth(`/trips/${tripId}/items/clear-packed`, {
+      method: 'DELETE'
+    });
+    
+    alert('Packed items cleared successfully');
+    loadChecklist(tripId);
+  } catch (error) {
+    console.error('Error clearing packed items:', error);
+    alert('Failed to clear packed items');
+  }
+}
+
+// Show completion message when all items packed
+function checkCompletion(items) {
+  const completionMessage = document.getElementById('completion-message');
+  if (!completionMessage || items.length === 0) return;
+  
+  const allPacked = items.every(item => item.isChecked);
+  completionMessage.style.display = allPacked ? 'block' : 'none';
 }

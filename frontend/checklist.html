@@ -34,8 +34,28 @@
         </div>
       </div>
 
+      <!-- Trip Status Controls -->
+      <div id="trip-status-controls" class="trip-status-controls" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: none;">
+        <h3>Trip Status</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="btn-start-trip" class="btn btn-primary" style="display: none;">🚀 Start Trip</button>
+          <button id="btn-complete-trip" class="btn btn-success" style="display: none;">✅ Complete Trip</button>
+          <button id="btn-cancel-trip" class="btn btn-danger" style="display: none;">❌ Cancel Trip</button>
+          <button id="btn-reset-trip" class="btn btn-secondary" style="display: none;">🔄 Reset to Planning</button>
+        </div>
+      </div>
+
+      <!-- Completion Message -->
+      <div id="completion-message" class="completion-message" style="display: none; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; border-radius: 8px; text-align: center;">
+        <h2>🎉 All Packed & Ready!</h2>
+        <p>Your checklist is complete. Have an amazing trip!</p>
+      </div>
+
       <div class="add-item-section">
-        <h3>Add Custom Item</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+          <h3>Add Custom Item</h3>
+          <button id="btn-clear-packed" class="btn btn-warning" style="display: none;">🗑️ Clear Packed Items</button>
+        </div>
         <form id="add-item-form" class="add-item-form">
           <input type="text" id="new-item-name" placeholder="Item name" required>
           <select id="new-item-category" required>
