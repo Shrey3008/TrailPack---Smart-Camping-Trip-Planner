@@ -52,8 +52,9 @@ router.post('/', async (req, res) => {
       trip: savedTrip
     });
   } catch (error) {
-    console.error('Error creating trip:', error);
-    res.status(500).json({ message: 'Error creating trip' });
+    console.error('Error creating trip:', error.message);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ message: 'Error creating trip: ' + error.message });
   }
 });
 
