@@ -46,13 +46,19 @@ const dynamoDBService = {
   },
 
   getUserByEmail: async (email) => {
-    const result = await docClient.send(new QueryCommand({
-      TableName: TABLES.USERS,
-      IndexName: 'EmailIndex',
-      KeyConditionExpression: 'email = :email',
-      ExpressionAttributeValues: { ':email': email }
-    }));
-    return result.Items?.[0];
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: TABLES.USERS,
+        IndexName: 'EmailIndex',
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: { ':email': email }
+      }));
+      console.log('DEBUG getUserByEmail - Items found:', result.Items?.length || 0);
+      return result.Items && result.Items.length > 0 ? result.Items[0] : null;
+    } catch (error) {
+      console.error('DEBUG getUserByEmail error:', error.message);
+      return null;
+    }
   },
 
   updateUser: async (userId, updates) => {
