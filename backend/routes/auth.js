@@ -63,14 +63,17 @@ router.post('/login', async (req, res) => {
 
     // Find user by email
     const user = await dynamoDBService.getUserByEmail(email);
+    console.log('DEBUG login - email:', email);
     console.log('DEBUG login - user found:', !!user);
-    console.log('DEBUG login - user.hasPassword:', user ? !!user.password : false);
+    console.log('DEBUG login - input password length:', password?.length);
+    console.log('DEBUG login - stored password length:', user?.password?.length);
     
     if (!user || user.isActive === false) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check password
+    console.log('DEBUG login - comparing passwords...');
     const isValidPassword = await bcrypt.compare(password, user.password);
     console.log('DEBUG login - password valid:', isValidPassword);
     
