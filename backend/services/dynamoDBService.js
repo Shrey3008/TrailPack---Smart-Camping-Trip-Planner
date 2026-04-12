@@ -69,8 +69,11 @@ const dynamoDBService = {
     await docClient.send(new UpdateCommand({
       TableName: TABLES.USERS,
       Key: { userId },
-      UpdateExpression: `set ${updateExpression}, updatedAt = :updatedAt`,
-      ExpressionAttributeNames,
+      UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
+      ExpressionAttributeNames: {
+        ...expressionAttributeNames,
+        '#updatedAt': 'updatedAt'
+      },
       ExpressionAttributeValues: {
         ...expressionAttributeValues,
         ':updatedAt': new Date().toISOString()
