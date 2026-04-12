@@ -2,7 +2,7 @@
 
 // Detect environment and set API URL
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = isLocalhost 
+const API_URL = 'http://trailpack-prod-env.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com';
   ? 'http://localhost:3000'  // Local development
   : 'http://trailpack-backend-env.elasticbeanstalk.com';  // AWS Elastic Beanstalk - UPDATE THIS AFTER DEPLOYMENT
 
