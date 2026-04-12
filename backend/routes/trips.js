@@ -17,6 +17,10 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Name, terrain, season, and duration are required' });
     }
     
+    // Debug logging
+    console.log('DEBUG req.user:', JSON.stringify(req.user));
+    console.log('DEBUG userId:', req.user.userId, 'Type:', typeof req.user.userId);
+    
     // Create trip in DynamoDB
     const savedTrip = await dynamoDBService.createTrip({
       userId: req.user.userId,
