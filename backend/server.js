@@ -9,8 +9,8 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:8080',
   'http://localhost:3000',
-  'http://trailpack-frontend-783476057304.s3-website-us-east-1.amazonaws.com',
-  'https://trailpack-frontend-783476057304.s3-website-us-east-1.amazonaws.com'
+  'http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com',
+  'https://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com'
 ];
 
 app.use(cors({
