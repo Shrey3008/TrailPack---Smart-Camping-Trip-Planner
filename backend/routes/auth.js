@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
-const User = require('../models/User');
+const dynamoDBService = require('../services/dynamoDBService');
 const { authenticate, authorize, generateToken } = require('../middleware/auth');
 
 // POST /auth/register - Register new user
@@ -17,29 +17,30 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await dynamoDBService.getUserByEmail(email);
     if (existingUser) {
       return res.status(409).json({ message: 'Email already registered' });
     }
 
-    // Create user
-    const user = new User({
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user in DynamoDB
+    const user = await dynamoDBService.createUser({
       email,
-      password,
+      password: hashedPassword,
       name,
       role: 'user'
     });
 
-    await user.save();
-
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.userId);
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
-        id: user._id,
+        id: user.userId,
         email: user.email,
         name: user.name,
         role: user.role
@@ -60,35 +61,36 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user || !user.isActive) {
+    // Find user by email
+    const user = await dynamoDBService.getUserByEmail(email);
+    if (!user || user.isActive === false) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Check password
-    const isValidPassword = await user.comparePassword(password);
+    const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     // Update last login
-    user.lastLogin = new Date();
-    await user.save();
+    await dynamoDBService.updateUser(user.userId, { 
+      lastLogin: new Date().toISOString() 
+    });
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user.userId);
 
     res.json({
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
+        id: user.userId,
         email: user.email,
         name: user.name,
         role: user.role,
-        profile: user.profile,
-        stats: user.stats
+        profile: user.profile || {},
+        stats: user.stats || {}
       }
     });
   } catch (error) {
