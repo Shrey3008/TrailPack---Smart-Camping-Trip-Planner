@@ -29,7 +29,8 @@ app.use(express.json());
 
 app.use('/auth', require('./routes/auth'));
 app.use('/trips', require('./routes/trips'));
-app.use('/trips', require('./routes/items'));  // Items routes mounted under /trips for /trips/:id/items paths
+app.use('/trips', require('./routes/items'));  // For /trips/:id/items paths
+app.use('/items', require('./routes/items'));  // For /items/:id direct access
 
 // Root endpoint
 app.get('/', (req, res) => {
