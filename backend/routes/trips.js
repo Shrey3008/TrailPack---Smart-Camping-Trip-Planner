@@ -286,9 +286,21 @@ router.get('/:id/recommendations', async (req, res) => {
     
     // Generate recommendations based on trip data
     const recommendations = [
-      `Consider bringing extra layers for ${trip.terrain} terrain`,
-      `Check weather forecast for ${trip.season} conditions`,
-      `Pack ${parseInt(trip.duration) > 3 ? 'extra' : 'lightweight'} food supplies for ${trip.duration} days`
+      {
+        type: 'gear',
+        title: `Consider bringing extra layers for ${trip.terrain} terrain`,
+        description: 'Proper clothing is essential for comfort and safety'
+      },
+      {
+        type: 'weather',
+        title: `Check weather forecast for ${trip.season} conditions`,
+        description: 'Stay prepared for changing weather conditions'
+      },
+      {
+        type: 'food',
+        title: `Pack ${parseInt(trip.duration) > 3 ? 'extra' : 'lightweight'} food supplies for ${trip.duration} days`,
+        description: 'Ensure adequate nutrition for your trip duration'
+      }
     ];
     
     res.json({ recommendations });

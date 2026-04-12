@@ -258,11 +258,11 @@ function displayChecklist(items, tripId) {
       <div class="category-section">
         <h3 class="category-title">${escapeHtml(category)}</h3>
         ${categories[category].map(item => `
-          <div class="checklist-item ${item.packed ? 'packed' : ''}" data-item-id="${item.itemId}">
+          <div class="checklist-item ${item.isChecked ? 'packed' : ''}" data-item-id="${item.itemId}">
             <div class="item-left">
               <input type="checkbox" 
                      class="item-checkbox" 
-                     ${item.packed ? 'checked' : ''} 
+                     ${item.isChecked ? 'checked' : ''} 
                      onchange="togglePacked('${item.itemId}', this.checked)">
               <span class="item-name">${escapeHtml(item.name)}</span>
             </div>
@@ -367,7 +367,7 @@ function updateProgress(items) {
   if (!progressText || !progressFill) return;
   
   const total = items.length;
-  const packed = items.filter(item => item.packed).length;
+  const packed = items.filter(item => item.isChecked).length;
   const percentage = total > 0 ? (packed / total) * 100 : 0;
   
   progressText.textContent = `${packed}/${total} items packed`;
