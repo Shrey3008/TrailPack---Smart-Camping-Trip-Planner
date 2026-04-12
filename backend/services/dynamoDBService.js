@@ -217,6 +217,8 @@ const dynamoDBService = {
       ...acc,
       [`#${key}`]: key
     }), {});
+    expressionAttributeNames['#updatedAt'] = 'updatedAt';
+    
     const expressionAttributeValues = Object.entries(updates).reduce((acc, [key, value]) => ({
       ...acc,
       [`:${key}`]: value
@@ -225,13 +227,15 @@ const dynamoDBService = {
     await docClient.send(new UpdateCommand({
       TableName: TABLES.ITEMS,
       Key: { itemId },
-      UpdateExpression: `set ${updateExpression}, updatedAt = :updatedAt`,
+      UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
       ExpressionAttributeNames,
       ExpressionAttributeValues: {
         ...expressionAttributeValues,
         ':updatedAt': new Date().toISOString()
       }
     }));
+    
+    return { itemId, ...updates, updatedAt: new Date().toISOString() };
   },
 
   deleteItem: async (itemId) => {
