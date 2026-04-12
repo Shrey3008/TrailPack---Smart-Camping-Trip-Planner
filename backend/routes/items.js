@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { dynamoDBService } = require('../services/dynamoDBService');
+const dynamoDBService = require('../services/dynamoDBService');
 const checklistService = require('../services/checklistService');
 const { authenticate } = require('../middleware/auth');
 
