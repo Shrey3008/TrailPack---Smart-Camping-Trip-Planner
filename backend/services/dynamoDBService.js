@@ -150,16 +150,22 @@ const dynamoDBService = {
       [`:${key}`]: value
     }), {});
 
-    await docClient.send(new UpdateCommand({
+    const result = await docClient.send(new UpdateCommand({
       TableName: TABLES.TRIPS,
       Key: { tripId },
-      UpdateExpression: `set ${updateExpression}, updatedAt = :updatedAt`,
-      ExpressionAttributeNames,
+      UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
+      ExpressionAttributeNames: {
+        ...expressionAttributeNames,
+        '#updatedAt': 'updatedAt'
+      },
       ExpressionAttributeValues: {
         ...expressionAttributeValues,
         ':updatedAt': new Date().toISOString()
-      }
+      },
+      ReturnValues: 'ALL_NEW'
     }));
+    
+    return result.Attributes;
   },
 
   deleteTrip: async (tripId) => {
