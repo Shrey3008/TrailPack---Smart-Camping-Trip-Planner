@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
     const savedTrip = await dynamoDBService.createTrip(userId, tripData);
     
     // Generate checklist items using business logic service
-    if (savedTrip.settings.autoGenerateChecklist !== false) {
+    if (!savedTrip.settings || savedTrip.settings.autoGenerateChecklist !== false) {
       const checklistItems = await checklistService.generateChecklist(terrain, season, duration);
       
       // Save checklist items
