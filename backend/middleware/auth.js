@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const dynamoDBService = require('../services/dynamoDBService');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'trailpack-dev-secret';
 
@@ -14,12 +14,14 @@ const authMiddleware = {
       }
 
       const decoded = jwt.verify(token, JWT_SECRET);
-      const user = await User.findById(decoded.userId).select('-password');
+      const user = await dynamoDBService.getUserById(decoded.userId);
       
-      if (!user || !user.isActive) {
+      if (!user || user.isActive === false) {
         return res.status(401).json({ message: 'User not found or inactive' });
       }
 
+      // Remove password from user object before attaching to request
+      delete user.password;
       req.user = user;
       next();
     } catch (error) {
@@ -57,8 +59,9 @@ const authMiddleware = {
       
       if (token) {
         const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await User.findById(decoded.userId).select('-password');
-        if (user && user.isActive) {
+        const user = await dynamoDBService.getUserById(decoded.userId);
+        if (user && user.isActive !== false) {
+          delete user.password;
           req.user = user;
         }
       }
