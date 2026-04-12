@@ -271,7 +271,7 @@ function displayChecklist(items, tripId) {
               <span class="item-name">${escapeHtml(item.name)}</span>
             </div>
             <div class="item-actions">
-              <button class="btn btn-danger" onclick="deleteItem('${item.itemId}', '${tripId}')">
+              <button class="btn btn-danger" onclick="deleteItem('${item.itemId}', '${tripId}', '${escapeHtml(item.name)}', '${escapeHtml(item.category)}')">
                 Remove
               </button>
             </div>
@@ -345,21 +345,95 @@ async function handleAddItem(tripId) {
 }
 
 // Delete checklist item
-async function deleteItem(itemId, tripId) {
-  if (!confirm('Are you sure you want to remove this item?')) {
+async function deleteItem(itemId, tripId, itemName, itemCategory) {
+  if (!confirm(`Are you sure you want to remove "${itemName}"?`)) {
     return;
   }
   
   try {
+    // Store item info before deleting (for recovery)
+    const itemToRestore = {
+      itemId: itemId,
+      name: itemName,
+      category: itemCategory,
+      tripId: tripId,
+      deletedAt: new Date().toISOString()
+    };
+    
     await apiCallWithAuth(`/items/${itemId}`, {
       method: 'DELETE'
     });
+    
+    // Add to recently deleted
+    recentlyDeletedItems.push(itemToRestore);
+    
+    // Show recently deleted section
+    displayRecentlyDeleted();
     
     // Reload checklist
     loadChecklist(tripId);
     loadRecommendations(tripId);
   } catch (error) {
     alert('Failed to delete item. Please try again.');
+  }
+}
+
+// Display recently deleted items
+function displayRecentlyDeleted() {
+  const section = document.getElementById('recently-deleted-section');
+  const list = document.getElementById('recently-deleted-list');
+  
+  if (!section || !list) return;
+  
+  if (recentlyDeletedItems.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  
+  section.style.display = 'block';
+  
+  list.innerHTML = recentlyDeletedItems.map((item, index) => `
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 5px; margin-bottom: 8px;">
+      <div>
+        <strong>${escapeHtml(item.name)}</strong>
+        <span style="color: #666; font-size: 0.9rem;">(${escapeHtml(item.category)})</span>
+      </div>
+      <button class="btn btn-primary" onclick="restoreItem(${index})" style="padding: 5px 15px; font-size: 0.9rem;">
+        🔄 Restore
+      </button>
+    </div>
+  `).join('');
+}
+
+// Restore a deleted item
+async function restoreItem(index) {
+  const item = recentlyDeletedItems[index];
+  if (!item) return;
+  
+  try {
+    // Add the item back
+    await apiCallWithAuth('/items', {
+      method: 'POST',
+      body: JSON.stringify({
+        tripId: item.tripId,
+        name: item.name,
+        category: item.category
+      })
+    });
+    
+    // Remove from recently deleted
+    recentlyDeletedItems.splice(index, 1);
+    
+    // Update display
+    displayRecentlyDeleted();
+    
+    // Reload checklist
+    loadChecklist(item.tripId);
+    
+    alert(`"${item.name}" restored successfully!`);
+  } catch (error) {
+    console.error('Error restoring item:', error);
+    alert('Failed to restore item');
   }
 }
 
@@ -377,6 +451,9 @@ function updateProgress(items) {
   progressText.textContent = `${packed}/${total} items packed`;
   progressFill.style.width = `${percentage}%`;
 }
+
+// Array to store recently deleted items for recovery
+let recentlyDeletedItems = [];
 
 // Escape HTML to prevent XSS
 function escapeHtml(text) {
