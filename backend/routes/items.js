@@ -115,8 +115,9 @@ router.put('/:id', async (req, res) => {
     const updatedItem = await dynamoDBService.updateItem(itemId, updates);
     res.json(updatedItem);
   } catch (error) {
-    console.error('Error updating item:', error);
-    res.status(500).json({ message: 'Error updating item' });
+    console.error('Error updating item:', error.message);
+    console.error('Full error:', error);
+    res.status(500).json({ message: 'Error updating item: ' + error.message });
   }
 });
 
