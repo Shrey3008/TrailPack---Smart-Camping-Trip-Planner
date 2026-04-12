@@ -224,6 +224,7 @@ const dynamoDBService = {
       [`:${key}`]: value
     }), {});
 
+    // Fixed case sensitivity for ExpressionAttributeNames
     await docClient.send(new UpdateCommand({
       TableName: TABLES.ITEMS,
       Key: { itemId },
