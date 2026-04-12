@@ -29,7 +29,7 @@ app.use(express.json());
 
 app.use('/auth', require('./routes/auth'));
 app.use('/trips', require('./routes/trips'));
-app.use('/items', require('./routes/items'));
+app.use('/trips', require('./routes/items'));  // Items routes mounted under /trips for /trips/:id/items paths
 
 // Root endpoint
 app.get('/', (req, res) => {

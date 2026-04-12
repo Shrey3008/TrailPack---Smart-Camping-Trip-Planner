@@ -7,8 +7,8 @@ const { authenticate } = require('../middleware/auth');
 // All item routes require authentication
 router.use(authenticate);
 
-// GET /trips/:id/items - Get all checklist items for a trip
-router.get('/trips/:id/items', async (req, res) => {
+// GET /:id/items - Get all checklist items for a trip
+router.get('/:id/items', async (req, res) => {
   try {
     const tripId = req.params.id;
     const userId = req.user.userId || req.user.id;
@@ -34,8 +34,8 @@ router.get('/trips/:id/items', async (req, res) => {
   }
 });
 
-// GET /trips/:id/items/category/:category - Get items by category
-router.get('/trips/:id/items/category/:category', async (req, res) => {
+// GET /:id/items/category/:category - Get items by category
+router.get('/:id/items/category/:category', async (req, res) => {
   try {
     const tripId = req.params.id;
     const userId = req.user.userId || req.user.id;
@@ -62,8 +62,8 @@ router.get('/trips/:id/items/category/:category', async (req, res) => {
   }
 });
 
-// GET /trips/:id/progress - Get trip packing progress
-router.get('/trips/:id/progress', async (req, res) => {
+// GET /:id/progress - Get trip packing progress
+router.get('/:id/progress', async (req, res) => {
   try {
     const tripId = req.params.id;
     const userId = req.user.userId || req.user.id;
