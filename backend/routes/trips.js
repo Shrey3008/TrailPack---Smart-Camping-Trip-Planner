@@ -20,16 +20,19 @@ router.post('/', async (req, res) => {
     // Create trip in DynamoDB - ensure userId is a string
     const userId = String(req.user.userId || req.user.id);
     
-    const savedTrip = await dynamoDBService.createTrip(userId, {
-      name,
-      terrain,
-      season,
+    // Prepare trip data with properly stringified values
+    const tripData = {
+      name: String(name),
+      terrain: String(terrain),
+      season: String(season),
       duration: parseInt(duration),
-      startDate: startDate || null,
-      endDate: endDate || null,
+      startDate: startDate ? String(startDate) : null,
+      endDate: endDate ? String(endDate) : null,
       settings: settings || {},
-      participants: [{ userId, role: 'organizer' }]
-    });
+      participants: [{ userId: String(userId), role: 'organizer' }]
+    };
+    
+    const savedTrip = await dynamoDBService.createTrip(userId, tripData);
     
     // Generate checklist items using business logic service
     if (savedTrip.settings.autoGenerateChecklist !== false) {
