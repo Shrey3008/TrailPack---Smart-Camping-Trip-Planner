@@ -228,7 +228,7 @@ const dynamoDBService = {
       TableName: TABLES.ITEMS,
       Key: { itemId },
       UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
-      ExpressionAttributeNames,
+      ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: {
         ...expressionAttributeValues,
         ':updatedAt': new Date().toISOString()
