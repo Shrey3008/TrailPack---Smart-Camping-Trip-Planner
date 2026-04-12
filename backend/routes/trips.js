@@ -41,8 +41,7 @@ router.post('/', async (req, res) => {
       
       // Save checklist items
       const itemPromises = checklistItems.map(item => {
-        return dynamoDBService.createItem({
-          tripId: savedTrip.tripId,
+        return dynamoDBService.createItem(savedTrip.tripId, {
           name: item.name,
           category: item.category,
           priority: item.priority || 'medium'

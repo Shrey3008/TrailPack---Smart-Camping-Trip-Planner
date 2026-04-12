@@ -171,13 +171,18 @@ const dynamoDBService = {
 
   // Checklist Item Operations
   createItem: async (tripId, itemData) => {
-    const itemId = uuidv4();
+    const itemId = String(uuidv4());
+    const now = new Date().toISOString();
+    
     const item = {
-      itemId,
-      tripId,
-      ...itemData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      itemId: itemId,
+      tripId: String(tripId),
+      name: String(itemData.name || ''),
+      category: String(itemData.category || ''),
+      priority: String(itemData.priority || 'medium'),
+      isChecked: false,
+      createdAt: now,
+      updatedAt: now
     };
     
     await docClient.send(new PutCommand({
