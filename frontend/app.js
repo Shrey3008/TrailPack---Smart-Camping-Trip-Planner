@@ -258,16 +258,16 @@ function displayChecklist(items, tripId) {
       <div class="category-section">
         <h3 class="category-title">${escapeHtml(category)}</h3>
         ${categories[category].map(item => `
-          <div class="checklist-item ${item.packed ? 'packed' : ''}" data-item-id="${item._id}">
+          <div class="checklist-item ${item.packed ? 'packed' : ''}" data-item-id="${item.itemId}">
             <div class="item-left">
               <input type="checkbox" 
                      class="item-checkbox" 
                      ${item.packed ? 'checked' : ''} 
-                     onchange="togglePacked('${item._id}', this.checked)">
+                     onchange="togglePacked('${item.itemId}', this.checked)">
               <span class="item-name">${escapeHtml(item.name)}</span>
             </div>
             <div class="item-actions">
-              <button class="btn btn-danger" onclick="deleteItem('${item._id}', '${tripId}')">
+              <button class="btn btn-danger" onclick="deleteItem('${item.itemId}', '${tripId}')">
                 Remove
               </button>
             </div>
