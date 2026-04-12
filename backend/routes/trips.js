@@ -189,31 +189,34 @@ router.put('/:id', async (req, res) => {
 // PUT /trips/:id/status - Update trip status
 router.put('/:id/status', async (req, res) => {
   try {
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     const { status } = req.body;
     
     if (!['planning', 'active', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
     
-    const trip = await Trip.findOneAndUpdate(
-      {
-        _id: req.params.id,
-        $or: [
-          { userId: req.user._id },
-          { 'participants': { $elemMatch: { userId: req.user._id, role: 'organizer' } } }
-        ]
-      },
-      { status },
-      { new: true }
+    // Get trip and verify access
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    const isOwner = trip.userId === userId;
+    const isOrganizer = trip.participants && trip.participants.some(
+      p => p.userId === userId && p.role === 'organizer'
     );
     
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found or access denied' });
+    if (!isOwner && !isOrganizer) {
+      return res.status(403).json({ message: 'Access denied' });
     }
+    
+    const updatedTrip = await dynamoDBService.updateTrip(tripId, { status });
     
     res.json({
       message: 'Trip status updated',
-      trip
+      trip: updatedTrip
     });
   } catch (error) {
     console.error('Error updating status:', error);
@@ -224,32 +227,39 @@ router.put('/:id/status', async (req, res) => {
 // POST /trips/:id/participants - Add participant to trip
 router.post('/:id/participants', async (req, res) => {
   try {
+    const tripId = req.params.id;
+    const currentUserId = req.user.userId || req.user.id;
     const { userId, role = 'participant' } = req.body;
     
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants': { $elemMatch: { userId: req.user._id, role: 'organizer' } } }
-      ]
-    });
-    
+    const trip = await dynamoDBService.getTripById(tripId);
     if (!trip) {
-      return res.status(404).json({ message: 'Trip not found or access denied' });
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    const isOwner = trip.userId === currentUserId;
+    const isOrganizer = trip.participants && trip.participants.some(
+      p => p.userId === currentUserId && p.role === 'organizer'
+    );
+    
+    if (!isOwner && !isOrganizer) {
+      return res.status(403).json({ message: 'Access denied' });
     }
     
     // Check if already a participant
-    const isParticipant = trip.participants.some(p => p.userId.toString() === userId);
+    const participants = trip.participants || [];
+    const isParticipant = participants.some(p => p.userId === userId);
     if (isParticipant) {
       return res.status(409).json({ message: 'User is already a participant' });
     }
     
-    trip.participants.push({ userId, role, joinedAt: new Date() });
-    await trip.save();
+    // Add new participant
+    participants.push({ userId, role, joinedAt: new Date().toISOString() });
+    
+    const updatedTrip = await dynamoDBService.updateTrip(tripId, { participants });
     
     res.json({
       message: 'Participant added successfully',
-      trip
+      trip: updatedTrip
     });
   } catch (error) {
     console.error('Error adding participant:', error);
@@ -291,26 +301,31 @@ router.get('/:id/recommendations', async (req, res) => {
 // DELETE /trips/:id - Delete a trip
 router.delete('/:id', async (req, res) => {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants': { $elemMatch: { userId: req.user._id, role: 'organizer' } } }
-      ]
-    });
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     
+    const trip = await dynamoDBService.getTripById(tripId);
     if (!trip) {
-      return res.status(404).json({ message: 'Trip not found or access denied' });
+      return res.status(404).json({ message: 'Trip not found' });
     }
     
-    // Delete checklist items
-    await ChecklistItem.deleteMany({ tripId: req.params.id });
+    const isOwner = trip.userId === userId;
+    const isOrganizer = trip.participants && trip.participants.some(
+      p => p.userId === userId && p.role === 'organizer'
+    );
+    
+    if (!isOwner && !isOrganizer) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Delete all checklist items for this trip
+    const items = await dynamoDBService.getItemsByTrip(tripId);
+    for (const item of items) {
+      await dynamoDBService.deleteItem(item.itemId);
+    }
     
     // Delete the trip
-    await Trip.findByIdAndDelete(req.params.id);
-    
-    // Update user stats
-    await req.user.updateStats();
+    await dynamoDBService.deleteTrip(tripId);
     
     res.json({ message: 'Trip deleted successfully' });
   } catch (error) {
