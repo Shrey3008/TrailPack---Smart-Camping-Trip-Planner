@@ -1,6 +1,5 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
@@ -27,13 +26,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-
-// MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/trailpack';
-
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
 app.use('/auth', require('./routes/auth'));
 app.use('/trips', require('./routes/trips'));

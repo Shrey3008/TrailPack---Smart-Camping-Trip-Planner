@@ -213,4 +213,4 @@ const dynamoDBService = {
   }
 };
 
-module.exports = { dynamoDBService, TABLES };
+module.exports = dynamoDBService;
