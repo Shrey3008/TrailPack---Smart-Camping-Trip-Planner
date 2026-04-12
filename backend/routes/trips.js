@@ -260,19 +260,27 @@ router.post('/:id/participants', async (req, res) => {
 // GET /trips/:id/recommendations - Get smart recommendations
 router.get('/:id/recommendations', async (req, res) => {
   try {
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     
+    const trip = await dynamoDBService.getTripById(tripId);
     if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
     }
     
-    const recommendations = await checklistService.getRecommendations(req.params.id);
+    const isOwner = trip.userId === userId;
+    const isPublic = trip.settings?.isPublic === true;
+    if (!isOwner && !isPublic) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Generate recommendations based on trip data
+    const recommendations = [
+      `Consider bringing extra layers for ${trip.terrain} terrain`,
+      `Check weather forecast for ${trip.season} conditions`,
+      `Pack ${parseInt(trip.duration) > 3 ? 'extra' : 'lightweight'} food supplies for ${trip.duration} days`
+    ];
+    
     res.json({ recommendations });
   } catch (error) {
     console.error('Error getting recommendations:', error);
