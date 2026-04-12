@@ -89,24 +89,29 @@ const dynamoDBService = {
 
   // Trip Operations
   createTrip: async (userId, tripData) => {
-    const tripId = uuidv4();
+    const tripId = String(uuidv4());
     const now = new Date().toISOString();
     
-    // Build item with explicit string types only
-    const item = {};
-    item.tripId = tripId;
-    item.userId = String(userId);
-    item.name = String(tripData.name);
-    item.terrain = String(tripData.terrain);
-    item.season = String(tripData.season);
-    item.duration = parseInt(tripData.duration);
-    item.status = 'planning';
-    item.createdAt = now;
-    item.updatedAt = now;
+    // Build item with explicit string types only - avoid any nested objects
+    const item = {
+      tripId: tripId,
+      userId: String(userId),
+      name: String(tripData.name),
+      terrain: String(tripData.terrain),
+      season: String(tripData.season),
+      duration: parseInt(tripData.duration),
+      status: 'planning',
+      createdAt: now,
+      updatedAt: now
+    };
     
     // Only add simple optional fields
     if (tripData.startDate) item.startDate = String(tripData.startDate);
     if (tripData.endDate) item.endDate = String(tripData.endDate);
+    
+    console.log('DEBUG - tripId value:', tripId);
+    console.log('DEBUG - tripId type:', typeof tripId);
+    console.log('DEBUG - item:', JSON.stringify(item));
     
     await docClient.send(new PutCommand({
       TableName: TABLES.TRIPS,
