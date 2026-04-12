@@ -106,7 +106,7 @@ async function handleCreateTrip(e) {
     });
     
     // Redirect to checklist page
-    window.location.href = `checklist.html?id=${result.trip._id}`;
+    window.location.href = `checklist.html?id=${result.trip.tripId}`;
   } catch (error) {
     alert('Failed to create trip. Please try again.');
     submitBtn.disabled = false;
