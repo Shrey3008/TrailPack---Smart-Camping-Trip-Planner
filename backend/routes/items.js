@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const dynamoDBService = require('../services/dynamoDBService');
-const checklistService = require('../services/checklistService');
 const { authenticate } = require('../middleware/auth');
 
 // All item routes require authentication
@@ -124,38 +123,25 @@ router.put('/:id', async (req, res) => {
 // PUT /items/:id/pack - Quick pack/unpack toggle
 router.put('/:id/pack', async (req, res) => {
   try {
-    const item = await ChecklistItem.findById(req.params.id);
+    const itemId = req.params.id;
+    const userId = req.user.userId || req.user.id;
+    
+    const item = await dynamoDBService.getItemById(itemId);
     if (!item) {
       return res.status(404).json({ message: 'Item not found' });
     }
     
-    const trip = await Trip.findOne({
-      _id: item.tripId,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
-    
-    if (!trip) {
+    const trip = await dynamoDBService.getTripById(item.tripId);
+    if (!trip || trip.userId !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
     // Toggle packed status
-    const updatedItem = await ChecklistItem.findByIdAndUpdate(
-      req.params.id,
-      { packed: !item.packed },
-      { new: true }
-    );
-    
-    // Update trip progress
-    await checklistService.updateTripProgress(item.tripId);
-    
-    // Update user stats
-    await req.user.updateStats();
+    const newStatus = !item.isChecked;
+    const updatedItem = await dynamoDBService.updateItem(itemId, { isChecked: newStatus });
     
     res.json({
-      message: `Item ${updatedItem.packed ? 'packed' : 'unpacked'}`,
+      message: `Item ${newStatus ? 'packed' : 'unpacked'}`,
       item: updatedItem
     });
   } catch (error) {
@@ -168,39 +154,23 @@ router.put('/:id/pack', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { tripId, name, category, priority = 'medium' } = req.body;
+    const userId = req.user.userId || req.user.id;
     
     if (!tripId || !name || !category) {
       return res.status(400).json({ message: 'Trip ID, name, and category are required' });
     }
     
     // Verify trip ownership
-    const trip = await Trip.findOne({
-      _id: tripId,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
-    
-    if (!trip) {
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip || trip.userId !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    const item = new ChecklistItem({
-      tripId,
+    const savedItem = await dynamoDBService.createItem(tripId, {
       name,
       category,
-      priority,
-      packed: false
+      priority
     });
-    
-    const savedItem = await item.save();
-    
-    // Update trip progress
-    await checklistService.updateTripProgress(tripId);
-    
-    // Update user stats
-    await req.user.updateStats();
     
     res.status(201).json(savedItem);
   } catch (error) {
@@ -213,40 +183,28 @@ router.post('/', async (req, res) => {
 router.post('/bulk', async (req, res) => {
   try {
     const { tripId, items } = req.body;
+    const userId = req.user.userId || req.user.id;
     
     if (!tripId || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: 'Trip ID and items array are required' });
     }
     
     // Verify trip ownership
-    const trip = await Trip.findOne({
-      _id: tripId,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
-    
-    if (!trip) {
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip || trip.userId !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
     // Create all items
-    const itemPromises = items.map(item => {
-      const checklistItem = new ChecklistItem({
-        tripId,
+    const savedItems = [];
+    for (const item of items) {
+      const savedItem = await dynamoDBService.createItem(tripId, {
         name: item.name,
         category: item.category,
-        priority: item.priority || 'medium',
-        packed: false
+        priority: item.priority || 'medium'
       });
-      return checklistItem.save();
-    });
-    
-    const savedItems = await Promise.all(itemPromises);
-    
-    // Update trip progress
-    await checklistService.updateTripProgress(tripId);
+      savedItems.push(savedItem);
+    }
     
     res.status(201).json({
       message: `${savedItems.length} items added successfully`,
@@ -285,35 +243,28 @@ router.delete('/:id', async (req, res) => {
 });
 
 // DELETE /trips/:id/items/clear-packed - Remove all packed items
-router.delete('/trips/:id/items/clear-packed', async (req, res) => {
+router.delete('/:id/items/clear-packed', async (req, res) => {
   try {
-    // Verify trip ownership
-    const trip = await Trip.findOne({
-      _id: req.params.id,
-      $or: [
-        { userId: req.user._id },
-        { 'participants.userId': req.user._id }
-      ]
-    });
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
     
-    if (!trip) {
+    // Verify trip ownership
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip || trip.userId !== userId) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
-    const result = await ChecklistItem.deleteMany({
-      tripId: req.params.id,
-      packed: true
-    });
+    // Get all packed items and delete them
+    const items = await dynamoDBService.getItemsByTrip(tripId);
+    const packedItems = items.filter(item => item.isChecked);
     
-    // Update trip progress
-    await checklistService.updateTripProgress(req.params.id);
-    
-    // Update user stats
-    await req.user.updateStats();
+    for (const item of packedItems) {
+      await dynamoDBService.deleteItem(item.itemId);
+    }
     
     res.json({
-      message: `${result.deletedCount} packed items removed`,
-      deletedCount: result.deletedCount
+      message: `${packedItems.length} packed items removed`,
+      deletedCount: packedItems.length
     });
   } catch (error) {
     console.error('Error clearing packed items:', error);
