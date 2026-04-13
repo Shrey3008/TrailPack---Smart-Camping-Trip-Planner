@@ -94,10 +94,47 @@ router.get('/dashboard/stats', async (req, res) => {
     const activeTrips = trips.filter(t => t.status === 'active').length;
     const completedTrips = trips.filter(t => t.status === 'completed').length;
     
+    // Calculate overall packing progress
+    const totalProgress = trips.reduce((sum, trip) => {
+      return sum + (trip.progress || 0);
+    }, 0);
+    const overallProgress = totalTrips > 0 ? Math.round(totalProgress / totalTrips) : 0;
+    
+    // Get terrain stats
+    const terrainStats = trips.reduce((acc, trip) => {
+      acc[trip.terrain] = (acc[trip.terrain] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Get season stats
+    const seasonStats = trips.reduce((acc, trip) => {
+      acc[trip.season] = (acc[trip.season] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Get recent trips (last 5)
+    const recentTrips = trips
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, 5);
+    
+    // Get upcoming trips (trips with future dates)
+    const now = new Date().toISOString();
+    const upcomingTrips = trips
+      .filter(t => t.startDate && t.startDate > now)
+      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
+      .slice(0, 3);
+    
     res.json({
-      totalTrips,
-      activeTrips,
-      completedTrips
+      stats: {
+        totalTrips,
+        activeTrips,
+        completedTrips,
+        overallProgress
+      },
+      terrainStats,
+      seasonStats,
+      recentTrips,
+      upcomingTrips
     });
   } catch (error) {
     console.error('Error fetching dashboard:', error);
