@@ -6,8 +6,21 @@ async function loadDashboard() {
     const data = await apiCallWithAuth('/trips');
     const trips = data.trips || [];
     
+    // Calculate progress for each trip
+    const tripsWithProgress = await Promise.all(trips.map(async (trip) => {
+      try {
+        const items = await apiCallWithAuth(`/trips/${trip.tripId}/items`);
+        const packed = items.filter(item => item.isChecked).length;
+        const progress = items.length > 0 ? Math.round((packed / items.length) * 100) : 0;
+        return { ...trip, progress, packed, totalItems: items.length };
+      } catch (error) {
+        console.error(`Error loading items for trip ${trip.tripId}:`, error);
+        return { ...trip, progress: 0, packed: 0, totalItems: 0 };
+      }
+    }));
+    
     // Update trips grid
-    updateTripsGrid(trips);
+    updateTripsGrid(tripsWithProgress);
     
   } catch (error) {
     console.error('Error loading dashboard:', error);
@@ -36,6 +49,13 @@ function updateTripsGrid(trips) {
       <h3>${escapeHtml(trip.name)}</h3>
       <div class="trip-meta">
         ${escapeHtml(trip.terrain)} • ${escapeHtml(trip.season)} • ${trip.duration} days
+      </div>
+      <div class="trip-progress">
+        <div class="trip-progress-text">${trip.packed || 0}/${trip.totalItems || 0} items packed</div>
+        <div class="trip-progress-bar">
+          <div class="trip-progress-fill" style="width: ${trip.progress || 0}%"></div>
+        </div>
+        <div class="trip-progress-percentage">${trip.progress || 0}%</div>
       </div>
       <div class="trip-actions">
         <button class="btn btn-secondary" onclick="window.location.href='checklist.html?id=${trip.tripId}'">
