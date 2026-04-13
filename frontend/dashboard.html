@@ -22,70 +22,18 @@
   </nav>
 
   <main class="container dashboard-container">
-    <!-- Stats Overview Section -->
-    <section class="stats-section">
-      <h2>Dashboard Overview</h2>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">🏕️</div>
-          <div class="stat-value" id="total-trips">0</div>
-          <div class="stat-label">Total Trips</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🎒</div>
-          <div class="stat-value" id="active-trips">0</div>
-          <div class="stat-label">Active Trips</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">✅</div>
-          <div class="stat-value" id="completed-trips">0</div>
-          <div class="stat-label">Completed</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📦</div>
-          <div class="stat-value" id="packing-progress">0%</div>
-          <div class="stat-label">Overall Progress</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Quick Actions -->
-    <section class="quick-actions">
-      <button class="btn btn-primary btn-large" onclick="window.location.href='create-trip.html'">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <h2>Your Trips</h2>
+      <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
         + Create New Trip
       </button>
-    </section>
+    </div>
 
-    <!-- Upcoming Trips Section -->
-    <section class="upcoming-section" id="upcoming-section" style="display: none;">
-      <h3>📅 Upcoming Trips</h3>
-      <div id="upcoming-trips" class="upcoming-list"></div>
-    </section>
-
-    <!-- Analytics Section -->
-    <section class="analytics-section">
-      <div class="analytics-grid">
-        <div class="analytics-card">
-          <h3>🏔️ Trip Distribution by Terrain</h3>
-          <div id="terrain-stats" class="stats-bars"></div>
-        </div>
-        <div class="analytics-card">
-          <h3>🌤️ Trip Distribution by Season</h3>
-          <div id="season-stats" class="stats-bars"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Recent Trips Section -->
-    <section class="trips-section">
-      <div class="section-header">
-        <h2>Recent Trips</h2>
-        <a href="trips.html" class="link-primary">View All Trips</a>
-      </div>
-      <div id="recent-trips" class="trips-grid">
-        <!-- Recent trips will be loaded here -->
-      </div>
-    </section>
+    <!-- Trips Grid -->
+    <div id="trips-grid" class="trips-grid">
+      <!-- Trips will be loaded here -->
+    </div>
 
     <!-- Empty State -->
     <div id="empty-state" class="empty-state" style="display: none;">
