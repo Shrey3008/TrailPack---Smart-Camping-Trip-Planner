@@ -95,14 +95,12 @@ async function handleCreateTrip(e) {
       endDate: document.getElementById('end-date')?.value || null
     };
     
-    console.log('Creating trip with data:', formData);
     
     const result = await apiCallWithAuth('/trips', {
       method: 'POST',
       body: JSON.stringify(formData)
     });
     
-    console.log('Trip created successfully:', result);
     
     // Redirect to checklist page
     window.location.href = `checklist.html?id=${result.trip.tripId}`;
@@ -145,12 +143,9 @@ async function loadChecklist(tripId) {
     displayTripDetails(trip);
     
     // Load checklist items
-    console.log('Fetching items for tripId:', tripId);
     const response = await apiCallWithAuth(`/trips/${tripId}/items`);
-    console.log('Raw response:', response, 'Type:', typeof response);
     // Handle both array and object with items property
     const items = Array.isArray(response) ? response : (response.items || []);
-    console.log('Processed items:', items, 'Count:', items.length);
     displayChecklist(items, tripId);
     updateProgress(items);
     checkCompletion(items);

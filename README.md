@@ -122,23 +122,49 @@ The frontend is static HTML/CSS/JavaScript. You can:
 - **1+ days**: Tent, sleeping pad, camping stove, food supplies
 - **3+ days**: Extra batteries, water purification tablets, multi-tool
 
+## Live Demo
+
+- **Frontend:** http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com
+- **Backend:** http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com
+- **AWS Region:** us-east-1
+
+## Features
+
+### Core Features
+- User authentication (JWT-based)
+- Create and manage camping trips
+- Smart checklist generation based on terrain, season, and duration
+- Interactive packing checklist with progress tracking
+
+### Phase 2 Features
+- Trip status management (Planning → Active → Completed/Cancelled)
+- Progress bars with visual indicators
+- Status badges and action buttons
+
+### Phase 3 Features (Organizer Role - Trip Sharing)
+- **Trip Sharing:** Share trips with other users via email
+- **Role Management:** Assign participants as "Organizer" or "Participant"
+- **Collaborative Checklist:** Multiple users can check items, see who packed what
+- **Shared Trips Dashboard:** View trips shared with you in a dedicated section
+- **Activity Tracking:** Backend tracks who packed each item and when
+
 ## Deployment
 
-### Backend (Render/Railway)
-1. Push code to GitHub
-2. Connect repository to Render or Railway
-3. Add environment variables (MONGODB_URI)
-4. Deploy
+### Backend (AWS Elastic Beanstalk)
+Current deployment: `trailpack-prod-env-v2`
+```bash
+cd backend
+eb deploy trailpack-prod-env-v2 --staged
+```
 
-### Frontend (Netlify/Vercel)
-1. Upload the `frontend` folder
-2. Or connect GitHub repository
-3. Deploy
+### Frontend (AWS S3 Static Website)
+```bash
+aws s3 sync frontend s3://trailpack-frontend-173480719972 --delete
+```
 
-### Database (MongoDB Atlas)
-1. Create free cluster on MongoDB Atlas
-2. Get connection string
-3. Add to environment variables
+### Database (AWS DynamoDB)
+Tables: `users`, `trips`, `items`
+Region: `us-east-1`
 
 ## Author
 

@@ -6,7 +6,6 @@ const API_URL = isLocalhost
   ? 'http://localhost:3000'  // Local development
   : 'http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com';  // AWS Elastic Beanstalk
 
-console.log('API URL:', API_URL);
 
 // Check if user is authenticated
 function checkAuth() {

@@ -1,7 +1,21 @@
 // Dashboard JavaScript
 
+// Show loading spinner
+function showLoading(elementId = 'trips-grid') {
+  const container = document.getElementById(elementId);
+  if (container) {
+    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Loading trips...</p></div>';
+  }
+}
+
+// Hide loading spinner
+function hideLoading(elementId = 'trips-grid') {
+  // Content will be replaced by actual data
+}
+
 // Load dashboard data
 async function loadDashboard() {
+  showLoading('trips-grid');
   try {
     const data = await apiCallWithAuth('/trips');
     const trips = data.trips || [];
@@ -28,6 +42,8 @@ async function loadDashboard() {
   } catch (error) {
     console.error('Error loading dashboard:', error);
     showError('Failed to load dashboard data');
+  } finally {
+    hideLoading('trips-grid');
   }
 }
 
