@@ -274,6 +274,7 @@ function displayChecklist(items, tripId) {
                      ${item.isChecked ? 'checked' : ''} 
                      onchange="togglePacked('${item.itemId}', this.checked)">
               <span class="item-name">${escapeHtml(item.name)}</span>
+              ${item.packedBy ? `<span class="packed-by" title="Packed by ${escapeHtml(item.packedByName || item.packedBy)}">👤 ${escapeHtml(item.packedByName || item.packedBy)}</span>` : ''}
             </div>
             <div class="item-actions">
               <button class="btn btn-danger" onclick="deleteItem('${item.itemId}', '${tripId}', '${escapeHtml(item.name)}', '${escapeHtml(item.category)}')">

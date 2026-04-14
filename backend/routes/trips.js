@@ -414,6 +414,70 @@ router.get('/shared', authenticate, async (req, res) => {
   }
 });
 
+// GET /trips/:id/activity - Get activity log for a trip
+router.get('/:id/activity', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
+    
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    // Check access
+    const isOwner = trip.userId === userId;
+    const isParticipant = trip.participants?.some(p => p.userId === userId);
+    if (!isOwner && !isParticipant) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Get items with recent activity
+    const items = await dynamoDBService.getItemsByTrip(tripId);
+    const activities = [];
+    
+    items.forEach(item => {
+      if (item.packedBy && item.packedAt) {
+        activities.push({
+          type: 'packed',
+          itemName: item.name,
+          userId: item.packedBy,
+          timestamp: item.packedAt,
+          category: item.category
+        });
+      }
+      if (item.updatedAt && item.updatedBy) {
+        activities.push({
+          type: 'updated',
+          itemName: item.name,
+          userId: item.updatedBy,
+          timestamp: item.updatedAt,
+          category: item.category
+        });
+      }
+    });
+    
+    // Sort by timestamp descending
+    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // Add user names
+    const activitiesWithNames = await Promise.all(
+      activities.slice(0, 20).map(async (activity) => {
+        const user = await dynamoDBService.getUserById(activity.userId);
+        return {
+          ...activity,
+          userName: user?.name || 'Unknown'
+        };
+      })
+    );
+    
+    res.json({ activities: activitiesWithNames });
+  } catch (error) {
+    console.error('Error getting activity log:', error);
+    res.status(500).json({ message: 'Error getting activity log' });
+  }
+});
+
 // GET /trips/:id/recommendations - Get smart recommendations
 router.get('/:id/recommendations', async (req, res) => {
   try {

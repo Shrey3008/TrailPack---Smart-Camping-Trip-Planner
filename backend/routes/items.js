@@ -18,15 +18,29 @@ router.get('/:id/items', async (req, res) => {
       return res.status(404).json({ message: 'Trip not found' });
     }
     
-    // Check access (owner or public)
+    // Check access (owner, participant, or public)
     const isOwner = trip.userId === userId;
+    const isParticipant = trip.participants?.some(p => p.userId === userId);
     const isPublic = trip.settings?.isPublic === true;
-    if (!isOwner && !isPublic) {
+    if (!isOwner && !isParticipant && !isPublic) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
     const items = await dynamoDBService.getItemsByTrip(tripId);
-    res.json(items);
+    
+    // Enhance items with packedBy user names
+    const itemsWithUserNames = await Promise.all(items.map(async (item) => {
+      if (item.packedBy) {
+        const user = await dynamoDBService.getUserById(item.packedBy);
+        return {
+          ...item,
+          packedByName: user?.name || 'Unknown'
+        };
+      }
+      return item;
+    }));
+    
+    res.json({ items: itemsWithUserNames });
   } catch (error) {
     console.error('Error fetching checklist items:', error);
     res.status(500).json({ message: 'Error fetching checklist items' });
@@ -90,7 +104,7 @@ router.get('/:id/progress', async (req, res) => {
   }
 });
 
-// PUT /items/:id - Update packed status
+// PUT /items/:id - Update packed status (collaborative)
 router.put('/:id', async (req, res) => {
   try {
     const itemId = req.params.id;
@@ -103,15 +117,41 @@ router.put('/:id', async (req, res) => {
     }
     
     const trip = await dynamoDBService.getTripById(item.tripId);
-    if (!trip || trip.userId !== userId) {
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    // Check access: owner, organizer, or participant
+    const isOwner = trip.userId === userId;
+    const isOrganizer = trip.participants?.some(p => p.userId === userId && p.role === 'organizer');
+    const isParticipant = trip.participants?.some(p => p.userId === userId);
+    
+    if (!isOwner && !isOrganizer && !isParticipant) {
       return res.status(403).json({ message: 'Access denied' });
     }
     
     const updates = {};
-    if (packed !== undefined) updates.isChecked = packed;
+    if (packed !== undefined) {
+      updates.isChecked = packed;
+      // Track who packed/unpacked the item
+      if (packed) {
+        updates.packedBy = userId;
+        updates.packedAt = new Date().toISOString();
+      } else {
+        updates.packedBy = null;
+        updates.packedAt = null;
+      }
+    }
     if (notes !== undefined) updates.notes = notes;
     
     const updatedItem = await dynamoDBService.updateItem(itemId, updates);
+    
+    // Add packedByName for response
+    if (updatedItem.packedBy) {
+      const user = await dynamoDBService.getUserById(updatedItem.packedBy);
+      updatedItem.packedByName = user?.name || 'Unknown';
+    }
+    
     res.json(updatedItem);
   } catch (error) {
     console.error('Error updating item:', error.message);
