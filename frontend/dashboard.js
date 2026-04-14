@@ -69,6 +69,9 @@ function updateTripsGrid(trips) {
         <button class="btn btn-secondary" onclick="window.location.href='checklist.html?id=${trip.tripId}'">
           View Checklist
         </button>
+        <button class="btn btn-info" onclick="shareTrip('${trip.tripId}')">
+          👥 Share
+        </button>
         <button class="btn btn-danger" onclick="deleteTrip('${trip.tripId}')">
           Delete
         </button>
@@ -155,4 +158,151 @@ function showError(message) {
       errorDiv.remove();
     }, 5000);
   }
+}
+
+// Share trip modal
+async function shareTrip(tripId) {
+  // Create modal
+  const modal = document.createElement('div');
+  modal.className = 'share-modal';
+  modal.id = `share-modal-${tripId}`;
+  
+  modal.innerHTML = `
+    <div class="share-modal-content">
+      <div class="share-modal-header">
+        <h3>👥 Share Trip</h3>
+        <button class="close-btn" onclick="closeShareModal('${tripId}')">&times;</button>
+      </div>
+      <div class="share-modal-body">
+        <div class="share-add-section">
+          <h4>Add Participant</h4>
+          <div class="share-form">
+            <input type="email" id="share-email-${tripId}" placeholder="Enter email address" class="share-input">
+            <select id="share-role-${tripId}" class="share-select">
+              <option value="participant">Participant (View & Check Items)</option>
+              <option value="organizer">Organizer (Full Access)</option>
+            </select>
+            <button class="btn btn-primary" onclick="addParticipant('${tripId}')">Add</button>
+          </div>
+        </div>
+        <div class="share-participants-section">
+          <h4>Current Participants</h4>
+          <div id="participants-list-${tripId}" class="participants-list">
+            <p>Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Load participants
+  await loadParticipants(tripId);
+}
+
+// Close share modal
+function closeShareModal(tripId) {
+  const modal = document.getElementById(`share-modal-${tripId}`);
+  if (modal) {
+    modal.remove();
+  }
+}
+
+// Load participants for a trip
+async function loadParticipants(tripId) {
+  try {
+    const response = await apiCallWithAuth(`/trips/${tripId}/participants`);
+    const participants = response.participants || [];
+    
+    const container = document.getElementById(`participants-list-${tripId}`);
+    if (!container) return;
+    
+    if (participants.length === 0) {
+      container.innerHTML = '<p class="no-participants">No participants yet. Add someone above!</p>';
+      return;
+    }
+    
+    container.innerHTML = participants.map(p => `
+      <div class="participant-item">
+        <div class="participant-info">
+          <span class="participant-name">${escapeHtml(p.name)}</span>
+          <span class="participant-email">${escapeHtml(p.email)}</span>
+          <span class="participant-role role-${p.role}">${p.role}</span>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="removeParticipant('${tripId}', '${p.userId}')">Remove</button>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading participants:', error);
+    const container = document.getElementById(`participants-list-${tripId}`);
+    if (container) {
+      container.innerHTML = '<p class="error">Failed to load participants</p>';
+    }
+  }
+}
+
+// Add participant to trip
+async function addParticipant(tripId) {
+  const emailInput = document.getElementById(`share-email-${tripId}`);
+  const roleSelect = document.getElementById(`share-role-${tripId}`);
+  
+  const email = emailInput.value.trim();
+  const role = roleSelect.value;
+  
+  if (!email) {
+    alert('Please enter an email address');
+    return;
+  }
+  
+  try {
+    await apiCallWithAuth(`/trips/${tripId}/participants`, {
+      method: 'POST',
+      body: JSON.stringify({ email, role })
+    });
+    
+    emailInput.value = '';
+    await loadParticipants(tripId);
+    showNotification('Participant added successfully!', 'success');
+  } catch (error) {
+    console.error('Error adding participant:', error);
+    alert(error.message || 'Failed to add participant. User may not exist.');
+  }
+}
+
+// Remove participant from trip
+async function removeParticipant(tripId, userId) {
+  if (!confirm('Are you sure you want to remove this participant?')) {
+    return;
+  }
+  
+  try {
+    await apiCallWithAuth(`/trips/${tripId}/participants/${userId}`, {
+      method: 'DELETE'
+    });
+    
+    await loadParticipants(tripId);
+    showNotification('Participant removed successfully!', 'success');
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    alert('Failed to remove participant');
+  }
+}
+
+// Show notification
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 10);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
 }

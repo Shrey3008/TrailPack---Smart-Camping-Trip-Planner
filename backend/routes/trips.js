@@ -305,6 +305,115 @@ router.post('/:id/participants', async (req, res) => {
   }
 });
 
+// GET /trips/:id/participants - Get trip participants
+router.get('/:id/participants', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    const userId = req.user.userId || req.user.id;
+    
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    // Check if user has access (owner, organizer, or participant)
+    const isOwner = trip.userId === userId;
+    const isOrganizer = trip.participants?.some(p => p.userId === userId && p.role === 'organizer');
+    const isParticipant = trip.participants?.some(p => p.userId === userId);
+    
+    if (!isOwner && !isOrganizer && !isParticipant) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Fetch participant details
+    const participants = await Promise.all(
+      (trip.participants || []).map(async (p) => {
+        const user = await dynamoDBService.getUserById(p.userId);
+        return {
+          userId: p.userId,
+          role: p.role,
+          joinedAt: p.joinedAt,
+          name: user?.name || 'Unknown',
+          email: user?.email || 'Unknown'
+        };
+      })
+    );
+    
+    res.json({ participants });
+  } catch (error) {
+    console.error('Error getting participants:', error);
+    res.status(500).json({ message: 'Error getting participants' });
+  }
+});
+
+// DELETE /trips/:id/participants/:userId - Remove participant
+router.delete('/:id/participants/:participantId', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    const participantId = req.params.participantId;
+    const userId = req.user.userId || req.user.id;
+    
+    const trip = await dynamoDBService.getTripById(tripId);
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    // Only owner, organizer, or the participant themselves can remove
+    const isOwner = trip.userId === userId;
+    const isOrganizer = trip.participants?.some(p => p.userId === userId && p.role === 'organizer');
+    const isSelf = participantId === userId;
+    
+    if (!isOwner && !isOrganizer && !isSelf) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+    
+    // Remove participant
+    const updatedParticipants = (trip.participants || []).filter(p => p.userId !== participantId);
+    
+    await dynamoDBService.updateTrip(tripId, { participants: updatedParticipants });
+    
+    res.json({ 
+      message: 'Participant removed successfully',
+      participants: updatedParticipants 
+    });
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    res.status(500).json({ message: 'Error removing participant' });
+  }
+});
+
+// GET /trips/shared - Get trips shared with current user
+router.get('/shared', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    
+    // Get all trips where user is a participant
+    const allTrips = await dynamoDBService.getAllTrips();
+    const sharedTrips = allTrips.filter(trip => 
+      trip.participants?.some(p => p.userId === userId)
+    );
+    
+    // Add owner details to each trip
+    const tripsWithDetails = await Promise.all(
+      sharedTrips.map(async (trip) => {
+        const owner = await dynamoDBService.getUserById(trip.userId);
+        const userParticipant = trip.participants.find(p => p.userId === userId);
+        return {
+          ...trip,
+          ownerName: owner?.name || 'Unknown',
+          ownerEmail: owner?.email || 'Unknown',
+          myRole: userParticipant?.role || 'participant'
+        };
+      })
+    );
+    
+    res.json({ trips: tripsWithDetails });
+  } catch (error) {
+    console.error('Error getting shared trips:', error);
+    res.status(500).json({ message: 'Error getting shared trips' });
+  }
+});
+
 // GET /trips/:id/recommendations - Get smart recommendations
 router.get('/:id/recommendations', async (req, res) => {
   try {
