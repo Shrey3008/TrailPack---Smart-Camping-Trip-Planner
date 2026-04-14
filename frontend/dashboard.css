@@ -92,7 +92,79 @@
   font-size: 0.85rem;
   font-weight: 600;
   color: #4caf50;
-  text-align: right;
+}
+
+/* Trip Card Header */
+.trip-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.trip-card-header h3 {
+  margin: 0;
+  flex: 1;
+}
+
+/* Status Badges */
+.trip-status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trip-status-badge.status-planning {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.trip-status-badge.status-active {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.trip-status-badge.status-completed {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.trip-status-badge.status-cancelled {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* Trip Progress Info */
+.trip-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 5px;
+}
+
+/* Status Action Buttons */
+.trip-status-actions {
+  margin-bottom: 15px;
+}
+
+.trip-status-actions .btn {
+  width: 100%;
+  margin-bottom: 5px;
+}
+
+.trip-completed {
+  display: block;
+  padding: 10px;
+  background: #e8f5e9;
+  color: #388e3c;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
 }
 
 /* Stats Section */

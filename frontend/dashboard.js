@@ -46,16 +46,24 @@ function updateTripsGrid(trips) {
   
   container.innerHTML = trips.map(trip => `
     <div class="trip-card">
-      <h3>${escapeHtml(trip.name)}</h3>
+      <div class="trip-card-header">
+        <h3>${escapeHtml(trip.name)}</h3>
+        <span class="trip-status-badge status-${trip.status || 'planning'}">${trip.status || 'planning'}</span>
+      </div>
       <div class="trip-meta">
         ${escapeHtml(trip.terrain)} • ${escapeHtml(trip.season)} • ${trip.duration} days
       </div>
       <div class="trip-progress">
-        <div class="trip-progress-text">${trip.packed || 0}/${trip.totalItems || 0} items packed</div>
         <div class="trip-progress-bar">
           <div class="trip-progress-fill" style="width: ${trip.progress || 0}%"></div>
         </div>
-        <div class="trip-progress-percentage">${trip.progress || 0}%</div>
+        <div class="trip-progress-info">
+          <span>${trip.packed || 0}/${trip.totalItems || 0} items packed</span>
+          <span class="trip-progress-percentage">${trip.progress || 0}%</span>
+        </div>
+      </div>
+      <div class="trip-status-actions">
+        ${getStatusButtons(trip)}
       </div>
       <div class="trip-actions">
         <button class="btn btn-secondary" onclick="window.location.href='checklist.html?id=${trip.tripId}'">
@@ -97,6 +105,41 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Get status action buttons based on current status
+function getStatusButtons(trip) {
+  const status = trip.status || 'planning';
+  
+  if (status === 'planning') {
+    return `<button class="btn btn-success" onclick="updateTripStatus('${trip.tripId}', 'active')">▶ Start Trip</button>`;
+  } else if (status === 'active') {
+    return `
+      <button class="btn btn-primary" onclick="updateTripStatus('${trip.tripId}', 'completed')">✓ Complete Trip</button>
+      <button class="btn btn-warning" onclick="updateTripStatus('${trip.tripId}', 'cancelled')">✕ Cancel Trip</button>
+    `;
+  } else if (status === 'completed') {
+    return `<span class="trip-completed">✓ Trip Completed</span>`;
+  } else if (status === 'cancelled') {
+    return `<button class="btn btn-success" onclick="updateTripStatus('${trip.tripId}', 'active')">▶ Reactivate Trip</button>`;
+  }
+  return '';
+}
+
+// Update trip status
+async function updateTripStatus(tripId, status) {
+  try {
+    await apiCallWithAuth(`/trips/${tripId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status })
+    });
+    
+    // Reload dashboard to show updated status
+    loadDashboard();
+  } catch (error) {
+    console.error('Error updating trip status:', error);
+    alert('Failed to update trip status. Please try again.');
+  }
 }
 
 // Show error message
