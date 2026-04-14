@@ -22,9 +22,81 @@ async function loadDashboard() {
     // Update trips grid
     updateTripsGrid(tripsWithProgress);
     
+    // Load shared trips
+    await loadSharedTrips();
+    
   } catch (error) {
     console.error('Error loading dashboard:', error);
     showError('Failed to load dashboard data');
+  }
+}
+
+// Load shared trips
+async function loadSharedTrips() {
+  try {
+    const response = await apiCallWithAuth('/trips/shared');
+    const sharedTrips = response.trips || [];
+    
+    const container = document.getElementById('shared-trips-grid');
+    const section = document.getElementById('shared-trips-section');
+    
+    if (!container || !section) return;
+    
+    if (sharedTrips.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    
+    section.style.display = 'block';
+    
+    // Calculate progress for shared trips
+    const tripsWithProgress = await Promise.all(sharedTrips.map(async (trip) => {
+      // Fetch items for this trip
+      const itemsResponse = await apiCallWithAuth(`/trips/${trip.tripId}/items`);
+      const items = itemsResponse.items || [];
+      const totalItems = items.length;
+      const packedItems = items.filter(item => item.isPacked).length;
+      const progress = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
+      
+      return {
+        ...trip,
+        totalItems,
+        packed: packedItems,
+        progress
+      };
+    }));
+    
+    container.innerHTML = tripsWithProgress.map(trip => `
+      <div class="trip-card shared-trip">
+        <div class="trip-card-header">
+          <h3>${escapeHtml(trip.name)}</h3>
+          <span class="trip-status-badge status-${trip.status || 'planning'}">${trip.status || 'planning'}</span>
+        </div>
+        <div class="trip-meta">
+          ${escapeHtml(trip.terrain)} • ${escapeHtml(trip.season)} • ${trip.duration} days
+        </div>
+        <div class="trip-owner">
+          <small>👤 Shared by: ${escapeHtml(trip.ownerName)} (${escapeHtml(trip.myRole)})</small>
+        </div>
+        <div class="trip-progress">
+          <div class="trip-progress-bar">
+            <div class="trip-progress-fill" style="width: ${trip.progress || 0}%"></div>
+          </div>
+          <div class="trip-progress-info">
+            <span>${trip.packed || 0}/${trip.totalItems || 0} items packed</span>
+            <span class="trip-progress-percentage">${trip.progress || 0}%</span>
+          </div>
+        </div>
+        <div class="trip-actions">
+          <button class="btn btn-secondary" onclick="window.location.href='checklist.html?id=${trip.tripId}'">
+            View Checklist
+          </button>
+        </div>
+      </div>
+    `).join('');
+    
+  } catch (error) {
+    console.error('Error loading shared trips:', error);
   }
 }
 

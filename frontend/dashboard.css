@@ -491,6 +491,38 @@
   color: #1976d2;
 }
 
+/* Shared Trips Section */
+.shared-trips-section {
+  margin-top: 40px;
+  padding-top: 30px;
+  border-top: 2px solid #e0e0e0;
+}
+
+.shared-trips-section .section-header {
+  margin-bottom: 20px;
+}
+
+.shared-trips-section h2 {
+  color: var(--primary-color);
+  margin-bottom: 5px;
+}
+
+.shared-trip {
+  border-left: 4px solid #2196f3;
+}
+
+.trip-owner {
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.trip-owner small {
+  color: #666;
+}
+
 .no-participants {
   text-align: center;
   color: #999;
