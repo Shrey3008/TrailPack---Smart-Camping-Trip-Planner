@@ -351,26 +351,6 @@
   text-decoration: underline;
 }
 
-/* Trip Progress Bar */
-.trip-card {
-  position: relative;
-}
-
-.trip-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: #e0e0e0;
-}
-
-.trip-progress-fill {
-  height: 100%;
-  background: #4caf50;
-  transition: width 0.3s ease;
-}
-
 /* User Greeting */
 .user-greeting {
   color: white;
