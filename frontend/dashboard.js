@@ -1,10 +1,22 @@
 // Dashboard JavaScript
 
-// Show loading spinner
+// Show enhanced loading skeleton
 function showLoading(elementId = 'trips-grid') {
   const container = document.getElementById(elementId);
   if (container) {
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div><p>Loading trips...</p></div>';
+    container.innerHTML = `
+      <div class="skeleton-grid">
+        ${Array(3).fill(0).map(() => `
+          <div class="skeleton-card">
+            <div class="skeleton-line title"></div>
+            <div class="skeleton-line text"></div>
+            <div class="skeleton-line short"></div>
+            <div class="skeleton-line text"></div>
+            <div class="skeleton-line short"></div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 }
 
@@ -13,37 +25,137 @@ function hideLoading(elementId = 'trips-grid') {
   // Content will be replaced by actual data
 }
 
-// Load dashboard data
+// Load dashboard data with AI enhancements
 async function loadDashboard() {
   showLoading('trips-grid');
   try {
     const data = await apiCallWithAuth('/trips');
     const trips = data.trips || [];
     
-    // Calculate progress for each trip
-    const tripsWithProgress = await Promise.all(trips.map(async (trip) => {
+    // Calculate progress and add AI insights for each trip
+    const tripsWithProgress = await Promise.all(trips.map(async (trip, index) => {
       try {
         const items = await apiCallWithAuth(`/trips/${trip.tripId}/items`);
         const packed = items.filter(item => item.isChecked).length;
         const progress = items.length > 0 ? Math.round((packed / items.length) * 100) : 0;
-        return { ...trip, progress, packed, totalItems: items.length };
+        
+        // Add AI insights for upcoming trips
+        let aiInsights = null;
+        if (trip.startDate && new Date(trip.startDate) > new Date()) {
+          try {
+            const daysUntil = Math.ceil((new Date(trip.startDate) - new Date()) / (1000 * 60 * 60 * 24));
+            if (daysUntil <= 7) {
+              aiInsights = await loadAIInsights(trip);
+            }
+          } catch (error) {
+            console.log('AI insights not available for this trip');
+          }
+        }
+        
+        return { 
+          ...trip, 
+          progress, 
+          packed, 
+          totalItems: items.length,
+          aiInsights,
+          animationDelay: index * 0.1 // Stagger animations
+        };
       } catch (error) {
         console.error(`Error loading items for trip ${trip.tripId}:`, error);
-        return { ...trip, progress: 0, packed: 0, totalItems: 0 };
+        return { 
+          ...trip, 
+          progress: 0, 
+          packed: 0, 
+          totalItems: 0,
+          animationDelay: index * 0.1
+        };
       }
     }));
     
-    // Update trips grid
+    // Update trips grid with animations
     updateTripsGrid(tripsWithProgress);
     
     // Load shared trips
     await loadSharedTrips();
+    
+    // Show AI insights for upcoming trips
+    showAIInsights(tripsWithProgress);
     
   } catch (error) {
     console.error('Error loading dashboard:', error);
     showError('Failed to load dashboard data');
   } finally {
     hideLoading('trips-grid');
+  }
+}
+
+// Load AI insights for a trip
+async function loadAIInsights(trip) {
+  try {
+    // Get weather insights
+    const weatherResponse = await apiCallWithAuth(`/ai/insights/weather/${trip.tripId}?location=${trip.location || 'Unknown'}&startDate=${trip.startDate}&endDate=${trip.endDate}`);
+    
+    // Get trip summary
+    const summaryResponse = await apiCallWithAuth('/ai/trip/summary', {
+      method: 'POST',
+      body: JSON.stringify({
+        tripData: trip,
+        checklistItems: { packed: trip.packed || 0, total: trip.totalItems || 0 },
+        activities: trip.activities || []
+      })
+    });
+    
+    return {
+      weather: weatherResponse.success ? weatherResponse.data : null,
+      summary: summaryResponse.success ? summaryResponse.data : null
+    };
+  } catch (error) {
+    console.error('Error loading AI insights:', error);
+    return null;
+  }
+}
+
+// Show AI insights widget
+function showAIInsights(trips) {
+  const upcomingTrips = trips.filter(trip => 
+    trip.aiInsights && 
+    trip.startDate && 
+    new Date(trip.startDate) > new Date()
+  );
+  
+  if (upcomingTrips.length === 0) return;
+  
+  const container = document.querySelector('.dashboard-container');
+  const insightsHTML = upcomingTrips.map(trip => `
+    <div class="ai-insights-card" style="animation-delay: ${trip.animationDelay}s">
+      <h3>AI Insights for ${escapeHtml(trip.name)}</h3>
+      ${trip.aiInsights.weather ? `
+        <div class="ai-insight-item">
+          <strong>🌤️ Weather Forecast:</strong>
+          <div class="weather-forecast">
+            ${trip.aiInsights.weather.predictions?.slice(0, 5).map(day => `
+              <div class="weather-day">
+                <div class="weather-day-date">${new Date(day.date).toLocaleDateString('en', { weekday: 'short' })}</div>
+                <div class="weather-day-temp">${Math.round(day.temperature)}°C</div>
+                <div class="weather-day-condition">${day.description}</div>
+              </div>
+            `).join('') || '<p>Weather data unavailable</p>'}
+          </div>
+        </div>
+      ` : ''}
+      ${trip.aiInsights.summary ? `
+        <div class="ai-insight-item">
+          <strong>📋 Trip Summary:</strong>
+          <p>${trip.aiInsights.summary.summary}</p>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+  
+  // Insert after the header
+  const header = document.querySelector('.dashboard-header');
+  if (header && insightsHTML) {
+    header.insertAdjacentHTML('afterend', insightsHTML);
   }
 }
 
@@ -116,7 +228,7 @@ async function loadSharedTrips() {
   }
 }
 
-// Update trips grid
+// Update trips grid with enhanced animations and UX
 function updateTripsGrid(trips) {
   const container = document.getElementById('trips-grid');
   const emptyState = document.getElementById('empty-state');
@@ -126,46 +238,60 @@ function updateTripsGrid(trips) {
   if (trips.length === 0) {
     container.style.display = 'none';
     emptyState.style.display = 'block';
+    emptyState.classList.add('dashboard-item');
     return;
   }
   
   container.style.display = 'grid';
   emptyState.style.display = 'none';
   
-  container.innerHTML = trips.map(trip => `
-    <div class="trip-card">
+  container.innerHTML = trips.map((trip, index) => `
+    <div class="trip-card dashboard-item" style="animation-delay: ${trip.animationDelay || index * 0.1}s">
       <div class="trip-card-header">
         <h3>${escapeHtml(trip.name)}</h3>
         <span class="trip-status-badge status-${trip.status || 'planning'}">${trip.status || 'planning'}</span>
       </div>
       <div class="trip-meta">
-        ${escapeHtml(trip.terrain)} • ${escapeHtml(trip.season)} • ${trip.duration} days
+        <span class="trip-badge">${escapeHtml(trip.terrain)}</span>
+        <span class="trip-badge">${escapeHtml(trip.season)}</span>
+        <span class="trip-badge">${trip.duration} days</span>
       </div>
+      ${trip.startDate ? `
+        <div class="trip-dates">
+          <small>📅 ${new Date(trip.startDate).toLocaleDateString()} - ${trip.endDate ? new Date(trip.endDate).toLocaleDateString() : 'Ongoing'}</small>
+        </div>
+      ` : ''}
       <div class="trip-progress">
-        <div class="trip-progress-bar">
-          <div class="trip-progress-fill" style="width: ${trip.progress || 0}%"></div>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${trip.progress || 0}%; --progress-width: ${trip.progress || 0}%"></div>
         </div>
         <div class="trip-progress-info">
           <span>${trip.packed || 0}/${trip.totalItems || 0} items packed</span>
           <span class="trip-progress-percentage">${trip.progress || 0}%</span>
         </div>
       </div>
-      <div class="trip-status-actions">
-        ${getStatusButtons(trip)}
-      </div>
+      ${trip.aiInsights?.weather?.alerts && trip.aiInsights.weather.alerts.length > 0 ? `
+        <div class="weather-alert">
+          <span class="alert-icon">⚠️</span>
+          <span>Weather alerts for this trip</span>
+        </div>
+      ` : ''}
       <div class="trip-actions">
-        <button class="btn btn-secondary" onclick="window.location.href='checklist.html?id=${trip.tripId}'">
+        <button class="btn btn-primary" onclick="viewChecklist('${trip.tripId}')">
           View Checklist
         </button>
-        <button class="btn btn-info" onclick="shareTrip('${trip.tripId}')">
-          👥 Share
-        </button>
-        <button class="btn btn-danger" onclick="deleteTrip('${trip.tripId}')">
-          Delete
+        <button class="btn btn-secondary" onclick="shareTrip('${trip.tripId}')">
+          Share
         </button>
       </div>
     </div>
   `).join('');
+  
+  // Add staggered animation to cards
+  const cards = container.querySelectorAll('.trip-card');
+  cards.forEach((card, index) => {
+    card.style.animationDelay = `${index * 0.1}s`;
+  });
 }
 
 // View checklist for a trip
@@ -184,10 +310,117 @@ async function deleteTrip(tripId) {
       method: 'DELETE'
     });
     
+    // Show success notification
+    if (window.notificationManager) {
+      notificationManager.showNotification('success', 'Trip deleted successfully');
+    }
+    
     // Reload dashboard
     loadDashboard();
   } catch (error) {
-    alert('Failed to delete trip. Please try again.');
+    if (window.notificationManager) {
+      notificationManager.showNotification('error', 'Failed to delete trip. Please try again.');
+    } else {
+      alert('Failed to delete trip. Please try again.');
+    }
+  }
+}
+
+// Share a trip
+async function shareTrip(tripId) {
+  try {
+    const response = await apiCallWithAuth(`/trips/${tripId}/share`, {
+      method: 'POST',
+      body: JSON.stringify({
+        message: 'Join my camping adventure!'
+      })
+    });
+    
+    if (response.success) {
+      // Copy share link to clipboard
+      await navigator.clipboard.writeText(response.shareLink);
+      
+      if (window.notificationManager) {
+        notificationManager.showNotification('success', 'Share link copied to clipboard!');
+      } else {
+        alert('Share link copied to clipboard!');
+      }
+    }
+  } catch (error) {
+    if (window.notificationManager) {
+      notificationManager.showNotification('error', 'Failed to generate share link');
+    } else {
+      alert('Failed to generate share link');
+    }
+  }
+}
+
+// Enhanced error handling
+function showError(message) {
+  if (window.notificationManager) {
+    notificationManager.showNotification('error', message);
+  } else {
+    alert(message);
+  }
+}
+
+// Escape HTML utility
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Get status buttons for trip
+function getStatusButtons(trip) {
+  const status = trip.status || 'planning';
+  const buttons = [];
+  
+  switch (status) {
+    case 'planning':
+      buttons.push(`
+        <button class="btn btn-success" onclick="updateTripStatus('${trip.tripId}', 'active')">
+          Start Trip
+        </button>
+      `);
+      break;
+    case 'active':
+      buttons.push(`
+        <button class="btn btn-warning" onclick="updateTripStatus('${trip.tripId}', 'completed')">
+          Complete Trip
+        </button>
+      `);
+      break;
+    case 'completed':
+      buttons.push(`
+        <span class="badge badge-success">Completed</span>
+      `);
+      break;
+  }
+  
+  return buttons.join('');
+}
+
+// Update trip status
+async function updateTripStatus(tripId, newStatus) {
+  try {
+    await apiCallWithAuth(`/trips/${tripId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status: newStatus })
+    });
+    
+    if (window.notificationManager) {
+      notificationManager.showNotification('success', `Trip status updated to ${newStatus}`);
+    }
+    
+    // Reload dashboard
+    loadDashboard();
+  } catch (error) {
+    if (window.notificationManager) {
+      notificationManager.showNotification('error', 'Failed to update trip status');
+    } else {
+      alert('Failed to update trip status');
+    }
   }
 }
 
