@@ -250,6 +250,152 @@ const dynamoDBService = {
       TableName: TABLES.ITEMS,
       Key: { itemId }
     }));
+  },
+
+  // User listing and filtering for admin
+  getAllUsers: async (filters = {}) => {
+    const { role, isActive } = filters;
+    
+    let filterExpression = '';
+    const expressionAttributeValues = {};
+    const expressionAttributeNames = {};
+    
+    const conditions = [];
+    
+    if (role) {
+      conditions.push('#role = :role');
+      expressionAttributeNames['#role'] = 'role';
+      expressionAttributeValues[':role'] = role;
+    }
+    
+    if (isActive !== undefined) {
+      conditions.push('#isActive = :isActive');
+      expressionAttributeNames['#isActive'] = 'isActive';
+      expressionAttributeValues[':isActive'] = isActive;
+    }
+    
+    if (conditions.length > 0) {
+      filterExpression = conditions.join(' AND ');
+    }
+    
+    const params = {
+      TableName: TABLES.USERS
+    };
+    
+    if (filterExpression) {
+      params.FilterExpression = filterExpression;
+      params.ExpressionAttributeNames = expressionAttributeNames;
+      params.ExpressionAttributeValues = expressionAttributeValues;
+    }
+    
+    const result = await docClient.send(new ScanCommand(params));
+    return result.Items || [];
+  },
+
+  // Count users with filters
+  countUsers: async (filters = {}) => {
+    const users = await dynamoDBService.getAllUsers(filters);
+    return users.length;
+  },
+
+  // Count all trips
+  countTrips: async () => {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.TRIPS,
+      Select: 'COUNT'
+    }));
+    return result.Count || 0;
+  },
+
+  // Count all items
+  countItems: async () => {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.ITEMS,
+      Select: 'COUNT'
+    }));
+    return result.Count || 0;
+  },
+
+  // Get users by role (for role distribution stats)
+  getUsersByRole: async () => {
+    const users = await dynamoDBService.getAllUsers({ isActive: true });
+    const roleStats = {};
+    users.forEach(user => {
+      const role = user.role || 'user';
+      roleStats[role] = (roleStats[role] || 0) + 1;
+    });
+    return Object.entries(roleStats).map(([role, count]) => ({ _id: role, count }));
+  },
+
+  // Get all trips for admin stats
+  getAllTrips: async () => {
+    const result = await docClient.send(new ScanCommand({
+      TableName: TABLES.TRIPS
+    }));
+    return result.Items || [];
+  },
+
+  // Get trips by status (for status distribution stats)
+  getTripsByStatus: async () => {
+    const trips = await dynamoDBService.getAllTrips();
+    const statusStats = {};
+    trips.forEach(trip => {
+      const status = trip.status || 'planning';
+      statusStats[status] = (statusStats[status] || 0) + 1;
+    });
+    return Object.entries(statusStats).map(([status, count]) => ({ _id: status, count }));
+  },
+
+  // Get recent users (last 30 days)
+  getRecentUsers: async (days = 30) => {
+    const users = await dynamoDBService.getAllUsers();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return users.filter(user => {
+      const createdAt = new Date(user.createdAt);
+      return createdAt >= cutoffDate;
+    });
+  },
+
+  // Get recent trips (last 30 days)
+  getRecentTrips: async (days = 30) => {
+    const trips = await dynamoDBService.getAllTrips();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return trips.filter(trip => {
+      const createdAt = new Date(trip.createdAt);
+      return createdAt >= cutoffDate;
+    });
+  },
+
+  // Get top users by trip count
+  getTopUsers: async (limit = 5) => {
+    const users = await dynamoDBService.getAllUsers({ isActive: true });
+    
+    // Sort by total trips (descending)
+    return users
+      .sort((a, b) => (b.stats?.totalTrips || 0) - (a.stats?.totalTrips || 0))
+      .slice(0, limit)
+      .map(user => ({
+        userId: user.userId,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        stats: user.stats || { totalTrips: 0, totalItemsPacked: 0 },
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin
+      }));
+  },
+
+  // Get user by ID and return full user object
+  getUserByIdFull: async (userId) => {
+    const result = await docClient.send(new GetCommand({
+      TableName: TABLES.USERS,
+      Key: { userId }
+    }));
+    return result.Item;
   }
 };
 

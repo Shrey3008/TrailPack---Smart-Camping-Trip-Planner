@@ -138,15 +138,14 @@ router.put('/profile', authenticate, async (req, res) => {
     if (preferredTerrain) updates['profile.preferredTerrain'] = preferredTerrain;
     if (notificationSettings) updates['profile.notificationSettings'] = notificationSettings;
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      updates,
-      { new: true, select: '-password' }
-    );
+    await dynamoDBService.updateUser(req.user.userId, updates);
+    
+    const updatedUser = await dynamoDBService.getUserById(req.user.userId);
+    delete updatedUser.password;
 
     res.json({
       message: 'Profile updated successfully',
-      user
+      user: updatedUser
     });
   } catch (error) {
     console.error('Profile update error:', error);
@@ -166,17 +165,17 @@ router.put('/password', authenticate, async (req, res) => {
     }
 
     // Get user with password
-    const user = await User.findById(req.user._id);
+    const user = await dynamoDBService.getUserByIdFull(req.user.userId);
 
     // Verify current password
-    const isValid = await user.comparePassword(currentPassword);
+    const isValid = await bcrypt.compare(currentPassword, user.password);
     if (!isValid) {
       return res.status(401).json({ message: 'Current password is incorrect' });
     }
 
-    // Update password
-    user.password = newPassword;
-    await user.save();
+    // Hash new password and update
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await dynamoDBService.updateUser(user.userId, { password: hashedNewPassword });
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
@@ -192,22 +191,34 @@ router.get('/users', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { role, isActive, page = 1, limit = 20 } = req.query;
     
-    const filter = {};
-    if (role) filter.role = role;
-    if (isActive !== undefined) filter.isActive = isActive === 'true';
+    const filters = {};
+    if (role) filters.role = role;
+    if (isActive !== undefined) filters.isActive = isActive === 'true';
 
-    const users = await User.find(filter)
-      .select('-password')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+    const allUsers = await dynamoDBService.getAllUsers(filters);
+    
+    // Remove passwords from all users
+    const usersWithoutPasswords = allUsers.map(user => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
 
-    const count = await User.countDocuments(filter);
+    // Sort by createdAt descending
+    const sortedUsers = usersWithoutPasswords.sort((a, b) => 
+      new Date(b.createdAt) - new Date(a.createdAt)
+    );
+
+    // Pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + parseInt(limit);
+    const paginatedUsers = sortedUsers.slice(startIndex, endIndex);
+
+    const count = allUsers.length;
 
     res.json({
-      users,
+      users: paginatedUsers,
       totalPages: Math.ceil(count / limit),
-      currentPage: page,
+      currentPage: parseInt(page),
       total: count
     });
   } catch (error) {
@@ -217,27 +228,29 @@ router.get('/users', authenticate, authorize('admin'), async (req, res) => {
 });
 
 // PUT /auth/users/:id/role - Update user role (admin only)
-router.put('/users/:id/role', authenticate, authorize('admin'), async (req, res) => {
+router.put('/users/:userId/role', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { role } = req.body;
+    const { userId } = req.params;
     
     if (!['admin', 'user', 'organizer'].includes(role)) {
       return res.status(400).json({ message: 'Invalid role' });
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { role },
-      { new: true, select: '-password' }
-    );
-
+    // Check if user exists
+    const user = await dynamoDBService.getUserById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    await dynamoDBService.updateUser(userId, { role });
+    
+    const updatedUser = await dynamoDBService.getUserById(userId);
+    delete updatedUser.password;
+
     res.json({
       message: 'User role updated successfully',
-      user
+      user: updatedUser
     });
   } catch (error) {
     console.error('Role update error:', error);
@@ -246,23 +259,25 @@ router.put('/users/:id/role', authenticate, authorize('admin'), async (req, res)
 });
 
 // PUT /auth/users/:id/status - Activate/deactivate user (admin only)
-router.put('/users/:id/status', authenticate, authorize('admin'), async (req, res) => {
+router.put('/users/:userId/status', authenticate, authorize('admin'), async (req, res) => {
   try {
     const { isActive } = req.body;
+    const { userId } = req.params;
 
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive },
-      { new: true, select: '-password' }
-    );
-
+    // Check if user exists
+    const user = await dynamoDBService.getUserById(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    await dynamoDBService.updateUser(userId, { isActive });
+    
+    const updatedUser = await dynamoDBService.getUserById(userId);
+    delete updatedUser.password;
+
     res.json({
       message: `User ${isActive ? 'activated' : 'deactivated'} successfully`,
-      user
+      user: updatedUser
     });
   } catch (error) {
     console.error('Status update error:', error);

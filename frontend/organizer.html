@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Organizer Dashboard - TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <h1>TrailPack</h1>
+      <span class="tagline">Organizer Dashboard</span>
+    </div>
+    <div class="nav-links">
+      <span id="user-name" class="user-greeting"></span>
+      <a href="dashboard.html" class="nav-link">My Trips</a>
+      <a href="#" class="nav-link" id="admin-link" style="display: none;">Admin</a>
+      <a href="profile.html" class="nav-link">Profile</a>
+      <button class="btn btn-secondary" id="logout-btn">Logout</button>
+    </div>
+  </nav>
+
+  <main class="container organizer-dashboard">
+    <header class="admin-header">
+      <h2>🎯 Organizer Dashboard</h2>
+      <p>Manage trips you're organizing and track participant activity</p>
+    </header>
+
+    <!-- Overview Stats -->
+    <section class="admin-grid">
+      <div class="admin-card">
+        <h3>📅 Trips Organized</h3>
+        <div class="admin-stat-large" id="total-organized">0</div>
+        <div class="admin-stat-label">trips you're managing</div>
+      </div>
+      <div class="admin-card">
+        <h3>🏕️ Active Trips</h3>
+        <div class="admin-stat-large" id="active-trips">0</div>
+        <div class="admin-stat-label">currently active</div>
+      </div>
+      <div class="admin-card">
+        <h3>✅ Completed</h3>
+        <div class="admin-stat-large" id="completed-trips">0</div>
+        <div class="admin-stat-label">trips completed</div>
+      </div>
+      <div class="admin-card">
+        <h3>👥 Total Participants</h3>
+        <div class="admin-stat-large" id="total-participants">0</div>
+        <div class="admin-stat-label">people on your trips</div>
+      </div>
+    </section>
+
+    <!-- Organized Trips -->
+    <section class="trips-section">
+      <div class="section-header">
+        <h2>📋 Trips You're Organizing</h2>
+      </div>
+      <div id="organized-trips-list" class="trips-list">
+        <!-- Trips will be loaded here -->
+      </div>
+    </section>
+
+    <!-- Participant Management -->
+    <section class="trips-section" id="participants-section" style="display: none;">
+      <div class="section-header">
+        <h2>👥 Trip Participants</h2>
+        <button class="btn btn-secondary" onclick="closeParticipantsView()">Close</button>
+      </div>
+      <div id="participants-list" class="participants-list">
+        <!-- Participants will be loaded here -->
+      </div>
+    </section>
+  </main>
+
+  <script src="auth.js"></script>
+  <script src="organizer.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      checkOrganizerAccess();
+      loadOrganizerDashboard();
+    });
+  </script>
+</body>
+</html>

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const dynamoDBService = require('../services/dynamoDBService');
 const checklistService = require('../services/checklistService');
+const dashboardService = require('../services/dashboardService');
 const { authenticate, authorize } = require('../middleware/auth');
 
 // All trip routes require authentication
@@ -150,6 +151,18 @@ router.get('/admin/dashboard', authorize('admin'), async (req, res) => {
   } catch (error) {
     console.error('Error fetching admin dashboard:', error);
     res.status(500).json({ message: 'Error fetching admin dashboard' });
+  }
+});
+
+// GET /trips/organizer/dashboard - Get organizer dashboard (organizers and admins)
+router.get('/organizer/dashboard', authorize('organizer', 'admin'), async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const organizerData = await dashboardService.getOrganizerDashboard(userId);
+    res.json(organizerData);
+  } catch (error) {
+    console.error('Error fetching organizer dashboard:', error);
+    res.status(500).json({ message: 'Error fetching organizer dashboard' });
   }
 });
 

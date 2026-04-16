@@ -29,6 +29,16 @@ function checkAuth() {
     const adminLink = document.getElementById('admin-link');
     if (adminLink) {
       adminLink.style.display = 'inline';
+      adminLink.href = 'admin.html';
+    }
+  }
+  
+  // Show organizer link if user is organizer or admin
+  if (user.role === 'organizer' || user.role === 'admin') {
+    const organizerLink = document.getElementById('organizer-link');
+    if (organizerLink) {
+      organizerLink.style.display = 'inline';
+      organizerLink.href = 'organizer.html';
     }
   }
   
