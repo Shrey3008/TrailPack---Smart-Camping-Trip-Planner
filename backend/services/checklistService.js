@@ -1,5 +1,6 @@
-const Trip = require('../models/Trip');
-const ChecklistItem = require('../models/ChecklistItem');
+// Models removed - will need DynamoDB refactoring
+// const Trip = require('../models/Trip');
+// const ChecklistItem = require('../models/ChecklistItem');
 
 class ChecklistService {
   constructor() {
