@@ -1,23 +1,66 @@
-// API Configuration (uses API_URL from auth.js)
-// Helper function for API calls (legacy, without auth)
+// API Configuration
+const API_URL = 'http://localhost:3000';
+
+// Auth token storage (in memory)
+window.authToken = null;
+window.currentUser = null;
+
+// Check authentication status
+function checkAuth() {
+  if (!window.authToken) {
+    window.location.href = 'login.html';
+    return false;
+  }
+  return true;
+}
+
+// Logout function
+function logout() {
+  window.authToken = null;
+  window.currentUser = null;
+  window.location.href = 'login.html';
+}
+
+// Helper function for API calls with auth
 async function apiCall(endpoint, options = {}) {
   try {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...options.headers
+    };
+
+    // Add JWT token if available
+    if (window.authToken) {
+      headers['Authorization'] = `Bearer ${window.authToken}`;
+    }
+
     const response = await fetch(`${API_URL}${endpoint}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
+      headers,
       ...options
     });
-    
+
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const error = await response.json();
+      throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }
-    
+
     return await response.json();
   } catch (error) {
     console.error('API Error:', error);
     throw error;
+  }
+}
+
+// Load dashboard stats
+async function loadStats() {
+  try {
+    const stats = await apiCall('/trips/stats');
+    document.getElementById('stat-trips').textContent = stats.totalTrips;
+    document.getElementById('stat-items').textContent = stats.totalItems;
+    document.getElementById('stat-packed').textContent = stats.packedItems;
+    document.getElementById('stat-percentage').textContent = `${stats.packedPercentage}%`;
+  } catch (error) {
+    console.error('Error loading stats:', error);
   }
 }
 

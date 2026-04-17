@@ -12,9 +12,33 @@
       <h1>TrailPack</h1>
       <span class="tagline">Smart Camping Trip Planner</span>
     </div>
+    <div class="nav-user">
+      <span id="user-name" class="user-name"></span>
+      <button class="btn btn-secondary" onclick="logout()">Logout</button>
+    </div>
   </nav>
 
   <main class="container">
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value" id="stat-trips">0</div>
+        <div class="stat-label">Total Trips</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-items">0</div>
+        <div class="stat-label">Total Items</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-packed">0</div>
+        <div class="stat-label">Packed</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-percentage">0%</div>
+        <div class="stat-label">Progress</div>
+      </div>
+    </div>
+
     <header class="dashboard-header">
       <h2>Your Trips</h2>
       <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
@@ -38,8 +62,16 @@
 
   <script src="app.js"></script>
   <script>
-    // Load trips when page loads
-    document.addEventListener('DOMContentLoaded', loadTrips);
+    // Check auth and load data when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadTrips();
+      loadStats();
+      // Display user name
+      if (window.currentUser) {
+        document.getElementById('user-name').textContent = window.currentUser.name;
+      }
+    });
   </script>
 </body>
 </html>

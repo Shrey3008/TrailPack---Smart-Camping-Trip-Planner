@@ -39,8 +39,10 @@
     </div>
   </div>
 
-  <script src="auth.js"></script>
   <script>
+    const API_URL = 'http://localhost:3000';
+    window.authToken = null;
+
     // Handle login form submission
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -67,15 +69,15 @@
           throw new Error(data.message || 'Login failed');
         }
         
-        // Store token and user data
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Store token in window variable
+        window.authToken = data.token;
+        window.currentUser = data.user;
         
-        // Redirect to dashboard
-        window.location.href = 'dashboard.html';
+        // Redirect to index
+        window.location.href = 'index.html';
         
       } catch (error) {
-        errorDiv.textContent = error.message;
+        errorDiv.textContent = error.message || 'Invalid email or password';
         errorDiv.style.display = 'block';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Login';
