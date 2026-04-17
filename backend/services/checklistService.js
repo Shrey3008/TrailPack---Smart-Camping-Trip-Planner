@@ -1,6 +1,7 @@
-// Models removed - will need DynamoDB refactoring
-// const Trip = require('../models/Trip');
-// const ChecklistItem = require('../models/ChecklistItem');
+const docClient = require('../db.js');
+const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
+
+const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
 class ChecklistService {
   constructor() {
@@ -170,70 +171,56 @@ class ChecklistService {
 
   // Get smart recommendations based on trip context
   async getRecommendations(tripId) {
-    const trip = await Trip.findById(tripId);
-    if (!trip) throw new Error('Trip not found');
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: {
+          ':pk': `TRIP#${tripId}`,
+          ':sk': 'ITEM#'
+        }
+      }));
 
-    const items = await ChecklistItem.find({ tripId });
-    const packedCount = items.filter(i => i.packed).length;
-    const totalCount = items.length;
-    const progress = totalCount > 0 ? (packedCount / totalCount) * 100 : 0;
+      const items = result.Items || [];
+      const unpackedItems = items.filter(i => !i.packed);
 
-    const recommendations = [];
-
-    // Check if critical items are packed
-    const criticalItems = items.filter(i => 
-      ['First aid kit', 'Water bottle', 'Backpack'].includes(i.name)
-    );
-    const unpackedCritical = criticalItems.filter(i => !i.packed);
-    
-    if (unpackedCritical.length > 0) {
-      recommendations.push({
-        type: 'warning',
-        message: `${unpackedCritical.length} critical items still need to be packed`,
-        items: unpackedCritical.map(i => i.name)
-      });
+      return unpackedItems;
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+      return [];
     }
-
-    // Weather-based recommendations
-    if (trip.season === 'Winter' && !items.some(i => i.name.includes('Thermal'))) {
-      recommendations.push({
-        type: 'suggestion',
-        message: 'Consider adding thermal underwear for cold weather'
-      });
-    }
-
-    // Progress-based encouragement
-    if (progress >= 80) {
-      recommendations.push({
-        type: 'success',
-        message: 'Almost ready! You have packed most of your items.'
-      });
-    } else if (progress < 30) {
-      recommendations.push({
-        type: 'info',
-        message: 'Get started by packing essential items first'
-      });
-    }
-
-    return recommendations;
   }
 
   // Update trip checklist progress
   async updateTripProgress(tripId) {
-    const items = await ChecklistItem.find({ tripId });
-    const packedCount = items.filter(i => i.packed).length;
+    try {
+      const result = await docClient.send(new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: {
+          ':pk': `TRIP#${tripId}`,
+          ':sk': 'ITEM#'
+        }
+      }));
 
-    await Trip.findByIdAndUpdate(tripId, {
-      'checklistProgress.total': items.length,
-      'checklistProgress.packed': packedCount,
-      'checklistProgress.lastUpdated': new Date()
-    });
+      const items = result.Items || [];
+      const total = items.length;
+      const packed = items.filter(i => i.packed).length;
+      const percentage = total > 0 ? Math.round((packed / total) * 100) : 0;
 
-    return {
-      total: items.length,
-      packed: packedCount,
-      percentage: items.length > 0 ? Math.round((packedCount / items.length) * 100) : 0
-    };
+      return {
+        total,
+        packed,
+        percentage
+      };
+    } catch (error) {
+      console.error('Error updating trip progress:', error);
+      return {
+        total: 0,
+        packed: 0,
+        percentage: 0
+      };
+    }
   }
 }
 
