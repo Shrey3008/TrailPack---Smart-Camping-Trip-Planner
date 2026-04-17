@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const docClient = require('../db.js');
-const { authenticate } = require('../middleware/auth');
-const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
+const { authenticate, authorize } = require('../middleware/auth');
+const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
@@ -362,6 +362,186 @@ router.delete('/:id', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error deleting trip:', error);
     res.status(500).json({ message: 'Error deleting trip' });
+  }
+});
+
+// GET /trips/shared - Get trips shared with current user
+router.get('/shared', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Scan for all participants where user is a participant
+    const scanResult = await docClient.send(new ScanCommand({
+      TableName: TABLE_NAME,
+      FilterExpression: 'SK begins_with :sk AND userId = :userId',
+      ExpressionAttributeValues: {
+        ':sk': 'PARTICIPANT#',
+        ':userId': userId
+      }
+    }));
+    
+    const participants = scanResult.Items || [];
+    
+    // Get unique trip IDs
+    const tripIds = [...new Set(participants.map(p => p.tripId))];
+    
+    // Fetch trip details for each trip by scanning and filtering
+    const trips = [];
+    for (const tripId of tripIds) {
+      // Scan all items with SK beginning with TRIP# and filter by tripId
+      const tripScanResult = await docClient.send(new ScanCommand({
+        TableName: TABLE_NAME,
+        FilterExpression: 'begins_with(SK, :sk) AND tripId = :tripId',
+        ExpressionAttributeValues: {
+          ':sk': 'TRIP#',
+          ':tripId': tripId
+        }
+      }));
+      
+      if (tripScanResult.Items && tripScanResult.Items.length > 0) {
+        trips.push(tripScanResult.Items[0]);
+      }
+    }
+    
+    res.json(trips);
+  } catch (error) {
+    console.error('Error fetching shared trips:', error);
+    res.status(500).json({ message: 'Error fetching shared trips' });
+  }
+});
+
+// GET /trips/:id/participants - Get trip participants
+router.get('/:id/participants', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    
+    const result = await docClient.send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': `TRIP#${tripId}`,
+        ':sk': 'PARTICIPANT#'
+      }
+    }));
+    
+    const participants = result.Items || [];
+    res.json({ participants });
+  } catch (error) {
+    console.error('Error fetching participants:', error);
+    res.status(500).json({ message: 'Error fetching participants' });
+  }
+});
+
+// POST /trips/:id/participants - Add participant to trip
+router.post('/:id/participants', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    const { userId, role = 'member' } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+    
+    await docClient.send(new PutCommand({
+      TableName: TABLE_NAME,
+      Item: {
+        PK: `TRIP#${tripId}`,
+        SK: `PARTICIPANT#${userId}`,
+        userId,
+        tripId,
+        role,
+        joinedAt: new Date().toISOString()
+      }
+    }));
+    
+    res.json({ message: 'Participant added successfully' });
+  } catch (error) {
+    console.error('Error adding participant:', error);
+    res.status(500).json({ message: 'Error adding participant' });
+  }
+});
+
+// DELETE /trips/:id/participants/:userId - Remove participant
+router.delete('/:id/participants/:userId', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    const userId = req.params.userId;
+    
+    await docClient.send(new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `TRIP#${tripId}`,
+        SK: `PARTICIPANT#${userId}`
+      }
+    }));
+    
+    res.json({ message: 'Participant removed successfully' });
+  } catch (error) {
+    console.error('Error removing participant:', error);
+    res.status(500).json({ message: 'Error removing participant' });
+  }
+});
+
+// GET /trips/organizer/dashboard - Get organizer dashboard
+router.get('/organizer/dashboard', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    
+    // Get all trips created by this user
+    const tripsResult = await docClient.send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': `USER#${userId}`,
+        ':sk': 'TRIP#'
+      }
+    }));
+    
+    const trips = tripsResult.Items || [];
+    
+    // Get participant count for each trip
+    const tripsWithCounts = await Promise.all(trips.map(async (trip) => {
+      const participantsResult = await docClient.send(new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: {
+          ':pk': `TRIP#${trip.tripId}`,
+          ':sk': 'PARTICIPANT#'
+        }
+      }));
+      
+      const participants = participantsResult.Items || [];
+      
+      return {
+        ...trip,
+        participantCount: participants.length
+      };
+    }));
+    
+    res.json(tripsWithCounts);
+  } catch (error) {
+    console.error('Error fetching organizer dashboard:', error);
+    res.status(500).json({ message: 'Error fetching organizer dashboard' });
+  }
+});
+
+// GET /trips/admin/dashboard - Get admin dashboard (admin only)
+router.get('/admin/dashboard', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    // Scan all trips
+    const scanResult = await docClient.send(new ScanCommand({
+      TableName: TABLE_NAME,
+      FilterExpression: 'begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':sk': 'TRIP#'
+      }
+    }));
+    
+    const trips = scanResult.Items || [];
+    res.json(trips);
+  } catch (error) {
+    console.error('Error fetching admin dashboard:', error);
+    res.status(500).json({ message: 'Error fetching admin dashboard' });
   }
 });
 
