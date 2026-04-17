@@ -2,6 +2,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+// DB handled via DynamoDB client in db.js
+
 const app = express();
 
 // Middleware
@@ -46,6 +48,23 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime()
   });
+});
+
+// MOCK ROUTES for Phase 4 compatibility (return empty data to stop 404s)
+app.get('/notifications', (req, res) => {
+  res.status(200).json({ success: true, data: [] });
+});
+
+app.get('/notifications/unread', (req, res) => {
+  res.status(200).json({ success: true, count: 0 });
+});
+
+app.get('/notifications/unread-count', (req, res) => {
+  res.status(200).json({ success: true, data: { unreadCount: 0 } });
+});
+
+app.get('/shared-trips', (req, res) => {
+  res.status(200).json({ success: true, trips: [] });
 });
 
 // Error handling middleware
