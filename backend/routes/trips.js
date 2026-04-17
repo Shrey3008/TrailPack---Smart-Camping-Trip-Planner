@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Trip = require('../models/Trip');
 const ChecklistItem = require('../models/ChecklistItem');
 
@@ -106,18 +107,21 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
     
-    // Create trip
+    const parsedDuration = parseInt(duration);
+    
+    // Create trip (userId required - use default for now until auth is set up)
     const trip = new Trip({
+      userId: new mongoose.Types.ObjectId('000000000000000000000001'), // Default user
       name,
       terrain,
       season,
-      duration: parseInt(duration)
+      duration: parsedDuration
     });
     
     const savedTrip = await trip.save();
     
     // Generate checklist items
-    const checklistItems = generateChecklist(terrain, season, duration);
+    const checklistItems = generateChecklist(terrain, season, parsedDuration);
     
     // Save checklist items
     const itemPromises = checklistItems.map(item => {
@@ -163,6 +167,39 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching trip:', error);
     res.status(500).json({ message: 'Error fetching trip' });
+  }
+});
+
+// PUT /trips/:id - Update a trip
+router.put('/:id', async (req, res) => {
+  try {
+    const { name, terrain, season, duration } = req.body;
+    
+    const trip = await Trip.findByIdAndUpdate(
+      req.params.id,
+      { name, terrain, season, duration: parseInt(duration) },
+      { new: true, runValidators: true }
+    );
+    
+    if (!trip) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+    
+    res.json(trip);
+  } catch (error) {
+    console.error('Error updating trip:', error);
+    res.status(500).json({ message: 'Error updating trip' });
+  }
+});
+
+// GET /trips/:id/items - Get all checklist items for a trip
+router.get('/:id/items', async (req, res) => {
+  try {
+    const items = await ChecklistItem.find({ tripId: req.params.id });
+    res.json(items);
+  } catch (error) {
+    console.error('Error fetching checklist items:', error);
+    res.status(500).json({ message: 'Error fetching checklist items' });
   }
 });
 

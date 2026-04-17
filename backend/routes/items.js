@@ -2,17 +2,6 @@ const express = require('express');
 const router = express.Router();
 const ChecklistItem = require('../models/ChecklistItem');
 
-// GET /trips/:id/items - Get all checklist items for a trip
-router.get('/trips/:id/items', async (req, res) => {
-  try {
-    const items = await ChecklistItem.find({ tripId: req.params.id });
-    res.json(items);
-  } catch (error) {
-    console.error('Error fetching checklist items:', error);
-    res.status(500).json({ message: 'Error fetching checklist items' });
-  }
-});
-
 // PUT /items/:id - Update packed status
 router.put('/:id', async (req, res) => {
   try {

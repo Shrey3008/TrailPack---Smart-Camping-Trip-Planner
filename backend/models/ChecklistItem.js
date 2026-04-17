@@ -22,4 +22,6 @@ const checklistItemSchema = new mongoose.Schema({
   }
 });
 
+checklistItemSchema.set('timestamps', true);
+
 module.exports = mongoose.model('ChecklistItem', checklistItemSchema);

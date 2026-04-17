@@ -6,7 +6,10 @@ const cors = require('cors');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:8080'],
+  credentials: true
+}));
 app.use(express.json());
 
 // MongoDB Connection
@@ -17,6 +20,7 @@ mongoose.connect(MONGODB_URI)
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/auth', require('./routes/auth'));
 app.use('/trips', require('./routes/trips'));
 app.use('/items', require('./routes/items'));
 
