@@ -1,190 +1,265 @@
 const express = require('express');
 const router = express.Router();
-const dynamoDBService = require('../services/dynamoDBService');
-const checklistService = require('../services/checklistService');
-const dashboardService = require('../services/dashboardService');
-const { authenticate, authorize } = require('../middleware/auth');
+const { v4: uuidv4 } = require('uuid');
+const docClient = require('../db.js');
+const { authenticate } = require('../middleware/auth');
+const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 
-// All trip routes require authentication
-router.use(authenticate);
+const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
+
+// Rule-based checklist generator
+const generateChecklist = (terrain, season, duration) => {
+  const items = [];
+  
+  // Base items for all trips
+  const baseItems = [
+    { name: 'Backpack', category: 'Tools' },
+    { name: 'Water bottle', category: 'Food & Water' },
+    { name: 'First aid kit', category: 'Safety' }
+  ];
+  items.push(...baseItems);
+  
+  // Terrain-specific items
+  const terrainRules = {
+    'Mountain': [
+      { name: 'Hiking boots', category: 'Clothing' },
+      { name: 'Warm layers', category: 'Clothing' },
+      { name: 'Trekking poles', category: 'Tools' }
+    ],
+    'Forest': [
+      { name: 'Bug spray', category: 'Safety' },
+      { name: 'Tarp', category: 'Shelter' },
+      { name: 'Long pants', category: 'Clothing' }
+    ],
+    'Desert': [
+      { name: 'Extra water containers', category: 'Food & Water' },
+      { name: 'Sun hat', category: 'Clothing' },
+      { name: 'Sunscreen', category: 'Safety' },
+      { name: 'Sunglasses', category: 'Clothing' }
+    ]
+  };
+  
+  if (terrainRules[terrain]) {
+    items.push(...terrainRules[terrain]);
+  }
+  
+  // Season-specific items
+  const seasonRules = {
+    'Winter': [
+      { name: 'Winter jacket', category: 'Clothing' },
+      { name: 'Gloves', category: 'Clothing' },
+      { name: 'Warm hat', category: 'Clothing' },
+      { name: 'Insulated sleeping bag', category: 'Shelter' }
+    ],
+    'Summer': [
+      { name: 'Lightweight clothing', category: 'Clothing' },
+      { name: 'Cooling towel', category: 'Clothing' },
+      { name: 'Lightweight tent', category: 'Shelter' }
+    ],
+    'Fall': [
+      { name: 'Layered clothing', category: 'Clothing' },
+      { name: 'Rain jacket', category: 'Clothing' },
+      { name: 'Warm sleeping bag', category: 'Shelter' }
+    ],
+    'Spring': [
+      { name: 'Layered clothing', category: 'Clothing' },
+      { name: 'Rain jacket', category: 'Clothing' },
+      { name: 'Waterproof boots', category: 'Clothing' }
+    ]
+  };
+  
+  if (seasonRules[season]) {
+    items.push(...seasonRules[season]);
+  }
+  
+  // Duration-based items
+  if (duration > 1) {
+    items.push(
+      { name: 'Tent', category: 'Shelter' },
+      { name: 'Sleeping pad', category: 'Shelter' },
+      { name: 'Camping stove', category: 'Food & Water' },
+      { name: 'Food supplies', category: 'Food & Water' }
+    );
+  }
+  
+  if (duration > 3) {
+    items.push(
+      { name: 'Extra batteries', category: 'Tools' },
+      { name: 'Water purification tablets', category: 'Food & Water' },
+      { name: 'Multi-tool', category: 'Tools' }
+    );
+  }
+  
+  // Common safety items
+  items.push(
+    { name: 'Flashlight/Headlamp', category: 'Safety' },
+    { name: 'Whistle', category: 'Safety' },
+    { name: 'Map and compass', category: 'Tools' }
+  );
+  
+  return items;
+};
 
 // POST /trips - Create a new trip
-router.post('/', async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, terrain, season, duration, startDate, endDate, settings } = req.body;
+    const { name, terrain, season, duration } = req.body;
     
     // Validation
     if (!name || !terrain || !season || !duration) {
-      return res.status(400).json({ message: 'Name, terrain, season, and duration are required' });
+      return res.status(400).json({ message: 'All fields are required' });
     }
     
-    // Create trip in DynamoDB - ensure userId is a string
-    const userId = String(req.user.userId || req.user.id);
+    const userId = req.user.userId;
+    const tripId = uuidv4();
+    const parsedDuration = parseInt(duration);
     
-    // Prepare trip data - avoid nested objects for DynamoDB compatibility
-    const tripData = {
-      name: String(name),
-      terrain: String(terrain),
-      season: String(season),
-      duration: parseInt(duration),
-      startDate: startDate ? String(startDate) : null,
-      endDate: endDate ? String(endDate) : null,
-      status: 'planning',
-      settings: { autoGenerateChecklist: true },
-      participantCount: 1
+    // Save trip with PutCommand
+    const tripItem = {
+      PK: `USER#${userId}`,
+      SK: `TRIP#${tripId}`,
+      tripId,
+      userId,
+      name,
+      terrain,
+      season,
+      duration: parsedDuration,
+      createdAt: new Date().toISOString()
     };
     
-    const savedTrip = await dynamoDBService.createTrip(userId, tripData);
+    await docClient.send(new PutCommand({
+      TableName: TABLE_NAME,
+      Item: tripItem
+    }));
     
-    // Generate checklist items using business logic service
-    if (!savedTrip.settings || savedTrip.settings.autoGenerateChecklist !== false) {
-      const checklistItems = await checklistService.generateChecklist(terrain, season, duration);
-      
-      // Save checklist items
-      const itemPromises = checklistItems.map(item => {
-        return dynamoDBService.createItem(savedTrip.tripId, {
+    // Generate and save checklist items
+    const checklistItems = generateChecklist(terrain, season, parsedDuration);
+    
+    const itemPromises = checklistItems.map(item => {
+      const itemId = uuidv4();
+      return docClient.send(new PutCommand({
+        TableName: TABLE_NAME,
+        Item: {
+          PK: `TRIP#${tripId}`,
+          SK: `ITEM#${itemId}`,
+          itemId,
+          tripId,
           name: item.name,
           category: item.category,
-          priority: item.priority || 'medium'
-        });
-      });
-      
-      await Promise.all(itemPromises);
-    }
+          packed: false,
+          createdAt: new Date().toISOString()
+        }
+      }));
+    });
+    
+    await Promise.all(itemPromises);
     
     res.status(201).json({
       message: 'Trip created successfully',
-      trip: savedTrip
+      trip: tripItem
     });
   } catch (error) {
-    console.error('Error creating trip:', error.message);
-    console.error('Stack trace:', error.stack);
-    res.status(500).json({ message: 'Error creating trip: ' + error.message });
+    console.error('Error creating trip:', error);
+    res.status(500).json({ message: 'Error creating trip' });
   }
 });
 
-// GET /trips - Get all trips for current user
-router.get('/', async (req, res) => {
+// GET /trips - Get all trips for authenticated user
+router.get('/', authenticate, async (req, res) => {
   try {
-    const { status, terrain, season } = req.query;
+    const userId = req.user.userId;
     
-    // Get trips from DynamoDB
-    const trips = await dynamoDBService.getTripsByUser(req.user.userId);
+    const result = await docClient.send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': `USER#${userId}`,
+        ':sk': 'TRIP#'
+      }
+    }));
     
-    // Filter trips if needed
-    let filteredTrips = trips;
-    if (status) filteredTrips = filteredTrips.filter(t => t.status === status);
-    if (terrain) filteredTrips = filteredTrips.filter(t => t.terrain === terrain);
-    if (season) filteredTrips = filteredTrips.filter(t => t.season === season);
+    const trips = result.Items || [];
     
-    res.json({
-      trips: filteredTrips,
-      total: filteredTrips.length
-    });
+    // Sort by createdAt descending
+    trips.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    res.json(trips);
   } catch (error) {
     console.error('Error fetching trips:', error);
     res.status(500).json({ message: 'Error fetching trips' });
   }
 });
 
-// GET /trips/dashboard - Get dashboard data for current user
-router.get('/dashboard/stats', async (req, res) => {
+// GET /trips/stats - Get dashboard stats for authenticated user
+router.get('/stats', authenticate, async (req, res) => {
   try {
-    const trips = await dynamoDBService.getTripsByUser(req.user.userId);
+    const userId = req.user.userId;
+    
+    // Query all trips for the user
+    const tripsResult = await docClient.send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': `USER#${userId}`,
+        ':sk': 'TRIP#'
+      }
+    }));
+    
+    const trips = tripsResult.Items || [];
     const totalTrips = trips.length;
-    const activeTrips = trips.filter(t => t.status === 'active').length;
-    const completedTrips = trips.filter(t => t.status === 'completed').length;
     
-    // Calculate overall packing progress
-    const totalProgress = trips.reduce((sum, trip) => {
-      return sum + (trip.progress || 0);
-    }, 0);
-    const overallProgress = totalTrips > 0 ? Math.round(totalProgress / totalTrips) : 0;
+    // Query items for each trip
+    let totalItems = 0;
+    let packedItems = 0;
     
-    // Get terrain stats
-    const terrainStats = trips.reduce((acc, trip) => {
-      acc[trip.terrain] = (acc[trip.terrain] || 0) + 1;
-      return acc;
-    }, {});
+    for (const trip of trips) {
+      const itemsResult = await docClient.send(new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+        ExpressionAttributeValues: {
+          ':pk': `TRIP#${trip.tripId}`,
+          ':sk': 'ITEM#'
+        }
+      }));
+      
+      const items = itemsResult.Items || [];
+      totalItems += items.length;
+      packedItems += items.filter(item => item.packed).length;
+    }
     
-    // Get season stats
-    const seasonStats = trips.reduce((acc, trip) => {
-      acc[trip.season] = (acc[trip.season] || 0) + 1;
-      return acc;
-    }, {});
-    
-    // Get recent trips (last 5)
-    const recentTrips = trips
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5);
-    
-    // Get upcoming trips (trips with future dates)
-    const now = new Date().toISOString();
-    const upcomingTrips = trips
-      .filter(t => t.startDate && t.startDate > now)
-      .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-      .slice(0, 3);
+    const packedPercentage = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
     
     res.json({
-      stats: {
-        totalTrips,
-        activeTrips,
-        completedTrips,
-        overallProgress
-      },
-      terrainStats,
-      seasonStats,
-      recentTrips,
-      upcomingTrips
+      totalTrips,
+      totalItems,
+      packedItems,
+      packedPercentage
     });
   } catch (error) {
-    console.error('Error fetching dashboard:', error);
-    res.status(500).json({ message: 'Error fetching dashboard data' });
-  }
-});
-
-// GET /trips/admin-dashboard - Get admin dashboard (admin only)
-router.get('/admin/dashboard', authorize('admin'), async (req, res) => {
-  try {
-    const adminData = await dashboardService.getAdminDashboard();
-    res.json(adminData);
-  } catch (error) {
-    console.error('Error fetching admin dashboard:', error);
-    res.status(500).json({ message: 'Error fetching admin dashboard' });
-  }
-});
-
-// GET /trips/organizer/dashboard - Get organizer dashboard (organizers and admins)
-router.get('/organizer/dashboard', authorize('organizer', 'admin'), async (req, res) => {
-  try {
-    const userId = req.user.userId || req.user.id;
-    const organizerData = await dashboardService.getOrganizerDashboard(userId);
-    res.json(organizerData);
-  } catch (error) {
-    console.error('Error fetching organizer dashboard:', error);
-    res.status(500).json({ message: 'Error fetching organizer dashboard' });
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ message: 'Error fetching stats' });
   }
 });
 
 // GET /trips/:id - Get a single trip
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const trip = await dynamoDBService.getTripById(req.params.id);
+    const userId = req.user.userId;
+    const tripId = req.params.id;
     
-    if (!trip) {
+    const result = await docClient.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `USER#${userId}`,
+        SK: `TRIP#${tripId}`
+      }
+    }));
+    
+    if (!result.Item) {
       return res.status(404).json({ message: 'Trip not found' });
     }
     
-    // Check access (owner, participant, or public)
-    const isOwner = trip.userId === req.user.userId;
-    const isParticipant = trip.participants && trip.participants.some(p => p.userId === req.user.userId);
-    const isPublic = trip.settings && trip.settings.isPublic;
-    
-    if (!isOwner && !isParticipant && !isPublic) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    res.json(trip);
+    res.json(result.Item);
   } catch (error) {
     console.error('Error fetching trip:', error);
     res.status(500).json({ message: 'Error fetching trip' });
@@ -192,376 +267,96 @@ router.get('/:id', async (req, res) => {
 });
 
 // PUT /trips/:id - Update a trip
-router.put('/:id', async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
-    const { name, terrain, season, duration, startDate, endDate, status, settings } = req.body;
+    const userId = req.user.userId;
+    const tripId = req.params.id;
+    const { name, terrain, season, duration } = req.body;
     
-    // Get trip and check ownership
-    const trip = await dynamoDBService.getTripById(req.params.id);
+    const updateExpressions = [];
+    const expressionAttributeNames = {};
+    const expressionAttributeValues = {};
     
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
+    if (name) {
+      updateExpressions.push('#name = :name');
+      expressionAttributeNames['#name'] = 'name';
+      expressionAttributeValues[':name'] = name;
+    }
+    if (terrain) {
+      updateExpressions.push('terrain = :terrain');
+      expressionAttributeValues[':terrain'] = terrain;
+    }
+    if (season) {
+      updateExpressions.push('season = :season');
+      expressionAttributeValues[':season'] = season;
+    }
+    if (duration) {
+      updateExpressions.push('duration = :duration');
+      expressionAttributeValues[':duration'] = parseInt(duration);
     }
     
-    // Check if user is owner or organizer
-    const isOwner = trip.userId === req.user.userId;
-    const isOrganizer = trip.participants && trip.participants.some(
-      p => p.userId === req.user.userId && p.role === 'organizer'
-    );
-    
-    if (!isOwner && !isOrganizer) {
-      return res.status(403).json({ message: 'Access denied' });
+    if (updateExpressions.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
     }
     
-    // Build update object
-    const updates = {};
-    if (name) updates.name = name;
-    if (terrain) updates.terrain = terrain;
-    if (season) updates.season = season;
-    if (duration) updates.duration = parseInt(duration);
-    if (startDate !== undefined) updates.startDate = startDate;
-    if (endDate !== undefined) updates.endDate = endDate;
-    if (status) updates.status = status;
-    if (settings) updates.settings = { ...trip.settings, ...settings };
+    const result = await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `USER#${userId}`,
+        SK: `TRIP#${tripId}`
+      },
+      UpdateExpression: 'SET ' + updateExpressions.join(', '),
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: 'ALL_NEW'
+    }));
     
-    const updatedTrip = await dynamoDBService.updateTrip(req.params.id, updates);
-    
-    res.json({
-      message: 'Trip updated successfully',
-      trip: updatedTrip
-    });
+    res.json(result.Attributes);
   } catch (error) {
     console.error('Error updating trip:', error);
     res.status(500).json({ message: 'Error updating trip' });
   }
 });
 
-// PUT /trips/:id/status - Update trip status
-router.put('/:id/status', async (req, res) => {
+// DELETE /trips/:id - Delete a trip and its checklist items
+router.delete('/:id', authenticate, async (req, res) => {
   try {
+    const userId = req.user.userId;
     const tripId = req.params.id;
-    const userId = req.user.userId || req.user.id;
-    const { status } = req.body;
-    
-    if (!['planning', 'active', 'completed', 'cancelled'].includes(status)) {
-      return res.status(400).json({ message: 'Invalid status' });
-    }
-    
-    // Get trip and verify access
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    const isOwner = trip.userId === userId;
-    const isOrganizer = trip.participants && trip.participants.some(
-      p => p.userId === userId && p.role === 'organizer'
-    );
-    
-    if (!isOwner && !isOrganizer) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    const updatedTrip = await dynamoDBService.updateTrip(tripId, { status });
-    
-    res.json({
-      message: 'Trip status updated',
-      trip: updatedTrip
-    });
-  } catch (error) {
-    console.error('Error updating status:', error.message);
-    console.error('Full error:', error);
-    res.status(500).json({ message: 'Error updating trip status: ' + error.message });
-  }
-});
-
-// POST /trips/:id/participants - Add participant to trip
-router.post('/:id/participants', async (req, res) => {
-  try {
-    const tripId = req.params.id;
-    const currentUserId = req.user.userId || req.user.id;
-    const { userId, role = 'participant' } = req.body;
-    
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    const isOwner = trip.userId === currentUserId;
-    const isOrganizer = trip.participants && trip.participants.some(
-      p => p.userId === currentUserId && p.role === 'organizer'
-    );
-    
-    if (!isOwner && !isOrganizer) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    // Check if already a participant
-    const participants = trip.participants || [];
-    const isParticipant = participants.some(p => p.userId === userId);
-    if (isParticipant) {
-      return res.status(409).json({ message: 'User is already a participant' });
-    }
-    
-    // Add new participant
-    participants.push({ userId, role, joinedAt: new Date().toISOString() });
-    
-    const updatedTrip = await dynamoDBService.updateTrip(tripId, { participants });
-    
-    res.json({
-      message: 'Participant added successfully',
-      trip: updatedTrip
-    });
-  } catch (error) {
-    console.error('Error adding participant:', error);
-    res.status(500).json({ message: 'Error adding participant' });
-  }
-});
-
-// GET /trips/:id/participants - Get trip participants
-router.get('/:id/participants', authenticate, async (req, res) => {
-  try {
-    const tripId = req.params.id;
-    const userId = req.user.userId || req.user.id;
-    
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    // Check if user has access (owner, organizer, or participant)
-    const isOwner = trip.userId === userId;
-    const isOrganizer = trip.participants?.some(p => p.userId === userId && p.role === 'organizer');
-    const isParticipant = trip.participants?.some(p => p.userId === userId);
-    
-    if (!isOwner && !isOrganizer && !isParticipant) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    // Fetch participant details
-    const participants = await Promise.all(
-      (trip.participants || []).map(async (p) => {
-        const user = await dynamoDBService.getUserById(p.userId);
-        return {
-          userId: p.userId,
-          role: p.role,
-          joinedAt: p.joinedAt,
-          name: user?.name || 'Unknown',
-          email: user?.email || 'Unknown'
-        };
-      })
-    );
-    
-    res.json({ participants });
-  } catch (error) {
-    console.error('Error getting participants:', error);
-    res.status(500).json({ message: 'Error getting participants' });
-  }
-});
-
-// DELETE /trips/:id/participants/:userId - Remove participant
-router.delete('/:id/participants/:participantId', authenticate, async (req, res) => {
-  try {
-    const tripId = req.params.id;
-    const participantId = req.params.participantId;
-    const userId = req.user.userId || req.user.id;
-    
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    // Only owner, organizer, or the participant themselves can remove
-    const isOwner = trip.userId === userId;
-    const isOrganizer = trip.participants?.some(p => p.userId === userId && p.role === 'organizer');
-    const isSelf = participantId === userId;
-    
-    if (!isOwner && !isOrganizer && !isSelf) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    // Remove participant
-    const updatedParticipants = (trip.participants || []).filter(p => p.userId !== participantId);
-    
-    await dynamoDBService.updateTrip(tripId, { participants: updatedParticipants });
-    
-    res.json({ 
-      message: 'Participant removed successfully',
-      participants: updatedParticipants 
-    });
-  } catch (error) {
-    console.error('Error removing participant:', error);
-    res.status(500).json({ message: 'Error removing participant' });
-  }
-});
-
-// GET /trips/shared - Get trips shared with current user
-router.get('/shared', authenticate, async (req, res) => {
-  try {
-    const userId = req.user.userId || req.user.id;
-    
-    // Get all trips where user is a participant
-    const allTrips = await dynamoDBService.getAllTrips();
-    const sharedTrips = allTrips.filter(trip => 
-      trip.participants?.some(p => p.userId === userId)
-    );
-    
-    // Add owner details to each trip
-    const tripsWithDetails = await Promise.all(
-      sharedTrips.map(async (trip) => {
-        const owner = await dynamoDBService.getUserById(trip.userId);
-        const userParticipant = trip.participants.find(p => p.userId === userId);
-        return {
-          ...trip,
-          ownerName: owner?.name || 'Unknown',
-          ownerEmail: owner?.email || 'Unknown',
-          myRole: userParticipant?.role || 'participant'
-        };
-      })
-    );
-    
-    res.json({ trips: tripsWithDetails });
-  } catch (error) {
-    console.error('Error getting shared trips:', error);
-    res.status(500).json({ message: 'Error getting shared trips' });
-  }
-});
-
-// GET /trips/:id/activity - Get activity log for a trip
-router.get('/:id/activity', authenticate, async (req, res) => {
-  try {
-    const tripId = req.params.id;
-    const userId = req.user.userId || req.user.id;
-    
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    // Check access
-    const isOwner = trip.userId === userId;
-    const isParticipant = trip.participants?.some(p => p.userId === userId);
-    if (!isOwner && !isParticipant) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    // Get items with recent activity
-    const items = await dynamoDBService.getItemsByTrip(tripId);
-    const activities = [];
-    
-    items.forEach(item => {
-      if (item.packedBy && item.packedAt) {
-        activities.push({
-          type: 'packed',
-          itemName: item.name,
-          userId: item.packedBy,
-          timestamp: item.packedAt,
-          category: item.category
-        });
-      }
-      if (item.updatedAt && item.updatedBy) {
-        activities.push({
-          type: 'updated',
-          itemName: item.name,
-          userId: item.updatedBy,
-          timestamp: item.updatedAt,
-          category: item.category
-        });
-      }
-    });
-    
-    // Sort by timestamp descending
-    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    
-    // Add user names
-    const activitiesWithNames = await Promise.all(
-      activities.slice(0, 20).map(async (activity) => {
-        const user = await dynamoDBService.getUserById(activity.userId);
-        return {
-          ...activity,
-          userName: user?.name || 'Unknown'
-        };
-      })
-    );
-    
-    res.json({ activities: activitiesWithNames });
-  } catch (error) {
-    console.error('Error getting activity log:', error);
-    res.status(500).json({ message: 'Error getting activity log' });
-  }
-});
-
-// GET /trips/:id/recommendations - Get smart recommendations
-router.get('/:id/recommendations', async (req, res) => {
-  try {
-    const tripId = req.params.id;
-    const userId = req.user.userId || req.user.id;
-    
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    const isOwner = trip.userId === userId;
-    const isPublic = trip.settings?.isPublic === true;
-    if (!isOwner && !isPublic) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    // Generate recommendations based on trip data
-    const recommendations = [
-      {
-        type: 'gear',
-        title: `Consider bringing extra layers for ${trip.terrain} terrain`,
-        description: 'Proper clothing is essential for comfort and safety'
-      },
-      {
-        type: 'weather',
-        title: `Check weather forecast for ${trip.season} conditions`,
-        description: 'Stay prepared for changing weather conditions'
-      },
-      {
-        type: 'food',
-        title: `Pack ${parseInt(trip.duration) > 3 ? 'extra' : 'lightweight'} food supplies for ${trip.duration} days`,
-        description: 'Ensure adequate nutrition for your trip duration'
-      }
-    ];
-    
-    res.json({ recommendations });
-  } catch (error) {
-    console.error('Error getting recommendations:', error);
-    res.status(500).json({ message: 'Error getting recommendations' });
-  }
-});
-
-// DELETE /trips/:id - Delete a trip
-router.delete('/:id', async (req, res) => {
-  try {
-    const tripId = req.params.id;
-    const userId = req.user.userId || req.user.id;
-    
-    const trip = await dynamoDBService.getTripById(tripId);
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
-    }
-    
-    const isOwner = trip.userId === userId;
-    const isOrganizer = trip.participants && trip.participants.some(
-      p => p.userId === userId && p.role === 'organizer'
-    );
-    
-    if (!isOwner && !isOrganizer) {
-      return res.status(403).json({ message: 'Access denied' });
-    }
-    
-    // Delete all checklist items for this trip
-    const items = await dynamoDBService.getItemsByTrip(tripId);
-    for (const item of items) {
-      await dynamoDBService.deleteItem(item.itemId);
-    }
     
     // Delete the trip
-    await dynamoDBService.deleteTrip(tripId);
+    await docClient.send(new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `USER#${userId}`,
+        SK: `TRIP#${tripId}`
+      }
+    }));
+    
+    // Query all items for the trip
+    const itemsResult = await docClient.send(new QueryCommand({
+      TableName: TABLE_NAME,
+      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
+      ExpressionAttributeValues: {
+        ':pk': `TRIP#${tripId}`,
+        ':sk': 'ITEM#'
+      }
+    }));
+    
+    const items = itemsResult.Items || [];
+    
+    // Delete each item
+    const deletePromises = items.map(item => {
+      return docClient.send(new DeleteCommand({
+        TableName: TABLE_NAME,
+        Key: {
+          PK: `TRIP#${tripId}`,
+          SK: `ITEM#${item.itemId}`
+        }
+      }));
+    });
+    
+    await Promise.all(deletePromises);
     
     res.json({ message: 'Trip deleted successfully' });
   } catch (error) {
