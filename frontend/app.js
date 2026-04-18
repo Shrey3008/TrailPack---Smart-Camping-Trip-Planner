@@ -171,7 +171,7 @@ async function handleCreateTrip(e) {
     
     // Redirect to checklist page
     if (result.trip && result.trip.tripId) {
-      window.location.href = `checklist.html?id=${result.trip.tripId}`;
+      window.location.href = `checklist.html?tripId=${result.trip.tripId}`;
     } else {
       console.error('[handleCreateTrip] Missing tripId in response:', result);
       alert('Trip created but failed to redirect. Please check console.');

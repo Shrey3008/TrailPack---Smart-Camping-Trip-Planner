@@ -96,8 +96,8 @@
       checkAuth();
       
       const urlParams = new URLSearchParams(window.location.search);
-      const tripId = urlParams.get('id');
-      console.log('[Checklist] URL param id:', tripId);
+      const tripId = urlParams.get('tripId');
+      console.log('[Checklist] URL param tripId:', tripId);
       console.log('[Checklist] Full URL:', window.location.href);
       
       if (tripId) {
@@ -113,7 +113,7 @@
     document.getElementById('add-item-form').addEventListener('submit', (e) => {
       e.preventDefault();
       const urlParams = new URLSearchParams(window.location.search);
-      const tripId = urlParams.get('id');
+      const tripId = urlParams.get('tripId');
       handleAddItem(tripId);
     });
   </script>
