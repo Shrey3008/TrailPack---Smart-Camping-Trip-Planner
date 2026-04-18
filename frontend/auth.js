@@ -9,14 +9,14 @@ const API_URL = isLocalhost
 
 // Check if user is authenticated
 function checkAuth() {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('authToken');
   if (!token) {
     window.location.href = 'login.html';
     return false;
   }
   
   // Update UI with user info
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
   if (user.name) {
     const userGreeting = document.getElementById('user-name');
     if (userGreeting) {
@@ -47,7 +47,7 @@ function checkAuth() {
 
 // Get auth headers for API calls
 function getAuthHeaders() {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('authToken');
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
@@ -86,8 +86,8 @@ async function apiCallWithAuth(endpoint, options = {}) {
 
 // Handle logout
 function handleLogout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('currentUser');
   window.location.href = 'login.html';
 }
 
