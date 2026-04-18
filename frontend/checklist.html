@@ -53,6 +53,10 @@
       <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
     </div>
     <p class="progress-text" id="progress-text">Loading items...</p>
+    <div class="export-buttons" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
+      <button onclick="exportChecklist('print')" style="background: #40916C; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">🖨️ Print</button>
+      <button onclick="exportChecklist('json')" style="background: #1B4332; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">📥 Export JSON</button>
+    </div>
   </div>
   <div class="checklist-grid" id="checklist-grid">
     <div class="loading">Loading your checklist...</div>
@@ -126,6 +130,25 @@
           body: JSON.stringify({ packed: packed })
         });
       } catch(e) { console.error('Toggle failed:', e); }
+    };
+    // Export/Print functionality
+    window.exportChecklist = function(format) {
+      if (format === 'print') {
+        window.print();
+      } else if (format === 'json') {
+        const data = {
+          trip: trip,
+          items: items,
+          exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (trip.name || 'trip') + '_checklist.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     };
   });
   </script>

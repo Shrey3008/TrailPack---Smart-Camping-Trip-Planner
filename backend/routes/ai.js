@@ -5,15 +5,69 @@ const { authenticate } = require('../middleware/auth');
 // All AI routes require authentication
 router.use(authenticate);
 
-// GET /ai/weather/:location - Get weather prediction and insights
+// GET /ai/weather/:location - Get real weather data from OpenWeatherMap
 router.get('/weather/:location', async (req, res) => {
   try {
     const { location } = req.params;
-
+    const apiKey = process.env.WEATHER_API_KEY;
+    
+    if (!apiKey) {
+      // Return mock data if no API key configured
+      return res.json({
+        location,
+        temperature: '72°F',
+        condition: 'Sunny',
+        humidity: '45%',
+        windSpeed: '8 mph',
+        forecast: [
+          { day: 'Today', temp: '72°F', condition: 'Sunny' },
+          { day: 'Tomorrow', temp: '68°F', condition: 'Partly Cloudy' }
+        ],
+        hikingRecommendation: 'Good conditions for hiking',
+        gearSuggestions: ['Sunscreen', 'Light layers', 'Sunglasses'],
+        source: 'mock'
+      });
+    }
+    
+    // Fetch real weather data
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${apiKey}&units=imperial`
+    );
+    
+    if (!response.ok) {
+      throw new Error('Weather API request failed');
+    }
+    
+    const data = await response.json();
+    
+    // Generate hiking recommendations based on weather
+    let hikingRecommendation = 'Good conditions for hiking';
+    let gearSuggestions = [];
+    
+    if (data.main.temp > 85) {
+      hikingRecommendation = 'Hot conditions - start early';
+      gearSuggestions = ['Extra water', 'Sun hat', 'Electrolytes'];
+    } else if (data.main.temp < 40) {
+      hikingRecommendation = 'Cold conditions - dress in layers';
+      gearSuggestions = ['Warm jacket', 'Gloves', 'Hand warmers'];
+    }
+    
+    if (data.weather[0].main === 'Rain' || data.weather[0].main === 'Thunderstorm') {
+      hikingRecommendation = 'Poor conditions - consider rescheduling';
+      gearSuggestions = ['Rain gear', 'Waterproof boots', 'Dry bags'];
+    }
+    
     res.json({
-      location,
-      temperature: '72°F',
-      condition: 'Sunny'
+      location: data.name,
+      temperature: `${Math.round(data.main.temp)}°F`,
+      condition: data.weather[0].main,
+      description: data.weather[0].description,
+      humidity: `${data.main.humidity}%`,
+      windSpeed: `${Math.round(data.wind.speed)} mph`,
+      hikingRecommendation,
+      gearSuggestions,
+      source: 'openweathermap',
+      updated: new Date().toISOString()
     });
   } catch (error) {
     console.error('Weather prediction error:', error);
@@ -94,6 +148,92 @@ router.post('/insights/route/:tripId', async (req, res) => {
   } catch (error) {
     console.error('Route insights error:', error);
     res.status(500).json({ message: 'Failed to get route insights' });
+  }
+});
+
+// POST /ai/risk-analysis - Comprehensive trip risk analysis
+router.post('/risk-analysis', async (req, res) => {
+  try {
+    const { terrain, season, duration, experience } = req.body;
+    
+    const riskFactors = [];
+    let overallRisk = 'Low';
+    let riskScore = 0;
+    
+    // Terrain risk
+    const terrainRisks = {
+      'Mountain': { level: 'High', score: 30, factors: ['Altitude sickness', 'Steep terrain', 'Rockfall risk'] },
+      'Forest': { level: 'Low', score: 10, factors: ['Wildlife encounters', 'Getting lost'] },
+      'Desert': { level: 'High', score: 35, factors: ['Heat exhaustion', 'Dehydration', 'Limited shade'] }
+    };
+    
+    if (terrainRisks[terrain]) {
+      riskScore += terrainRisks[terrain].score;
+      riskFactors.push(...terrainRisks[terrain].factors);
+    }
+    
+    // Season risk
+    const seasonRisks = {
+      'Winter': { level: 'High', score: 30, factors: ['Hypothermia', 'Avalanche', 'Ice/snow hazards'] },
+      'Summer': { level: 'Medium', score: 20, factors: ['Heat stroke', 'Wildfire risk', 'Thunderstorms'] },
+      'Spring': { level: 'Medium', score: 15, factors: ['Unpredictable weather', 'Muddy trails'] },
+      'Fall': { level: 'Low', score: 10, factors: ['Early darkness', 'Temperature drops'] }
+    };
+    
+    if (seasonRisks[season]) {
+      riskScore += seasonRisks[season].score;
+      riskFactors.push(...seasonRisks[season].factors);
+    }
+    
+    // Duration risk
+    if (duration > 5) {
+      riskScore += 15;
+      riskFactors.push('Extended trip fatigue');
+    }
+    if (duration > 3) {
+      riskScore += 10;
+      riskFactors.push('Multi-day supply management');
+    }
+    
+    // Experience modifier
+    const expModifier = {
+      'Beginner': 20,
+      'Intermediate': 10,
+      'Advanced': 0,
+      'Expert': -5
+    };
+    riskScore += expModifier[experience] || 10;
+    
+    // Determine overall risk
+    if (riskScore >= 60) overallRisk = 'High';
+    else if (riskScore >= 35) overallRisk = 'Medium';
+    
+    // Generate recommendations
+    const recommendations = [];
+    if (overallRisk === 'High') {
+      recommendations.push('Consider a guided tour', 'File a trip plan with authorities', 'Carry emergency beacon');
+    } else if (overallRisk === 'Medium') {
+      recommendations.push('Hike with a partner', 'Check weather forecasts', 'Bring extra supplies');
+    } else {
+      recommendations.push('Standard preparations adequate', 'Enjoy your trip!');
+    }
+    
+    // Add specific recommendations
+    if (terrain === 'Mountain') recommendations.push('Acclimatize gradually', 'Carry altitude medication');
+    if (terrain === 'Desert') recommendations.push('Carry 1 gallon water per person per day', 'Hike during cooler hours');
+    if (season === 'Winter') recommendations.push('Check avalanche forecasts', 'Carry avalanche safety gear');
+    
+    res.json({
+      overallRisk,
+      riskScore: Math.min(riskScore, 100),
+      riskFactors: [...new Set(riskFactors)],
+      recommendations: [...new Set(recommendations)],
+      emergencyContacts: ['Local Rangers: 911', 'Search & Rescue: Contact local authority'],
+      lastUpdated: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Risk analysis error:', error);
+    res.status(500).json({ message: 'Failed to generate risk analysis' });
   }
 });
 
