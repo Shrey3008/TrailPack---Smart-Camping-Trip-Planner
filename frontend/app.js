@@ -125,7 +125,9 @@ async function loadTrips() {
 
 // Create a new trip
 async function handleCreateTrip(e) {
+  console.log('[handleCreateTrip] Handler fired!');
   e.preventDefault();
+  console.log('[handleCreateTrip] Prevented default form submission');
   
   const form = e.target;
   const submitBtn = form.querySelector('button[type="submit"]');

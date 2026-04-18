@@ -112,8 +112,16 @@
   <script src="app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('[create-trip] DOMContentLoaded fired');
       checkAuth();
-      document.getElementById('create-trip-form').addEventListener('submit', handleCreateTrip);
+      const form = document.getElementById('create-trip-form');
+      console.log('[create-trip] Form element found:', form);
+      if (form) {
+        form.addEventListener('submit', handleCreateTrip);
+        console.log('[create-trip] Event listener attached to form');
+      } else {
+        console.error('[create-trip] Form not found!');
+      }
     });
 
     function selectTerrain(terrain) {
