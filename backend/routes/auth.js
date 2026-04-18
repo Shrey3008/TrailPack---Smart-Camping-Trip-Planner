@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const docClient = require('../db.js');
 const { ScanCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
+const TABLE_NAME = process.env.DYNAMODB_USERS_TABLE || 'TrailPack-Users';
 
 // POST /auth/register - Register new user
 router.post('/register', async (req, res) => {
