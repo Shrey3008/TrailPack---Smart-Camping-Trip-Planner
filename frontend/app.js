@@ -53,6 +53,9 @@ async function apiCall(endpoint, options = {}) {
   }
 }
 
+// Alias for backward compatibility
+const apiCallWithAuth = apiCall;
+
 // Load dashboard stats
 async function loadStats() {
   try {
