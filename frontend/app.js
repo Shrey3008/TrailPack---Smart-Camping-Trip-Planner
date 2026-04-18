@@ -7,10 +7,14 @@ window.currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null')
 
 // Check authentication status
 function checkAuth() {
-  if (!window.authToken) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
     window.location.href = 'login.html';
     return false;
   }
+  // Update global auth token from storage
+  window.authToken = token;
+  window.currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
   return true;
 }
 
@@ -92,7 +96,7 @@ async function loadTrips() {
     if (emptyState) emptyState.style.display = 'none';
     
     container.innerHTML = trips.map(trip => `
-      <div class="trip-card" onclick="viewChecklist('${trip._id}')">
+      <div class="trip-card" onclick="viewChecklist('${trip.tripId}')">
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-meta">
           <span class="trip-badge">${escapeHtml(trip.terrain)}</span>
@@ -103,10 +107,10 @@ async function loadTrips() {
           Created: ${new Date(trip.createdAt).toLocaleDateString()}
         </div>
         <div class="trip-actions">
-          <button class="btn btn-primary" onclick="event.stopPropagation(); viewChecklist('${trip._id}')">
+          <button class="btn btn-primary" onclick="event.stopPropagation(); viewChecklist('${trip.tripId}')">
             View Checklist
           </button>
-          <button class="btn btn-danger" onclick="event.stopPropagation(); deleteTrip('${trip._id}')">
+          <button class="btn btn-danger" onclick="event.stopPropagation(); deleteTrip('${trip.tripId}')">
             Delete
           </button>
         </div>
@@ -318,11 +322,11 @@ function displayChecklist(items, tripId) {
       <div class="category-section">
         <h3 class="category-title">${escapeHtml(category)}</h3>
         ${categories[category].map(item => `
-          <div class="checklist-item ${item.isChecked ? 'packed' : ''}" data-item-id="${item.itemId}">
+          <div class="checklist-item ${item.packed ? 'packed' : ''}" data-item-id="${item.itemId}">
             <div class="item-left">
               <input type="checkbox" 
                      class="item-checkbox" 
-                     ${item.isChecked ? 'checked' : ''} 
+                     ${item.packed ? 'checked' : ''} 
                      onchange="togglePacked('${item.itemId}', this.checked)">
               <span class="item-name">${escapeHtml(item.name)}</span>
               ${item.packedBy ? `<span class="packed-by" title="Packed by ${escapeHtml(item.packedByName || item.packedBy)}">👤 ${escapeHtml(item.packedByName || item.packedBy)}</span>` : ''}
@@ -418,7 +422,8 @@ async function deleteItem(itemId, tripId, itemName, itemCategory) {
     };
     
     await apiCallWithAuth(`/items/${itemId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      body: JSON.stringify({ tripId })
     });
     
     // Add to recently deleted
@@ -502,7 +507,7 @@ function updateProgress(items) {
   if (!progressText || !progressFill) return;
   
   const total = items.length;
-  const packed = items.filter(item => item.isChecked).length;
+  const packed = items.filter(item => item.packed).length;
   const percentage = total > 0 ? (packed / total) * 100 : 0;
   
   progressText.textContent = `${packed}/${total} items packed`;
@@ -578,7 +583,7 @@ async function uncheckAllItems(tripId) {
   try {
     // Get all items and uncheck them
     const items = await apiCallWithAuth(`/trips/${tripId}/items`);
-    const packedItems = items.filter(item => item.isChecked);
+    const packedItems = items.filter(item => item.packed);
     
     // Uncheck each packed item
     for (const item of packedItems) {
@@ -601,6 +606,6 @@ function checkCompletion(items) {
   const completionMessage = document.getElementById('completion-message');
   if (!completionMessage || items.length === 0) return;
   
-  const allPacked = items.every(item => item.isChecked);
+  const allPacked = items.every(item => item.packed);
   completionMessage.style.display = allPacked ? 'block' : 'none';
 }

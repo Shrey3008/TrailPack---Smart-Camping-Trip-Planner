@@ -67,8 +67,8 @@ async function apiCallWithAuth(endpoint, options = {}) {
     
     if (response.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      sessionStorage.removeItem('authToken');
+      sessionStorage.removeItem('currentUser');
       window.location.href = 'login.html';
       return;
     }

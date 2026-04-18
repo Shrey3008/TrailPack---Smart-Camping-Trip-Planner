@@ -46,6 +46,7 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       role: 'user',
+      isActive: true,
       createdAt: new Date().toISOString()
     };
 
@@ -106,7 +107,7 @@ router.post('/login', async (req, res) => {
 
     // Sign JWT
     const token = jwt.sign(
-      { userId: user.userId, email: user.email, role: user.role },
+      { userId: user.userId },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -127,7 +128,8 @@ router.post('/login', async (req, res) => {
 });
 
 // GET /auth/debug-users - List all users (for debugging only)
-router.get('/debug-users', async (req, res) => {
+const { authenticate } = require('../middleware/auth');
+router.get('/debug-users', authenticate, async (req, res) => {
   try {
     const scanResult = await docClient.send(new ScanCommand({
       TableName: TABLE_NAME

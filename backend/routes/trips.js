@@ -183,7 +183,7 @@ router.get('/', authenticate, async (req, res) => {
     // Sort by createdAt descending
     trips.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
-    res.json(trips);
+    res.json({ trips: trips });
   } catch (error) {
     console.error('Error fetching trips:', error);
     res.status(500).json({ message: 'Error fetching trips' });
