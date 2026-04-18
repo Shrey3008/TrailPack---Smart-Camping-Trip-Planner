@@ -9,55 +9,69 @@
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <h1>TrailPack</h1>
-      <span class="tagline">Smart Camping Trip Planner</span>
+      <h1><span class="logo-icon">⛺</span> TrailPack</h1>
     </div>
     <div class="nav-user">
       <span id="user-name" class="user-name"></span>
-      <button class="btn btn-secondary" onclick="logout()">Logout</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
     </div>
   </nav>
 
   <main class="container">
     <!-- Stats Bar -->
     <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-value" id="stat-trips">0</div>
-        <div class="stat-label">Total Trips</div>
+      <div class="stat-card">
+        <div class="stat-icon">🗺️</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-trips">0</div>
+          <div class="stat-label">Total Trips</div>
+        </div>
       </div>
-      <div class="stat-item">
-        <div class="stat-value" id="stat-items">0</div>
-        <div class="stat-label">Total Items</div>
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-items">0</div>
+          <div class="stat-label">Total Items</div>
+        </div>
       </div>
-      <div class="stat-item">
-        <div class="stat-value" id="stat-packed">0</div>
-        <div class="stat-label">Packed</div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-packed">0</div>
+          <div class="stat-label">Packed</div>
+        </div>
       </div>
-      <div class="stat-item">
-        <div class="stat-value" id="stat-percentage">0%</div>
-        <div class="stat-label">Progress</div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <div class="stat-value" id="stat-percentage">0%</div>
+          <div class="stat-label">Progress</div>
+        </div>
       </div>
     </div>
 
-    <header class="dashboard-header">
-      <h2>Your Trips</h2>
-      <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
-        + Create New Trip
-      </button>
-    </header>
+    <!-- Dashboard Section -->
+    <section class="dashboard-section">
+      <div class="section-header">
+        <h2>Your Trips</h2>
+        <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
+          + Create New Trip
+        </button>
+      </div>
 
-    <div id="trips-container" class="trips-grid">
-      <!-- Trips will be loaded here dynamically -->
-    </div>
+      <div id="trips-container" class="trips-grid">
+        <!-- Trips will be loaded here dynamically -->
+      </div>
 
-    <div id="empty-state" class="empty-state" style="display: none;">
-      <div class="empty-icon">🏕️</div>
-      <h3>No trips yet</h3>
-      <p>Create your first camping trip to get started!</p>
-      <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
-        Create Trip
-      </button>
-    </div>
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon">🏕️</div>
+        <h3>No trips yet</h3>
+        <p>Create your first camping trip to get started!</p>
+        <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
+          Create Trip
+        </button>
+      </div>
+    </section>
   </main>
 
   <script src="app.js"></script>

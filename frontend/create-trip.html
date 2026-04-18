@@ -9,12 +9,10 @@
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <h1>TrailPack</h1>
-      <span class="tagline">Smart Camping Trip Planner</span>
+      <h1><span class="logo-icon">⛺</span> TrailPack</h1>
     </div>
     <div class="nav-links">
-      <span id="user-name" class="user-greeting"></span>
-      <a href="dashboard.html" class="nav-link">← Back to Dashboard</a>
+      <a href="index.html" class="nav-link">← Back to Dashboard</a>
     </div>
   </nav>
 
@@ -26,33 +24,63 @@
       <form id="create-trip-form">
         <div class="form-group">
           <label for="trip-name">Trip Name *</label>
-          <input type="text" id="trip-name" name="name" required placeholder="e.g., Weekend Mountain Adventure">
+          <input type="text" id="trip-name" name="name" required placeholder="e.g., Spiti Valley Adventure">
         </div>
 
         <div class="form-group">
-          <label for="terrain">Terrain Type *</label>
-          <select id="terrain" name="terrain" required>
-            <option value="">Select terrain...</option>
-            <option value="Mountain">Mountain</option>
-            <option value="Forest">Forest</option>
-            <option value="Desert">Desert</option>
-          </select>
+          <label>Terrain Type *</label>
+          <div class="selector-group">
+            <label class="selector-card" onclick="selectTerrain('Mountain')">
+              <input type="radio" name="terrain" value="Mountain" required>
+              <span class="selector-icon">🏔️</span>
+              <span class="selector-label">Mountain</span>
+            </label>
+            <label class="selector-card" onclick="selectTerrain('Forest')">
+              <input type="radio" name="terrain" value="Forest" required>
+              <span class="selector-icon">🌲</span>
+              <span class="selector-label">Forest</span>
+            </label>
+            <label class="selector-card" onclick="selectTerrain('Desert')">
+              <input type="radio" name="terrain" value="Desert" required>
+              <span class="selector-icon">🏜️</span>
+              <span class="selector-label">Desert</span>
+            </label>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="season">Season *</label>
-          <select id="season" name="season" required>
-            <option value="">Select season...</option>
-            <option value="Spring">Spring</option>
-            <option value="Summer">Summer</option>
-            <option value="Fall">Fall</option>
-            <option value="Winter">Winter</option>
-          </select>
+          <label>Season *</label>
+          <div class="selector-group">
+            <label class="selector-card" onclick="selectSeason('Spring')">
+              <input type="radio" name="season" value="Spring" required>
+              <span class="selector-icon">🌸</span>
+              <span class="selector-label">Spring</span>
+            </label>
+            <label class="selector-card" onclick="selectSeason('Summer')">
+              <input type="radio" name="season" value="Summer" required>
+              <span class="selector-icon">☀️</span>
+              <span class="selector-label">Summer</span>
+            </label>
+            <label class="selector-card" onclick="selectSeason('Fall')">
+              <input type="radio" name="season" value="Fall" required>
+              <span class="selector-icon">🍂</span>
+              <span class="selector-label">Fall</span>
+            </label>
+            <label class="selector-card" onclick="selectSeason('Winter')">
+              <input type="radio" name="season" value="Winter" required>
+              <span class="selector-icon">❄️</span>
+              <span class="selector-label">Winter</span>
+            </label>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="duration">Duration (days) *</label>
-          <input type="number" id="duration" name="duration" required min="1" max="30" placeholder="e.g., 3">
+          <div class="stepper-input">
+            <button type="button" class="stepper-btn" onclick="adjustDuration(-1)">−</button>
+            <input type="number" id="duration" name="duration" required min="1" max="30" value="3">
+            <button type="button" class="stepper-btn" onclick="adjustDuration(1)">+</button>
+          </div>
         </div>
 
         <div class="form-group">
@@ -66,11 +94,11 @@
         </div>
 
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+          <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">
             Cancel
           </button>
-          <button type="submit" class="btn btn-primary">
-            Create Trip
+          <button type="submit" class="btn btn-primary btn-lg">
+            Generate My Checklist →
           </button>
         </div>
       </form>
@@ -83,6 +111,29 @@
       checkAuth();
       document.getElementById('create-trip-form').addEventListener('submit', handleCreateTrip);
     });
+
+    function selectTerrain(terrain) {
+      document.querySelectorAll('input[name="terrain"]').forEach(input => {
+        input.closest('.selector-card').classList.remove('selected');
+      });
+      document.querySelector(`input[value="${terrain}"]`).checked = true;
+      document.querySelector(`input[value="${terrain}"]`).closest('.selector-card').classList.add('selected');
+    }
+
+    function selectSeason(season) {
+      document.querySelectorAll('input[name="season"]').forEach(input => {
+        input.closest('.selector-card').classList.remove('selected');
+      });
+      document.querySelector(`input[value="${season}"]`).checked = true;
+      document.querySelector(`input[value="${season}"]`).closest('.selector-card').classList.add('selected');
+    }
+
+    function adjustDuration(delta) {
+      const input = document.getElementById('duration');
+      let value = parseInt(input.value) || 0;
+      value = Math.max(1, Math.min(30, value + delta));
+      input.value = value;
+    }
   </script>
 </body>
 </html>
