@@ -42,3 +42,6 @@ build/
 # Database
 *.sqlite
 *.db
+backend/backend.zip
+awscliv2.zip
+AWSCLIV2.pkg
