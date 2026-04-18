@@ -186,14 +186,19 @@ async function deleteTrip(tripId) {
 // Load checklist for a trip
 async function loadChecklist(tripId) {
   try {
+    console.log('[loadChecklist] Loading trip:', tripId);
+    
     // Load trip details
     const trip = await apiCallWithAuth(`/trips/${tripId}`);
+    console.log('[loadChecklist] Trip loaded:', trip);
     displayTripDetails(trip);
     
     // Load checklist items
     const response = await apiCallWithAuth(`/trips/${tripId}/items`);
+    console.log('[loadChecklist] Items response:', response);
     // Handle both array and object with items property
     const items = Array.isArray(response) ? response : (response.items || []);
+    console.log('[loadChecklist] Parsed items:', items);
     displayChecklist(items, tripId);
     updateProgress(items);
     checkCompletion(items);
@@ -201,6 +206,7 @@ async function loadChecklist(tripId) {
     // Update status controls
     updateTripStatusControls(trip);
   } catch (error) {
+    console.error('[loadChecklist] Error:', error);
     document.querySelector('.checklist-container').innerHTML = `
       <div class="error-message">
         Failed to load checklist. Please try again.
