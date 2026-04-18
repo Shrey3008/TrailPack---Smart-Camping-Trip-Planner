@@ -149,6 +149,16 @@ async function handleCreateTrip(e) {
       endDate: document.getElementById('end-date')?.value || null
     };
     
+    console.log('[handleCreateTrip] Form data:', formData);
+    
+    // Validate required fields
+    if (!formData.terrain || !formData.season) {
+      console.error('[handleCreateTrip] Missing terrain or season');
+      alert('Please select both terrain and season');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Trip';
+      return;
+    }
     
     const result = await apiCallWithAuth('/trips', {
       method: 'POST',
