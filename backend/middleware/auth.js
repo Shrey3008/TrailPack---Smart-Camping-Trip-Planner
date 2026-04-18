@@ -10,13 +10,19 @@ const authMiddleware = {
       const token = req.headers.authorization?.replace('Bearer ', '');
       
       if (!token) {
+        console.log('[Auth] No token provided');
         return res.status(401).json({ message: 'Access denied. No token provided.' });
       }
 
+      console.log('[Auth] Verifying token...');
       const decoded = jwt.verify(token, JWT_SECRET);
+      console.log('[Auth] Token decoded, userId:', decoded.userId);
+      
       const user = await dynamoDBService.getUserById(decoded.userId);
+      console.log('[Auth] User lookup result:', user ? 'found' : 'not found');
       
       if (!user || user.isActive === false) {
+        console.log('[Auth] User invalid - exists:', !!user, 'isActive:', user?.isActive);
         return res.status(401).json({ message: 'User not found or inactive' });
       }
 
