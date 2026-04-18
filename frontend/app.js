@@ -631,3 +631,5 @@ function checkCompletion(items) {
 // Expose functions to global scope for inline onclick handlers
 window.viewChecklist = viewChecklist;
 window.deleteTrip = deleteTrip;
+window.loadChecklist = loadChecklist;
+window.loadRecommendations = loadRecommendations;
