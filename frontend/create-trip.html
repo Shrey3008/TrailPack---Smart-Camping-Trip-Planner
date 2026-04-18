@@ -46,6 +46,8 @@
               <span class="selector-label">Desert</span>
             </label>
           </div>
+          <!-- Hidden input for JS compatibility -->
+          <input type="hidden" id="terrain" name="terrain" required>
         </div>
 
         <div class="form-group">
@@ -72,6 +74,8 @@
               <span class="selector-label">Winter</span>
             </label>
           </div>
+          <!-- Hidden input for JS compatibility -->
+          <input type="hidden" id="season" name="season" required>
         </div>
 
         <div class="form-group">
@@ -118,6 +122,8 @@
       });
       document.querySelector(`input[value="${terrain}"]`).checked = true;
       document.querySelector(`input[value="${terrain}"]`).closest('.selector-card').classList.add('selected');
+      // Update hidden input for JS compatibility
+      document.getElementById('terrain').value = terrain;
     }
 
     function selectSeason(season) {
@@ -126,6 +132,8 @@
       });
       document.querySelector(`input[value="${season}"]`).checked = true;
       document.querySelector(`input[value="${season}"]`).closest('.selector-card').classList.add('selected');
+      // Update hidden input for JS compatibility
+      document.getElementById('season').value = season;
     }
 
     function adjustDuration(delta) {
