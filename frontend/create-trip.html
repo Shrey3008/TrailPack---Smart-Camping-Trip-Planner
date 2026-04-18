@@ -117,7 +117,7 @@
     });
 
     function selectTerrain(terrain) {
-      document.querySelectorAll('input[name="terrain"]').forEach(input => {
+      document.querySelectorAll('input[type="radio"][name="terrain"]').forEach(input => {
         input.closest('.selector-card').classList.remove('selected');
       });
       document.querySelector(`input[type="radio"][value="${terrain}"]`).checked = true;
@@ -127,7 +127,7 @@
     }
 
     function selectSeason(season) {
-      document.querySelectorAll('input[name="season"]').forEach(input => {
+      document.querySelectorAll('input[type="radio"][name="season"]').forEach(input => {
         input.closest('.selector-card').classList.remove('selected');
       });
       document.querySelector(`input[type="radio"][value="${season}"]`).checked = true;
