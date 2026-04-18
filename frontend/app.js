@@ -1,9 +1,9 @@
 // API Configuration
 const API_URL = 'http://localhost:3000';
 
-// Auth token storage (in memory)
-window.authToken = null;
-window.currentUser = null;
+// Auth token storage (in sessionStorage for persistence)
+window.authToken = sessionStorage.getItem('authToken');
+window.currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
 
 // Check authentication status
 function checkAuth() {
@@ -16,6 +16,8 @@ function checkAuth() {
 
 // Logout function
 function logout() {
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('currentUser');
   window.authToken = null;
   window.currentUser = null;
   window.location.href = 'login.html';

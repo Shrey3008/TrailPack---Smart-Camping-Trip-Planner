@@ -56,7 +56,6 @@
         submitBtn.disabled = true;
         submitBtn.textContent = 'Logging in...';
         errorDiv.style.display = 'none';
-        
         const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -69,11 +68,10 @@
           throw new Error(data.message || 'Login failed');
         }
         
-        // Store token in window variable
-        window.authToken = data.token;
-        window.currentUser = data.user;
+        // Store token in sessionStorage for persistence across pages
+        sessionStorage.setItem('authToken', data.token);
+        sessionStorage.setItem('currentUser', JSON.stringify(data.user));
         
-        // Redirect to index
         window.location.href = 'index.html';
         
       } catch (error) {

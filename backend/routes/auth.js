@@ -35,7 +35,7 @@ router.post('/register', async (req, res) => {
     const userId = uuidv4();
 
     // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Save user with PutCommand
     const item = {
@@ -44,7 +44,7 @@ router.post('/register', async (req, res) => {
       userId,
       name,
       email,
-      passwordHash,
+      password: hashedPassword,
       role: 'user',
       createdAt: new Date().toISOString()
     };
@@ -86,7 +86,8 @@ router.post('/login', async (req, res) => {
     const user = scanResult.Items[0];
 
     // Compare password
-    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+    const userPassword = user.passwordHash || user.password;
+    const isValidPassword = await bcrypt.compare(password, userPassword);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
