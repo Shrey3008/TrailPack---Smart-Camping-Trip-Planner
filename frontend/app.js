@@ -627,3 +627,7 @@ function checkCompletion(items) {
   const allPacked = items.every(item => item.packed);
   completionMessage.style.display = allPacked ? 'block' : 'none';
 }
+
+// Expose functions to global scope for inline onclick handlers
+window.viewChecklist = viewChecklist;
+window.deleteTrip = deleteTrip;
