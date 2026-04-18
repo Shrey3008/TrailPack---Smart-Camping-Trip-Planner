@@ -126,4 +126,29 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// GET /auth/debug-users - List all users (for debugging only)
+router.get('/debug-users', async (req, res) => {
+  try {
+    const scanResult = await docClient.send(new ScanCommand({
+      TableName: TABLE_NAME
+    }));
+    
+    const users = scanResult.Items?.map(u => ({
+      email: u.email,
+      name: u.name,
+      hasPassword: !!u.password,
+      userId: u.userId
+    })) || [];
+    
+    res.json({
+      tableName: TABLE_NAME,
+      userCount: users.length,
+      users: users
+    });
+  } catch (error) {
+    console.error('[Debug] Error listing users:', error);
+    res.status(500).json({ message: 'Error listing users', error: error.message });
+  }
+});
+
 module.exports = router;
