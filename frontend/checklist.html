@@ -88,35 +88,42 @@
     </div>
   </main>
 
-  <script src="app.js"></script>
   <script>
-    console.log('[Checklist] Script tag started executing');
-    // Load checklist when page loads
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('[Checklist] Page loaded, checking auth...');
-      checkAuth();
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const tripId = urlParams.get('tripId');
-      console.log('[Checklist] URL param tripId:', tripId);
-      console.log('[Checklist] Full URL:', window.location.href);
-      
-      if (tripId) {
-        console.log('[Checklist] Calling loadChecklist with tripId:', tripId);
-        loadChecklist(tripId);
-        loadRecommendations(tripId);
-      } else {
-        console.log('[Checklist] No tripId found, redirecting to index.html');
-        window.location.href = 'index.html';
-      }
-    });
-
-    document.getElementById('add-item-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const urlParams = new URLSearchParams(window.location.search);
-      const tripId = urlParams.get('tripId');
-      handleAddItem(tripId);
-    });
+  document.addEventListener('DOMContentLoaded', async function() {
+    console.log('[Checklist] Page loaded');
+    // Auth check
+    const token = sessionStorage.getItem('authToken');
+    console.log('[Checklist] Token exists:', !!token);
+    if (!token) {
+      window.location.href = 'login.html';
+      return;
+    }
+    // Get tripId from URL
+    const tripId = new URLSearchParams(window.location.search).get('tripId');
+    console.log('[Checklist] tripId from URL:', tripId);
+    if (!tripId) {
+      console.error('[Checklist] No tripId in URL!');
+      window.location.href = 'index.html';
+      return;
+    }
+    // Load trip details
+    try {
+      const tripRes = await fetch(`http://localhost:3000/trips/${tripId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const tripData = await tripRes.json();
+      console.log('[Checklist] Trip data:', tripData);
+      // Load checklist items
+      const itemsRes = await fetch(`http://localhost:3000/trips/${tripId}/items`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const itemsData = await itemsRes.json();
+      console.log('[Checklist] Items data:', itemsData);
+    } catch (err) {
+      console.error('[Checklist] Error:', err);
+      alert('Error loading checklist: ' + err.message);
+    }
+  });
   </script>
 </body>
 </html>
