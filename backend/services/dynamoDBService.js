@@ -38,10 +38,13 @@ const dynamoDBService = {
   },
 
   getUserById: async (userId) => {
+    console.log('[DynamoDB] getUserById called with:', userId);
     const result = await docClient.send(new GetCommand({
       TableName: TABLES.USERS,
       Key: { userId }
     }));
+    console.log('[DynamoDB] GetCommand result:', result);
+    console.log('[DynamoDB] Item found:', !!result.Item);
     return result.Item;
   },
 
