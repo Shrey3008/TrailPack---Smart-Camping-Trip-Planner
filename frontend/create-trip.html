@@ -47,7 +47,7 @@
             </label>
           </div>
           <!-- Hidden input for JS compatibility -->
-          <input type="hidden" id="terrain" name="terrain" required>
+          <input type="hidden" id="terrain" required>
         </div>
 
         <div class="form-group">
@@ -75,7 +75,7 @@
             </label>
           </div>
           <!-- Hidden input for JS compatibility -->
-          <input type="hidden" id="season" name="season" required>
+          <input type="hidden" id="season" required>
         </div>
 
         <div class="form-group">
@@ -120,8 +120,8 @@
       document.querySelectorAll('input[name="terrain"]').forEach(input => {
         input.closest('.selector-card').classList.remove('selected');
       });
-      document.querySelector(`input[value="${terrain}"]`).checked = true;
-      document.querySelector(`input[value="${terrain}"]`).closest('.selector-card').classList.add('selected');
+      document.querySelector(`input[type="radio"][value="${terrain}"]`).checked = true;
+      document.querySelector(`input[type="radio"][value="${terrain}"]`).closest('.selector-card').classList.add('selected');
       // Update hidden input for JS compatibility
       document.getElementById('terrain').value = terrain;
     }
@@ -130,8 +130,8 @@
       document.querySelectorAll('input[name="season"]').forEach(input => {
         input.closest('.selector-card').classList.remove('selected');
       });
-      document.querySelector(`input[value="${season}"]`).checked = true;
-      document.querySelector(`input[value="${season}"]`).closest('.selector-card').classList.add('selected');
+      document.querySelector(`input[type="radio"][value="${season}"]`).checked = true;
+      document.querySelector(`input[type="radio"][value="${season}"]`).closest('.selector-card').classList.add('selected');
       // Update hidden input for JS compatibility
       document.getElementById('season').value = season;
     }
