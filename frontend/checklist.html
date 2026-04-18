@@ -8,121 +8,96 @@
 </head>
 <body>
   <nav class="navbar">
-    <div class="nav-brand">
-      <h1><span class="logo-icon">⛺</span> TrailPack</h1>
-    </div>
+    <div class="nav-brand">⛺ TrailPack</div>
     <div class="nav-links">
-      <a href="index.html" class="nav-link">← Back to Dashboard</a>
+      <a href="index.html">← Back to Dashboard</a>
+      <button onclick="logout()">Logout</button>
     </div>
   </nav>
-
   <main class="container">
-    <a href="index.html" class="back-link">← Back to Dashboard</a>
-
-    <div id="trip-details" class="trip-details-card">
-      <!-- Trip info will be loaded here -->
-    </div>
-
-    <div class="checklist-container">
-      <div class="checklist-header">
-        <h2>Packing Checklist</h2>
-        <div class="progress-section">
-          <div class="progress-bar-container">
-            <div class="progress-bar">
-              <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
-            </div>
-            <span id="progress-text">0%</span>
-          </div>
-          <span id="progress-subtext" class="progress-subtext">0/0 items packed</span>
-        </div>
-      </div>
-
-      <!-- Trip Status Controls -->
-      <div id="trip-status-controls" class="trip-status-controls" style="margin-bottom: 24px; padding: 20px; background: var(--bg-light); border-radius: 12px; display: none;">
-        <h3 style="margin-bottom: 16px; font-family: 'Outfit', sans-serif;">Trip Status</h3>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <button id="btn-start-trip" class="btn btn-primary" style="display: none;">🚀 Start Trip</button>
-          <button id="btn-complete-trip" class="btn btn-primary" style="display: none; background: var(--success);">✅ Complete Trip</button>
-          <button id="btn-cancel-trip" class="btn btn-danger" style="display: none;">❌ Cancel Trip</button>
-          <button id="btn-reset-trip" class="btn btn-secondary" style="display: none;">🔄 Reset to Planning</button>
-        </div>
-      </div>
-
-      <!-- Completion Message -->
-      <div id="completion-message" class="completion-message" style="display: none; margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%); color: white; border-radius: 12px; text-align: center;">
-        <h2 style="font-family: 'Outfit', sans-serif; margin-bottom: 8px;">🎉 All Packed & Ready!</h2>
-        <p>Your checklist is complete. Have an amazing trip!</p>
-      </div>
-
-      <div class="add-item-section">
-        <h3>Add Custom Item</h3>
-        <form id="add-item-form" class="add-item-form">
-          <input type="text" id="new-item-name" placeholder="Item name" required>
-          <select id="new-item-category" required>
-            <option value="">Select category</option>
-            <option value="Clothing">Clothing</option>
-            <option value="Shelter">Shelter</option>
-            <option value="Food & Water">Food & Water</option>
-            <option value="Safety">Safety</option>
-            <option value="Tools">Tools</option>
-          </select>
-          <button type="submit" class="btn btn-primary">Add Item</button>
-        </form>
-      </div>
-
-      <div id="checklist-categories" class="checklist-categories">
-        <!-- Checklist items will be organized by category here -->
-      </div>
-
-      <div id="recommendations-section" class="recommendations-section" style="display: none; margin-top: 32px; padding: 24px; background: var(--bg-light); border-radius: 12px;">
-        <h3 style="font-family: 'Outfit', sans-serif; margin-bottom: 16px;">💡 Smart Recommendations</h3>
-        <div id="recommendations-list"></div>
-      </div>
-
-      <!-- Recently Deleted Section -->
-      <div id="recently-deleted-section" class="recently-deleted-section" style="display: none; margin-top: 32px; padding: 20px; background: #FFF8E1; border-radius: 12px; border: 2px dashed #FFB300;">
-        <h3 style="color: #E65100; margin-bottom: 10px; font-family: 'Outfit', sans-serif;">🗑️ Recently Deleted (Can be restored)</h3>
-        <p style="font-size: 0.9rem; color: #666; margin-bottom: 16px;">Items below were just deleted. They will be lost if you leave this page.</p>
-        <div id="recently-deleted-list"></div>
-      </div>
-    </div>
+    <div id="trip-header"></div>
+    <div id="progress-section"></div>
+    <div id="checklist-grid"></div>
+    <div id="add-item-section"></div>
   </main>
-
   <script>
   document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Checklist] Page loaded');
-    // Auth check
     const token = sessionStorage.getItem('authToken');
-    console.log('[Checklist] Token exists:', !!token);
-    if (!token) {
-      window.location.href = 'login.html';
-      return;
-    }
-    // Get tripId from URL
+    if (!token) { window.location.href = 'login.html'; return; }
     const tripId = new URLSearchParams(window.location.search).get('tripId');
-    console.log('[Checklist] tripId from URL:', tripId);
-    if (!tripId) {
-      console.error('[Checklist] No tripId in URL!');
-      window.location.href = 'index.html';
-      return;
+    if (!tripId) { window.location.href = 'index.html'; return; }
+    // Fetch trip + items
+    const [tripRes, itemsRes] = await Promise.all([
+      fetch(`http://localhost:3000/trips/${tripId}`, { headers: { 'Authorization': 'Bearer ' + token } }),
+      fetch(`http://localhost:3000/trips/${tripId}/items`, { headers: { 'Authorization': 'Bearer ' + token } })
+    ]);
+    const trip = await tripRes.json();
+    const itemsData = await itemsRes.json();
+    const items = itemsData.items || itemsData || [];
+    // Render trip header
+    document.getElementById('trip-header').innerHTML = `
+      <h1>${trip.name || trip.trip?.name}</h1>
+      <div class="badges">
+        <span class="badge">${trip.terrain || trip.trip?.terrain}</span>
+        <span class="badge">${trip.season || trip.trip?.season}</span>
+        <span class="badge">${trip.duration || trip.trip?.duration} days</span>
+      </div>
+    `;
+    // Render progress bar
+    function updateProgress() {
+      const total = items.length;
+      const packed = items.filter(i => i.packed).length;
+      const pct = total ? Math.round(packed/total*100) : 0;
+      document.getElementById('progress-section').innerHTML = `
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" style="width:${pct}%"></div>
+        </div>
+        <p>${packed}/${total} items packed (${pct}%)</p>
+      `;
     }
-    // Load trip details
-    try {
-      const tripRes = await fetch(`http://localhost:3000/trips/${tripId}`, {
-        headers: { 'Authorization': 'Bearer ' + token }
+    updateProgress();
+    // Group items by category
+    function renderItems() {
+      const grouped = {};
+      items.forEach(item => {
+        const cat = item.category || 'General';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(item);
       });
-      const tripData = await tripRes.json();
-      console.log('[Checklist] Trip data:', tripData);
-      // Load checklist items
-      const itemsRes = await fetch(`http://localhost:3000/trips/${tripId}/items`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-      });
-      const itemsData = await itemsRes.json();
-      console.log('[Checklist] Items data:', itemsData);
-    } catch (err) {
-      console.error('[Checklist] Error:', err);
-      alert('Error loading checklist: ' + err.message);
+      let html = '<div class="checklist-grid">';
+      for (const [category, catItems] of Object.entries(grouped)) {
+        html += `<div class="category-column">
+          <h3>${category}</h3>
+          <div class="category-divider"></div>
+          ${catItems.map(item => `
+            <div class="checklist-item ${item.packed ? 'packed' : ''}" id="item-${item.itemId}">
+              <input type="checkbox" ${item.packed ? 'checked' : ''}
+                onchange="toggleItem('${item.itemId}', this.checked)">
+              <span>${item.name}</span>
+            </div>
+          `).join('')}
+        </div>`;
+      }
+      html += '</div>';
+      document.getElementById('checklist-grid').innerHTML = html;
     }
+    renderItems();
+    // Toggle item packed state
+    window.toggleItem = async function(itemId, packed) {
+      const item = items.find(i => i.itemId === itemId);
+      if (item) item.packed = packed;
+      updateProgress();
+      await fetch(`http://localhost:3000/trips/${tripId}/items/${itemId}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packed })
+      });
+    };
+    // Logout
+    window.logout = function() {
+      sessionStorage.removeItem('authToken');
+      window.location.href = 'login.html';
+    };
   });
   </script>
 </body>
