@@ -155,9 +155,17 @@ async function handleCreateTrip(e) {
       body: JSON.stringify(formData)
     });
     
+    console.log('[handleCreateTrip] API response:', result);
+    console.log('[handleCreateTrip] result.trip:', result.trip);
+    console.log('[handleCreateTrip] result.trip.tripId:', result.trip?.tripId);
     
     // Redirect to checklist page
-    window.location.href = `checklist.html?id=${result.trip.tripId}`;
+    if (result.trip && result.trip.tripId) {
+      window.location.href = `checklist.html?id=${result.trip.tripId}`;
+    } else {
+      console.error('[handleCreateTrip] Missing tripId in response:', result);
+      alert('Trip created but failed to redirect. Please check console.');
+    }
   } catch (error) {
     console.error('Failed to create trip:', error);
     alert('Failed to create trip: ' + error.message);
