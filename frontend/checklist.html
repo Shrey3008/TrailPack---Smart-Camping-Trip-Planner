@@ -5,98 +5,127 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checklist - TrailPack</title>
   <link rel="stylesheet" href="styles.css">
+  <style>
+    .checklist-hero {
+      background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
+                  url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200') center/cover;
+      padding: 4rem 2rem;
+      text-align: center;
+      color: white;
+    }
+    .checklist-hero .brand { font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; margin-bottom: 0.5rem; }
+    .checklist-hero h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem; }
+    .trip-badges { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+    .trip-badges .badge { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; }
+    .progress-section { max-width: 900px; margin: 2rem auto; padding: 0 2rem; }
+    .progress-bar-container { background: #e5e7eb; border-radius: 9999px; height: 10px; margin: 0.75rem 0; }
+    .progress-bar-fill { background: #40916C; height: 10px; border-radius: 9999px; transition: width 0.4s ease; }
+    .progress-text { color: #6b7280; font-size: 0.9rem; }
+    .checklist-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; max-width: 900px; margin: 2rem auto; padding: 0 2rem 4rem; }
+    @media (max-width: 768px) { .checklist-grid { grid-template-columns: 1fr; } }
+    .category-col h3 { font-weight: 800; font-size: 1.1rem; text-align: center; margin-bottom: 0.5rem; }
+    .dotted-divider { border: none; border-top: 3px dotted #999; margin-bottom: 1.25rem; }
+    .checklist-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.35rem 0; font-size: 0.92rem; }
+    .checklist-item input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: #40916C; cursor: pointer; flex-shrink: 0; }
+    .checklist-item.packed span { text-decoration: line-through; color: #9ca3af; }
+    .navbar { background: #1B4332; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .navbar .brand { color: white; font-weight: 700; font-size: 1.2rem; text-decoration: none; }
+    .navbar a { color: rgba(255,255,255,0.8); text-decoration: none; margin-right: 1rem; font-size: 0.9rem; }
+    .navbar button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.35rem 0.85rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+    .loading { text-align: center; padding: 4rem; color: #6b7280; font-size: 1.1rem; }
+  </style>
 </head>
 <body>
   <nav class="navbar">
-    <div class="nav-brand">⛺ TrailPack</div>
-    <div class="nav-links">
-      <a href="index.html">← Back to Dashboard</a>
-      <button onclick="logout()">Logout</button>
+    <span class="brand">⛺ TrailPack</span>
+    <div>
+      <a href="index.html">← Dashboard</a>
+      <button onclick="sessionStorage.removeItem('authToken'); window.location.href='login.html'">Logout</button>
     </div>
   </nav>
-  <main class="container">
-    <div id="trip-header"></div>
-    <div id="progress-section"></div>
-    <div id="checklist-grid"></div>
-    <div id="add-item-section"></div>
-  </main>
+  <div id="hero-section" class="checklist-hero">
+    <div class="brand">⛺ TrailPack</div>
+    <h1 id="hero-title">Loading...</h1>
+    <div class="trip-badges" id="trip-badges"></div>
+  </div>
+  <div class="progress-section">
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <p class="progress-text" id="progress-text">Loading items...</p>
+  </div>
+  <div class="checklist-grid" id="checklist-grid">
+    <div class="loading">Loading your checklist...</div>
+  </div>
   <script>
   document.addEventListener('DOMContentLoaded', async function() {
     const token = sessionStorage.getItem('authToken');
     if (!token) { window.location.href = 'login.html'; return; }
     const tripId = new URLSearchParams(window.location.search).get('tripId');
     if (!tripId) { window.location.href = 'index.html'; return; }
-    // Fetch trip + items
-    const [tripRes, itemsRes] = await Promise.all([
-      fetch(`http://localhost:3000/trips/${tripId}`, { headers: { 'Authorization': 'Bearer ' + token } }),
-      fetch(`http://localhost:3000/trips/${tripId}/items`, { headers: { 'Authorization': 'Bearer ' + token } })
-    ]);
-    const trip = await tripRes.json();
-    const itemsData = await itemsRes.json();
-    const items = itemsData.items || itemsData || [];
-    // Render trip header
-    document.getElementById('trip-header').innerHTML = `
-      <h1>${trip.name || trip.trip?.name}</h1>
-      <div class="badges">
-        <span class="badge">${trip.terrain || trip.trip?.terrain}</span>
-        <span class="badge">${trip.season || trip.trip?.season}</span>
-        <span class="badge">${trip.duration || trip.trip?.duration} days</span>
-      </div>
-    `;
-    // Render progress bar
+    let items = [];
+    try {
+      const [tripRes, itemsRes] = await Promise.all([
+        fetch('http://localhost:3000/trips/' + tripId, { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch('http://localhost:3000/trips/' + tripId + '/items', { headers: { 'Authorization': 'Bearer ' + token } })
+      ]);
+      const tripData = await tripRes.json();
+      const itemsData = await itemsRes.json();
+      const trip = tripData.trip || tripData;
+      items = itemsData.items || itemsData || [];
+      // Render hero
+      document.getElementById('hero-title').textContent = (trip.name || 'My Trip') + ' Checklist';
+      document.getElementById('trip-badges').innerHTML = [
+        trip.terrain, trip.season, (trip.duration || '') + ' days'
+      ].filter(Boolean).map(b => '<span class="badge">' + b + '</span>').join('');
+      renderAll();
+    } catch (err) {
+      document.getElementById('checklist-grid').innerHTML = '<div class="loading">Error loading checklist: ' + err.message + '</div>';
+    }
     function updateProgress() {
       const total = items.length;
       const packed = items.filter(i => i.packed).length;
-      const pct = total ? Math.round(packed/total*100) : 0;
-      document.getElementById('progress-section').innerHTML = `
-        <div class="progress-bar-container">
-          <div class="progress-bar-fill" style="width:${pct}%"></div>
-        </div>
-        <p>${packed}/${total} items packed (${pct}%)</p>
-      `;
+      const pct = total ? Math.round(packed / total * 100) : 0;
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-text').textContent = packed + '/' + total + ' items packed (' + pct + '%)';
     }
-    updateProgress();
-    // Group items by category
-    function renderItems() {
+    function renderAll() {
+      updateProgress();
       const grouped = {};
       items.forEach(item => {
         const cat = item.category || 'General';
         if (!grouped[cat]) grouped[cat] = [];
         grouped[cat].push(item);
       });
-      let html = '<div class="checklist-grid">';
-      for (const [category, catItems] of Object.entries(grouped)) {
-        html += `<div class="category-column">
-          <h3>${category}</h3>
-          <div class="category-divider"></div>
-          ${catItems.map(item => `
-            <div class="checklist-item ${item.packed ? 'packed' : ''}" id="item-${item.itemId}">
-              <input type="checkbox" ${item.packed ? 'checked' : ''}
-                onchange="toggleItem('${item.itemId}', this.checked)">
-              <span>${item.name}</span>
-            </div>
-          `).join('')}
-        </div>`;
-      }
-      html += '</div>';
-      document.getElementById('checklist-grid').innerHTML = html;
+      const grid = document.getElementById('checklist-grid');
+      grid.innerHTML = '';
+      Object.entries(grouped).forEach(([category, catItems]) => {
+        const col = document.createElement('div');
+        col.className = 'category-col';
+        col.innerHTML = '<h3>' + category + '</h3><hr class="dotted-divider">' +
+          catItems.map(item =>
+            '<div class="checklist-item' + (item.packed ? ' packed' : '') + '" id="item-' + item.itemId + '">' +
+            '<input type="checkbox"' + (item.packed ? ' checked' : '') + ' onchange="toggleItem(\'' + item.itemId + '\', this.checked)">' +
+            '<span>' + item.name + '</span></div>'
+          ).join('');
+        grid.appendChild(col);
+      });
     }
-    renderItems();
-    // Toggle item packed state
     window.toggleItem = async function(itemId, packed) {
       const item = items.find(i => i.itemId === itemId);
-      if (item) item.packed = packed;
-      updateProgress();
-      await fetch(`http://localhost:3000/trips/${tripId}/items/${itemId}`, {
-        method: 'PATCH',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packed })
-      });
-    };
-    // Logout
-    window.logout = function() {
-      sessionStorage.removeItem('authToken');
-      window.location.href = 'login.html';
+      if (item) {
+        item.packed = packed;
+        const el = document.getElementById('item-' + itemId);
+        if (el) el.className = 'checklist-item' + (packed ? ' packed' : '');
+        updateProgress();
+      }
+      try {
+        await fetch('http://localhost:3000/trips/' + tripId + '/items/' + itemId, {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ packed: packed })
+        });
+      } catch(e) { console.error('Toggle failed:', e); }
     };
   });
   </script>
