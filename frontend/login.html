@@ -48,6 +48,8 @@
       
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+      console.log('[Login] Attempting login with email:', email);
+      
       const errorDiv = document.getElementById('error-message');
       const submitBtn = e.target.querySelector('button[type="submit"]');
       
@@ -55,13 +57,17 @@
         submitBtn.disabled = true;
         submitBtn.textContent = 'Logging in...';
         errorDiv.style.display = 'none';
+        
+        console.log('[Login] Sending request to:', `${API_URL}/auth/login`);
         const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
         
+        console.log('[Login] Response status:', response.status);
         const data = await response.json();
+        console.log('[Login] Response data:', data);
         
         if (!response.ok) {
           throw new Error(data.message || 'Login failed');

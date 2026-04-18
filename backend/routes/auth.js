@@ -71,6 +71,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user by email using ScanCommand
+    console.log('[Login] Attempting login for:', email);
     const scanResult = await docClient.send(new ScanCommand({
       TableName: TABLE_NAME,
       FilterExpression: 'email = :email',
@@ -79,15 +80,21 @@ router.post('/login', async (req, res) => {
       }
     }));
 
+    console.log('[Login] Scan result:', scanResult);
+    console.log('[Login] Items found:', scanResult.Items?.length || 0);
+
     if (!scanResult.Items || scanResult.Items.length === 0) {
+      console.log('[Login] No user found with email:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const user = scanResult.Items[0];
-
+    console.log('[Login] User found:', user.email);
+    console.log('[Login] Hashed password from DB:', user.password);
+    
     // Compare password
-    const userPassword = user.passwordHash || user.password;
-    const isValidPassword = await bcrypt.compare(password, userPassword);
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('[Login] Password valid:', isValidPassword);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
