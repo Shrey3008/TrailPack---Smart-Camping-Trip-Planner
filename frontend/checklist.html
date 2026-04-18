@@ -92,13 +92,20 @@
   <script>
     // Load checklist when page loads
     document.addEventListener('DOMContentLoaded', () => {
+      console.log('[Checklist] Page loaded, checking auth...');
       checkAuth();
+      
       const urlParams = new URLSearchParams(window.location.search);
       const tripId = urlParams.get('id');
+      console.log('[Checklist] URL param id:', tripId);
+      console.log('[Checklist] Full URL:', window.location.href);
+      
       if (tripId) {
+        console.log('[Checklist] Calling loadChecklist with tripId:', tripId);
         loadChecklist(tripId);
         loadRecommendations(tripId);
       } else {
+        console.log('[Checklist] No tripId found, redirecting to index.html');
         window.location.href = 'index.html';
       }
     });
