@@ -90,9 +90,14 @@ router.post('/login', async (req, res) => {
 
     const user = scanResult.Items[0];
     console.log('[Login] User found:', user.email);
+    console.log('[Login] Full user object keys:', Object.keys(user));
     console.log('[Login] Hashed password from DB:', user.password);
+    console.log('[Login] Password field exists:', !!user.password);
+    console.log('[Login] Password type:', typeof user.password);
     
     // Compare password
+    console.log('[Login] Attempting bcrypt compare...');
+    console.log('[Login] Plain text password length:', password.length);
     const isValidPassword = await bcrypt.compare(password, user.password);
     console.log('[Login] Password valid:', isValidPassword);
     if (!isValidPassword) {
