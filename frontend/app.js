@@ -171,8 +171,11 @@ async function handleCreateTrip(e) {
     
     // Redirect to checklist page
     if (result.trip && result.trip.tripId) {
-      const checklistUrl = `checklist.html?tripId=${result.trip.tripId}`;
+      const tripId = result.trip.tripId;
+      const checklistUrl = `checklist.html?tripId=${tripId}`;
       console.log('[handleCreateTrip] Redirecting to:', checklistUrl);
+      // Store in sessionStorage as backup
+      sessionStorage.setItem('pendingTripId', tripId);
       alert('About to redirect to: ' + checklistUrl);
       window.location.href = checklistUrl;
     } else {

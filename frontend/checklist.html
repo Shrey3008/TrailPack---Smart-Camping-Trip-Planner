@@ -80,10 +80,18 @@
     }
     
     if (!tripId) { 
-      console.log('No tripId in URL - redirecting to dashboard');
-      alert('No tripId in URL. Search was: ' + window.location.search);
-      window.location.href = 'index.html'; 
-      return; 
+      // Try sessionStorage as fallback
+      const pendingTripId = sessionStorage.getItem('pendingTripId');
+      if (pendingTripId) {
+        console.log('Found tripId in sessionStorage:', pendingTripId);
+        tripId = pendingTripId;
+        sessionStorage.removeItem('pendingTripId'); // Clean up
+      } else {
+        console.log('No tripId in URL or sessionStorage - redirecting to dashboard');
+        alert('No tripId found. URL search was: ' + window.location.search);
+        window.location.href = 'index.html'; 
+        return; 
+      }
     }
     let items = [];
     let trip = null;
