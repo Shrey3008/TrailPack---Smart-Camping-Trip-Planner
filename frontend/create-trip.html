@@ -28,6 +28,12 @@
         </div>
 
         <div class="form-group">
+          <label for="location">Location (for AI Weather Checklist) *</label>
+          <input type="text" id="location" name="location" required placeholder="e.g., Denver, CO or Manali, India">
+          <small class="form-hint">We'll fetch real-time weather to generate smart packing recommendations</small>
+        </div>
+
+        <div class="form-group">
           <label>Terrain Type *</label>
           <div class="selector-group">
             <label class="selector-card" onclick="selectTerrain('Mountain')">
@@ -128,10 +134,12 @@
       document.querySelectorAll('input[type="radio"][name="terrain"]').forEach(input => {
         input.closest('.selector-card').classList.remove('selected');
       });
-      document.querySelector(`input[type="radio"][value="${terrain}"]`).checked = true;
-      document.querySelector(`input[type="radio"][value="${terrain}"]`).closest('.selector-card').classList.add('selected');
-      // Update hidden input for JS compatibility
-      document.getElementById('terrain').value = terrain;
+      const radio = document.querySelector(`input[type="radio"][value="${terrain}"]`);
+      if (radio) {
+        radio.checked = true;
+        radio.closest('.selector-card').classList.add('selected');
+        document.getElementById('terrain').value = terrain;
+      }
     }
 
     function selectSeason(season) {

@@ -142,6 +142,7 @@ async function handleCreateTrip(e) {
     
     const formData = {
       name: document.getElementById('trip-name').value,
+      location: document.getElementById('location').value,
       terrain: document.getElementById('terrain').value,
       season: document.getElementById('season').value,
       duration: parseInt(document.getElementById('duration').value),
@@ -152,9 +153,9 @@ async function handleCreateTrip(e) {
     console.log('[handleCreateTrip] Form data:', formData);
     
     // Validate required fields
-    if (!formData.terrain || !formData.season) {
-      console.error('[handleCreateTrip] Missing terrain or season');
-      alert('Please select both terrain and season');
+    if (!formData.location || !formData.terrain || !formData.season) {
+      console.error('[handleCreateTrip] Missing location, terrain or season');
+      alert('Please fill in all required fields including location');
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create Trip';
       return;

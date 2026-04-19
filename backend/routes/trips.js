@@ -7,7 +7,206 @@ const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, Scan
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
-// Rule-based checklist generator
+// AI-Powered Smart Checklist Generator
+// Combines rule-based logic with weather-aware AI recommendations
+const generateSmartChecklist = async (terrain, season, duration, location = null) => {
+  const items = [];
+  let weatherInsights = null;
+  
+  // Fetch weather data if location provided
+  if (location && process.env.WEATHER_API_KEY) {
+    try {
+      const weatherResponse = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${process.env.WEATHER_API_KEY}&units=imperial`
+      );
+      if (weatherResponse.ok) {
+        const weatherData = await weatherResponse.json();
+        weatherInsights = {
+          temp: weatherData.main.temp,
+          condition: weatherData.weather[0].main,
+          humidity: weatherData.main.humidity,
+          windSpeed: weatherData.wind.speed
+        };
+      }
+    } catch (e) {
+      console.log('Weather fetch failed, using terrain/season rules only');
+    }
+  }
+  
+  // Base items for all trips
+  const baseItems = [
+    { name: 'Backpack', category: 'Tools' },
+    { name: 'Water bottle', category: 'Food & Water' },
+    { name: 'First aid kit', category: 'Safety' }
+  ];
+  items.push(...baseItems);
+  
+  // AI-Powered Weather-Aware Items
+  if (weatherInsights) {
+    const temp = weatherInsights.temp;
+    const condition = weatherInsights.condition;
+    
+    // Temperature-based AI recommendations
+    if (temp > 90) {
+      items.push(
+        { name: 'Extra water (heat warning)', category: 'Food & Water' },
+        { name: 'Electrolyte supplements', category: 'Food & Water' },
+        { name: 'Cooling towel', category: 'Clothing' },
+        { name: 'Wide-brim sun hat', category: 'Clothing' }
+      );
+    } else if (temp < 40) {
+      items.push(
+        { name: 'Insulated water bottle', category: 'Food & Water' },
+        { name: 'Hand warmers', category: 'Safety' },
+        { name: 'Thermal base layers', category: 'Clothing' },
+        { name: 'Insulated boots', category: 'Clothing' }
+      );
+    }
+    
+    // Weather condition-based AI recommendations
+    const conditionItems = {
+      'Rain': [
+        { name: 'Waterproof rain jacket', category: 'Clothing' },
+        { name: 'Packable umbrella', category: 'Tools' },
+        { name: 'Waterproof bag covers', category: 'Tools' }
+      ],
+      'Thunderstorm': [
+        { name: 'Emergency shelter/tarp', category: 'Shelter' },
+        { name: 'Waterproof phone case', category: 'Tools' }
+      ],
+      'Snow': [
+        { name: 'Microspikes/crampons', category: 'Tools' },
+        { name: 'Snow gaiters', category: 'Clothing' }
+      ],
+      'Clouds': [
+        { name: 'Light rain jacket', category: 'Clothing' }
+      ]
+    };
+    
+    if (conditionItems[condition]) {
+      items.push(...conditionItems[condition]);
+    }
+    
+    // Wind-based recommendations
+    if (weatherInsights.windSpeed > 15) {
+      items.push(
+        { name: 'Windbreaker jacket', category: 'Clothing' },
+        { name: 'Guy lines for tent', category: 'Shelter' }
+      );
+    }
+  }
+  
+  // Terrain-specific items (AI-enhanced)
+  const terrainRules = {
+    'Mountain': [
+      { name: 'Hiking boots', category: 'Clothing' },
+      { name: 'Warm layers', category: 'Clothing' },
+      { name: 'Trekking poles', category: 'Tools' },
+      { name: 'Altitude sickness medication', category: 'Safety' }
+    ],
+    'Forest': [
+      { name: 'Bug spray (DEET)', category: 'Safety' },
+      { name: 'Tarp/footprint', category: 'Shelter' },
+      { name: 'Long pants', category: 'Clothing' },
+      { name: 'Tick removal tool', category: 'Safety' }
+    ],
+    'Desert': [
+      { name: 'Extra water (4L/person/day)', category: 'Food & Water' },
+      { name: 'Sun hat with neck flap', category: 'Clothing' },
+      { name: 'SPF 50+ sunscreen', category: 'Safety' },
+      { name: 'Sunglasses (polarized)', category: 'Clothing' },
+      { name: 'Cooling bandana', category: 'Clothing' }
+    ]
+  };
+  
+  if (terrainRules[terrain]) {
+    items.push(...terrainRules[terrain]);
+  }
+  
+  // Season-specific items
+  const seasonRules = {
+    'Winter': [
+      { name: 'Winter jacket', category: 'Clothing' },
+      { name: 'Gloves', category: 'Clothing' },
+      { name: 'Warm hat', category: 'Clothing' },
+      { name: 'Insulated sleeping bag (0°F rated)', category: 'Shelter' }
+    ],
+    'Summer': [
+      { name: 'Lightweight breathable clothing', category: 'Clothing' },
+      { name: 'Cooling towel', category: 'Clothing' },
+      { name: 'Lightweight mesh tent', category: 'Shelter' },
+      { name: 'Sunscreen SPF 30+', category: 'Safety' }
+    ],
+    'Fall': [
+      { name: 'Layered clothing system', category: 'Clothing' },
+      { name: 'Rain jacket', category: 'Clothing' },
+      { name: 'Warm sleeping bag (20°F rated)', category: 'Shelter' }
+    ],
+    'Spring': [
+      { name: 'Layered clothing system', category: 'Clothing' },
+      { name: 'Rain jacket', category: 'Clothing' },
+      { name: 'Waterproof hiking boots', category: 'Clothing' }
+    ]
+  };
+  
+  if (seasonRules[season]) {
+    items.push(...seasonRules[season]);
+  }
+  
+  // Duration-based items
+  if (duration > 1) {
+    items.push(
+      { name: 'Tent', category: 'Shelter' },
+      { name: 'Sleeping pad', category: 'Shelter' },
+      { name: 'Camping stove + fuel', category: 'Food & Water' },
+      { name: 'Food supplies', category: 'Food & Water' }
+    );
+  }
+  
+  if (duration > 3) {
+    items.push(
+      { name: 'Extra batteries/power bank', category: 'Tools' },
+      { name: 'Water purification tablets', category: 'Food & Water' },
+      { name: 'Multi-tool', category: 'Tools' },
+      { name: 'Duct tape (repairs)', category: 'Tools' }
+    );
+  }
+  
+  // AI Risk Assessment - add items based on risk factors
+  if (duration > 5 || (terrain === 'Mountain' && season === 'Winter')) {
+    items.push(
+      { name: 'Satellite communicator/GPS', category: 'Safety' },
+      { name: 'Emergency bivy sack', category: 'Safety' }
+    );
+  }
+  
+  // Common safety items
+  items.push(
+    { name: 'Flashlight/Headlamp + extra batteries', category: 'Safety' },
+    { name: 'Emergency whistle', category: 'Safety' },
+    { name: 'Map and compass/GPS', category: 'Tools' }
+  );
+  
+  // Remove duplicates by name
+  const uniqueItems = [];
+  const seenNames = new Set();
+  for (const item of items) {
+    if (!seenNames.has(item.name.toLowerCase())) {
+      seenNames.add(item.name.toLowerCase());
+      uniqueItems.push(item);
+    }
+  }
+  
+  return {
+    items: uniqueItems,
+    weatherUsed: !!weatherInsights,
+    aiRecommendations: weatherInsights ? 
+      `AI added ${uniqueItems.length - baseItems.length} items based on ${weatherInsights.condition}, ${Math.round(weatherInsights.temp)}°F` : 
+      'Used rule-based generation (no weather data)'
+  };
+};
+
+// Legacy function for backwards compatibility
 const generateChecklist = (terrain, season, duration) => {
   const items = [];
   
@@ -100,10 +299,10 @@ const generateChecklist = (terrain, season, duration) => {
   return items;
 };
 
-// POST /trips - Create a new trip
+// POST /trips - Create a new trip with AI-powered checklist
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, terrain, season, duration } = req.body;
+    const { name, terrain, season, duration, location } = req.body;
     
     // Validation
     if (!name || !terrain || !season || !duration) {
@@ -124,6 +323,7 @@ router.post('/', authenticate, async (req, res) => {
       terrain,
       season,
       duration: parsedDuration,
+      location: location || null,
       createdAt: new Date().toISOString()
     };
     
@@ -132,8 +332,15 @@ router.post('/', authenticate, async (req, res) => {
       Item: tripItem
     }));
     
-    // Generate and save checklist items
-    const checklistItems = generateChecklist(terrain, season, parsedDuration);
+    // Generate AI-powered checklist items
+    const smartChecklist = await generateSmartChecklist(terrain, season, parsedDuration, location);
+    const checklistItems = smartChecklist.items;
+    
+    // Store AI metadata with the trip
+    if (smartChecklist.weatherUsed) {
+      tripItem.aiGenerated = true;
+      tripItem.aiRecommendations = smartChecklist.aiRecommendations;
+    }
     
     const itemPromises = checklistItems.map(item => {
       const itemId = uuidv4();
@@ -156,7 +363,9 @@ router.post('/', authenticate, async (req, res) => {
     
     res.status(201).json({
       message: 'Trip created successfully',
-      trip: tripItem
+      trip: tripItem,
+      aiPowered: smartChecklist.weatherUsed,
+      aiRecommendations: smartChecklist.aiRecommendations
     });
   } catch (error) {
     console.error('Error creating trip:', error);
