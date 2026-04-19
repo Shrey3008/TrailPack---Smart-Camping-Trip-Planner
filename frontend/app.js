@@ -186,7 +186,10 @@ async function handleCreateTrip(e) {
 
 // View checklist for a trip
 function viewChecklist(tripId) {
-  window.location.href = `checklist.html?tripId=${tripId}`;
+  console.log('viewChecklist called with tripId:', tripId);
+  const url = `checklist.html?tripId=${encodeURIComponent(tripId)}`;
+  console.log('Navigating to:', url);
+  window.location.href = url;
 }
 
 // Delete a trip

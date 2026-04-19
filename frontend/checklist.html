@@ -64,11 +64,25 @@
   <script>
   document.addEventListener('DOMContentLoaded', async function() {
     const token = sessionStorage.getItem('authToken');
-    console.log('Token:', token ? 'Found' : 'Missing');
-    if (!token) { window.location.href = 'login.html'; return; }
-    const tripId = new URLSearchParams(window.location.search).get('tripId');
-    console.log('Trip ID:', tripId);
-    if (!tripId) { window.location.href = 'index.html'; return; }
+    const urlParams = new URLSearchParams(window.location.search);
+    const tripId = urlParams.get('tripId');
+    
+    console.log('Full URL:', window.location.href);
+    console.log('URL search:', window.location.search);
+    console.log('Token found:', !!token);
+    console.log('Trip ID from URL:', tripId);
+    
+    if (!token) { 
+      console.log('No token - redirecting to login');
+      window.location.href = 'login.html'; 
+      return; 
+    }
+    
+    if (!tripId) { 
+      console.log('No tripId in URL - redirecting to dashboard');
+      window.location.href = 'index.html'; 
+      return; 
+    }
     let items = [];
     let trip = null;
     try {
