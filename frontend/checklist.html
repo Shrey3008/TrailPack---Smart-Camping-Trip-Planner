@@ -64,19 +64,30 @@
   <script>
   document.addEventListener('DOMContentLoaded', async function() {
     const token = sessionStorage.getItem('authToken');
+    console.log('Token:', token ? 'Found' : 'Missing');
     if (!token) { window.location.href = 'login.html'; return; }
     const tripId = new URLSearchParams(window.location.search).get('tripId');
+    console.log('Trip ID:', tripId);
     if (!tripId) { window.location.href = 'index.html'; return; }
     let items = [];
+    let trip = null;
     try {
       const [tripRes, itemsRes] = await Promise.all([
         fetch('http://localhost:3000/trips/' + tripId, { headers: { 'Authorization': 'Bearer ' + token } }),
         fetch('http://localhost:3000/trips/' + tripId + '/items', { headers: { 'Authorization': 'Bearer ' + token } })
       ]);
+      console.log('Trip response status:', tripRes.status);
+      console.log('Items response status:', itemsRes.status);
       const tripData = await tripRes.json();
       const itemsData = await itemsRes.json();
-      const trip = tripData.trip || tripData;
-      items = itemsData.items || itemsData || [];
+      console.log('Trip data:', tripData);
+      console.log('Items data:', itemsData);
+      trip = tripData.trip || tripData;
+      items = Array.isArray(itemsData) ? itemsData : (itemsData.items || []);
+      console.log('Parsed items count:', items.length);
+      // Expose to window for export function
+      window.currentTrip = trip;
+      window.currentItems = items;
       // Render hero
       document.getElementById('hero-title').textContent = (trip.name || 'My Trip') + ' Checklist';
       document.getElementById('trip-badges').innerHTML = [
@@ -84,6 +95,7 @@
       ].filter(Boolean).map(b => '<span class="badge">' + b + '</span>').join('');
       renderAll();
     } catch (err) {
+      console.error('Error:', err);
       document.getElementById('checklist-grid').innerHTML = '<div class="loading">Error loading checklist: ' + err.message + '</div>';
     }
     function updateProgress() {
@@ -133,19 +145,21 @@
     };
     // Export/Print functionality
     window.exportChecklist = function(format) {
+      const exportTrip = window.currentTrip || trip;
+      const exportItems = window.currentItems || items;
       if (format === 'print') {
         window.print();
       } else if (format === 'json') {
         const data = {
-          trip: trip,
-          items: items,
+          trip: exportTrip,
+          items: exportItems,
           exportedAt: new Date().toISOString()
         };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = (trip.name || 'trip') + '_checklist.json';
+        a.download = (exportTrip?.name || 'trip') + '_checklist.json';
         a.click();
         URL.revokeObjectURL(url);
       }

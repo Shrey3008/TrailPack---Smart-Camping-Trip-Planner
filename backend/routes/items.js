@@ -59,6 +59,32 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
+// PATCH /trips/:tripId/items/:itemId - Update packed status (for checklist.html)
+router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
+  try {
+    const { tripId, itemId } = req.params;
+    const { packed } = req.body;
+    
+    const result = await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: {
+        PK: `TRIP#${tripId}`,
+        SK: `ITEM#${itemId}`
+      },
+      UpdateExpression: 'SET packed = :packed',
+      ExpressionAttributeValues: {
+        ':packed': packed
+      },
+      ReturnValues: 'ALL_NEW'
+    }));
+    
+    res.json(result.Attributes);
+  } catch (error) {
+    console.error('Error updating item:', error);
+    res.status(500).json({ message: 'Error updating item' });
+  }
+});
+
 // POST /items - Add custom item
 router.post('/', authenticate, async (req, res) => {
   try {
