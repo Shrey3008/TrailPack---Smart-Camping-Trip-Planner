@@ -33,11 +33,42 @@ const generateSmartChecklist = async (terrain, season, duration, location = null
     }
   }
   
-  // Base items for all trips
+  // Comprehensive base items for all trips (35+ essential items)
   const baseItems = [
-    { name: 'Backpack', category: 'Tools' },
-    { name: 'Water bottle', category: 'Food & Water' },
-    { name: 'First aid kit', category: 'Safety' }
+    { name: 'Backpack (40-60L)', category: 'Tools' },
+    { name: 'Water bottles (2-3L capacity)', category: 'Food & Water' },
+    { name: 'Comprehensive first aid kit', category: 'Safety' },
+    { name: 'Personal medications', category: 'Safety' },
+    { name: 'Toilet paper & trowel', category: 'Personal' },
+    { name: 'Hand sanitizer', category: 'Personal' },
+    { name: 'Toothbrush & toothpaste', category: 'Personal' },
+    { name: 'Biodegradable soap', category: 'Personal' },
+    { name: 'Quick-dry towel', category: 'Personal' },
+    { name: 'Sunglasses', category: 'Clothing' },
+    { name: 'Sun hat or cap', category: 'Clothing' },
+    { name: 'Hiking socks (2-3 pairs)', category: 'Clothing' },
+    { name: 'Underwear (2-3 pairs)', category: 'Clothing' },
+    { name: 'Base layer shirt', category: 'Clothing' },
+    { name: 'Hiking pants/shorts', category: 'Clothing' },
+    { name: 'Insulated jacket', category: 'Clothing' },
+    { name: 'Rain jacket', category: 'Clothing' },
+    { name: 'Hiking boots/shoes', category: 'Clothing' },
+    { name: 'Camp shoes (sandals)', category: 'Clothing' },
+    { name: 'Headlamp + extra batteries', category: 'Safety' },
+    { name: 'Emergency whistle', category: 'Safety' },
+    { name: 'Map & compass/GPS device', category: 'Tools' },
+    { name: 'Fire starter/matches', category: 'Safety' },
+    { name: 'Knife/multi-tool', category: 'Tools' },
+    { name: 'Paracord (50 feet)', category: 'Tools' },
+    { name: 'Duct tape (small roll)', category: 'Tools' },
+    { name: 'Zip-lock bags', category: 'Tools' },
+    { name: 'Trash bags (pack out waste)', category: 'Tools' },
+    { name: 'Camera/phone + charger', category: 'Electronics' },
+    { name: 'Power bank/portable charger', category: 'Electronics' },
+    { name: 'Wallet & ID', category: 'Personal' },
+    { name: 'Cash (emergency)', category: 'Personal' },
+    { name: 'Snacks/energy bars', category: 'Food & Water' },
+    { name: 'Electrolyte powder/tablets', category: 'Food & Water' }
   ];
   items.push(...baseItems);
   
