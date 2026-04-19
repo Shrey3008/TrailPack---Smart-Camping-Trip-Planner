@@ -171,10 +171,13 @@ async function handleCreateTrip(e) {
     
     // Redirect to checklist page
     if (result.trip && result.trip.tripId) {
-      window.location.href = `checklist.html?tripId=${result.trip.tripId}`;
+      const checklistUrl = `checklist.html?tripId=${result.trip.tripId}`;
+      console.log('[handleCreateTrip] Redirecting to:', checklistUrl);
+      alert('About to redirect to: ' + checklistUrl);
+      window.location.href = checklistUrl;
     } else {
       console.error('[handleCreateTrip] Missing tripId in response:', result);
-      alert('Trip created but failed to redirect. Please check console.');
+      alert('Trip created but failed to redirect. Response: ' + JSON.stringify(result));
     }
   } catch (error) {
     console.error('Failed to create trip:', error);
