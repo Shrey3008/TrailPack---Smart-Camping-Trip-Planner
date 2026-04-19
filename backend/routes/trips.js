@@ -49,17 +49,23 @@ const generateSmartChecklist = async (terrain, season, duration, location = null
     // Temperature-based AI recommendations
     if (temp > 90) {
       items.push(
-        { name: 'Extra water (heat warning)', category: 'Food & Water' },
+        { name: 'Extra water (heat warning - 1 gallon)', category: 'Food & Water' },
         { name: 'Electrolyte supplements', category: 'Food & Water' },
         { name: 'Cooling towel', category: 'Clothing' },
-        { name: 'Wide-brim sun hat', category: 'Clothing' }
+        { name: 'Wide-brim sun hat', category: 'Clothing' },
+        { name: 'SPF 50+ sunscreen', category: 'Safety' },
+        { name: 'Lightweight breathable shirt', category: 'Clothing' },
+        { name: 'UV protection lip balm', category: 'Personal' }
       );
     } else if (temp < 40) {
       items.push(
         { name: 'Insulated water bottle', category: 'Food & Water' },
         { name: 'Hand warmers', category: 'Safety' },
         { name: 'Thermal base layers', category: 'Clothing' },
-        { name: 'Insulated boots', category: 'Clothing' }
+        { name: 'Insulated boots', category: 'Clothing' },
+        { name: 'Heavy winter jacket', category: 'Clothing' },
+        { name: 'Neck gaiter/scarf', category: 'Clothing' },
+        { name: 'Insulated gloves', category: 'Clothing' }
       );
     }
     
@@ -67,19 +73,30 @@ const generateSmartChecklist = async (terrain, season, duration, location = null
     const conditionItems = {
       'Rain': [
         { name: 'Waterproof rain jacket', category: 'Clothing' },
+        { name: 'Waterproof rain pants', category: 'Clothing' },
         { name: 'Packable umbrella', category: 'Tools' },
-        { name: 'Waterproof bag covers', category: 'Tools' }
+        { name: 'Waterproof bag covers', category: 'Tools' },
+        { name: 'Waterproof boots', category: 'Clothing' },
+        { name: 'Extra socks (waterproofed)', category: 'Clothing' }
       ],
       'Thunderstorm': [
         { name: 'Emergency shelter/tarp', category: 'Shelter' },
-        { name: 'Waterproof phone case', category: 'Tools' }
+        { name: 'Waterproof phone case', category: 'Tools' },
+        { name: 'Lightning safety guide', category: 'Safety' },
+        { name: 'Emergency radio', category: 'Electronics' }
       ],
       'Snow': [
         { name: 'Microspikes/crampons', category: 'Tools' },
-        { name: 'Snow gaiters', category: 'Clothing' }
+        { name: 'Snow gaiters', category: 'Clothing' },
+        { name: 'Goggles/sunglasses (snow)', category: 'Clothing' },
+        { name: 'Insulated water bottle', category: 'Food & Water' }
       ],
       'Clouds': [
-        { name: 'Light rain jacket', category: 'Clothing' }
+        { name: 'Light rain jacket', category: 'Clothing' },
+        { name: 'Packable down jacket', category: 'Clothing' }
+      ],
+      'Clear': [
+        { name: 'Lightweight long sleeve (sun)', category: 'Clothing' }
       ]
     };
     
@@ -91,31 +108,52 @@ const generateSmartChecklist = async (terrain, season, duration, location = null
     if (weatherInsights.windSpeed > 15) {
       items.push(
         { name: 'Windbreaker jacket', category: 'Clothing' },
-        { name: 'Guy lines for tent', category: 'Shelter' }
+        { name: 'Guy lines for tent', category: 'Shelter' },
+        { name: 'Wind-resistant hat', category: 'Clothing' }
       );
     }
   }
   
-  // Terrain-specific items (AI-enhanced)
+  // Terrain-specific items (AI-enhanced with expanded lists)
   const terrainRules = {
     'Mountain': [
-      { name: 'Hiking boots', category: 'Clothing' },
-      { name: 'Warm layers', category: 'Clothing' },
+      { name: 'Hiking boots (ankle support)', category: 'Clothing' },
+      { name: 'Warm layers (fleece/down)', category: 'Clothing' },
       { name: 'Trekking poles', category: 'Tools' },
-      { name: 'Altitude sickness medication', category: 'Safety' }
+      { name: 'Altitude sickness medication', category: 'Safety' },
+      { name: 'Rock climbing helmet', category: 'Safety' },
+      { name: 'Rope (30 feet)', category: 'Tools' },
+      { name: 'Carabiners (2-3)', category: 'Tools' },
+      { name: 'Belay device', category: 'Tools' },
+      { name: 'High-altitude sunscreen', category: 'Safety' },
+      { name: 'Navigation tools (altimeter)', category: 'Tools' },
+      { name: 'Emergency bivy', category: 'Safety' },
+      { name: 'Crampons/ice axe (if snowy)', category: 'Tools' }
     ],
     'Forest': [
-      { name: 'Bug spray (DEET)', category: 'Safety' },
+      { name: 'Bug spray (DEET 30%+)', category: 'Safety' },
       { name: 'Tarp/footprint', category: 'Shelter' },
-      { name: 'Long pants', category: 'Clothing' },
-      { name: 'Tick removal tool', category: 'Safety' }
+      { name: 'Long pants (quick-dry)', category: 'Clothing' },
+      { name: 'Long sleeve shirt', category: 'Clothing' },
+      { name: 'Tick removal tool', category: 'Safety' },
+      { name: 'Permethrin clothing treatment', category: 'Safety' },
+      { name: 'Bear spray (bear country)', category: 'Safety' },
+      { name: 'Hanging food bag/rope', category: 'Food & Water' },
+      { name: 'Headnet (mosquito protection)', category: 'Clothing' },
+      { name: 'Camp shoes (closed toe)', category: 'Clothing' }
     ],
     'Desert': [
-      { name: 'Extra water (4L/person/day)', category: 'Food & Water' },
+      { name: 'Extra water (1 gallon/person/day)', category: 'Food & Water' },
+      { name: 'Water purification method', category: 'Food & Water' },
       { name: 'Sun hat with neck flap', category: 'Clothing' },
       { name: 'SPF 50+ sunscreen', category: 'Safety' },
       { name: 'Sunglasses (polarized)', category: 'Clothing' },
-      { name: 'Cooling bandana', category: 'Clothing' }
+      { name: 'Cooling bandana/towel', category: 'Clothing' },
+      { name: 'Lightweight long sleeve (sun)', category: 'Clothing' },
+      { name: 'Snake gaiters', category: 'Clothing' },
+      { name: 'Extra electrolyte packets', category: 'Food & Water' },
+      { name: 'Emergency water container', category: 'Food & Water' },
+      { name: 'Signal mirror', category: 'Safety' }
     ]
   };
   
@@ -123,29 +161,52 @@ const generateSmartChecklist = async (terrain, season, duration, location = null
     items.push(...terrainRules[terrain]);
   }
   
-  // Season-specific items
+  // Season-specific items (expanded)
   const seasonRules = {
     'Winter': [
-      { name: 'Winter jacket', category: 'Clothing' },
-      { name: 'Gloves', category: 'Clothing' },
-      { name: 'Warm hat', category: 'Clothing' },
-      { name: 'Insulated sleeping bag (0°F rated)', category: 'Shelter' }
+      { name: 'Winter jacket (down/puffy)', category: 'Clothing' },
+      { name: 'Insulated gloves', category: 'Clothing' },
+      { name: 'Warm hat (wool/fleece)', category: 'Clothing' },
+      { name: 'Insulated sleeping bag (0°F rated)', category: 'Shelter' },
+      { name: 'Four-season tent', category: 'Shelter' },
+      { name: 'Insulated sleeping pad (R5+)', category: 'Shelter' },
+      { name: 'Winter boots', category: 'Clothing' },
+      { name: 'Gaiters (snow)', category: 'Clothing' },
+      { name: 'Traction devices (microspikes)', category: 'Tools' },
+      { name: 'Hot beverage container', category: 'Food & Water' },
+      { name: 'Hand/toe warmers', category: 'Safety' }
     ],
     'Summer': [
       { name: 'Lightweight breathable clothing', category: 'Clothing' },
       { name: 'Cooling towel', category: 'Clothing' },
       { name: 'Lightweight mesh tent', category: 'Shelter' },
-      { name: 'Sunscreen SPF 30+', category: 'Safety' }
+      { name: 'Sunscreen SPF 50+', category: 'Safety' },
+      { name: 'Insect repellent', category: 'Safety' },
+      { name: 'Swimwear (if water nearby)', category: 'Personal' },
+      { name: 'Lightweight sleeping bag (40°F)', category: 'Shelter' },
+      { name: 'UV protective shirt', category: 'Clothing' },
+      { name: 'Portable fan', category: 'Electronics' },
+      { name: 'Electrolyte supplements', category: 'Food & Water' }
     ],
     'Fall': [
       { name: 'Layered clothing system', category: 'Clothing' },
       { name: 'Rain jacket', category: 'Clothing' },
-      { name: 'Warm sleeping bag (20°F rated)', category: 'Shelter' }
+      { name: 'Warm sleeping bag (20°F rated)', category: 'Shelter' },
+      { name: 'Beanie/warm hat', category: 'Clothing' },
+      { name: 'Gloves (lightweight)', category: 'Clothing' },
+      { name: 'Headlamp (earlier darkness)', category: 'Safety' },
+      { name: 'Warm socks (wool)', category: 'Clothing' },
+      { name: 'Insulated mug', category: 'Food & Water' }
     ],
     'Spring': [
       { name: 'Layered clothing system', category: 'Clothing' },
       { name: 'Rain jacket', category: 'Clothing' },
-      { name: 'Waterproof hiking boots', category: 'Clothing' }
+      { name: 'Waterproof hiking boots', category: 'Clothing' },
+      { name: 'Rain pants', category: 'Clothing' },
+      { name: 'Waterproof bag liners', category: 'Tools' },
+      { name: 'Quick-dry towel', category: 'Personal' },
+      { name: 'Waterproof phone case', category: 'Electronics' },
+      { name: 'Mud gaiters', category: 'Clothing' }
     ]
   };
   
