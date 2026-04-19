@@ -65,7 +65,7 @@
   document.addEventListener('DOMContentLoaded', async function() {
     const token = sessionStorage.getItem('authToken');
     const urlParams = new URLSearchParams(window.location.search);
-    const tripId = urlParams.get('tripId');
+    let tripId = urlParams.get('tripId');
     
     console.log('Full URL:', window.location.href);
     console.log('URL search:', window.location.search);
