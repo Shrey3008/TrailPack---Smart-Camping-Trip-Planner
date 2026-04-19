@@ -33,42 +33,60 @@ const generateSmartChecklist = async (terrain, season, duration, location = null
     }
   }
   
-  // Comprehensive base items for all trips (35+ essential items)
+  // Comprehensive base items for all trips (45+ essential items)
   const baseItems = [
-    { name: 'Backpack (40-60L)', category: 'Tools' },
-    { name: 'Water bottles (2-3L capacity)', category: 'Food & Water' },
-    { name: 'Comprehensive first aid kit', category: 'Safety' },
-    { name: 'Personal medications', category: 'Safety' },
-    { name: 'Toilet paper & trowel', category: 'Personal' },
-    { name: 'Hand sanitizer', category: 'Personal' },
-    { name: 'Toothbrush & toothpaste', category: 'Personal' },
-    { name: 'Biodegradable soap', category: 'Personal' },
-    { name: 'Quick-dry towel', category: 'Personal' },
-    { name: 'Sunglasses', category: 'Clothing' },
-    { name: 'Sun hat or cap', category: 'Clothing' },
-    { name: 'Hiking socks (2-3 pairs)', category: 'Clothing' },
-    { name: 'Underwear (2-3 pairs)', category: 'Clothing' },
-    { name: 'Base layer shirt', category: 'Clothing' },
-    { name: 'Hiking pants/shorts', category: 'Clothing' },
-    { name: 'Insulated jacket', category: 'Clothing' },
+    // Primary Gear
+    { name: 'Backpack and rain cover', category: 'Primary Gear' },
+    { name: 'Tent + tarp', category: 'Primary Gear' },
+    { name: 'Sleeping bag (rated for conditions)', category: 'Primary Gear' },
+    { name: 'Sleeping pad', category: 'Primary Gear' },
+    // Clothing
+    { name: 'Hiking boots or shoes', category: 'Clothing' },
+    { name: 'Wool socks (plus one extra pair)', category: 'Clothing' },
+    { name: 'Sandals for around camp', category: 'Clothing' },
+    { name: 'Long underwear (top + bottom)', category: 'Clothing' },
+    { name: 'Underwear + small towel', category: 'Clothing' },
+    { name: 'Hiking pants + shorts', category: 'Clothing' },
+    { name: 'T-shirt + long sleeve shirt', category: 'Clothing' },
+    { name: 'Fleece or insulated jacket', category: 'Clothing' },
+    { name: 'Hat + gloves', category: 'Clothing' },
     { name: 'Rain jacket', category: 'Clothing' },
-    { name: 'Hiking boots/shoes', category: 'Clothing' },
-    { name: 'Camp shoes (sandals)', category: 'Clothing' },
-    { name: 'Headlamp + extra batteries', category: 'Safety' },
-    { name: 'Emergency whistle', category: 'Safety' },
-    { name: 'Map & compass/GPS device', category: 'Tools' },
-    { name: 'Fire starter/matches', category: 'Safety' },
-    { name: 'Knife/multi-tool', category: 'Tools' },
-    { name: 'Paracord (50 feet)', category: 'Tools' },
-    { name: 'Duct tape (small roll)', category: 'Tools' },
-    { name: 'Zip-lock bags', category: 'Tools' },
-    { name: 'Trash bags (pack out waste)', category: 'Tools' },
-    { name: 'Camera/phone + charger', category: 'Electronics' },
-    { name: 'Power bank/portable charger', category: 'Electronics' },
-    { name: 'Wallet & ID', category: 'Personal' },
-    { name: 'Cash (emergency)', category: 'Personal' },
-    { name: 'Snacks/energy bars', category: 'Food & Water' },
-    { name: 'Electrolyte powder/tablets', category: 'Food & Water' }
+    // Food + Water
+    { name: 'Meals and snacks', category: 'Food & Water' },
+    { name: 'Water filter', category: 'Food & Water' },
+    { name: 'Stuff sack or plastic bag for storing food', category: 'Food & Water' },
+    { name: 'Stove and fuel', category: 'Food & Water' },
+    { name: 'Lighter', category: 'Food & Water' },
+    { name: 'Cookset with pot grabber', category: 'Food & Water' },
+    { name: 'Bowl, mug, + utensils', category: 'Food & Water' },
+    { name: 'Biodegradable soap + small sponge', category: 'Food & Water' },
+    { name: 'Water bottle', category: 'Food & Water' },
+    // Sun + Bug Protection
+    { name: 'Sunscreen', category: 'Sun + Bug Protection' },
+    { name: 'Lip balm w/ spf', category: 'Sun + Bug Protection' },
+    { name: 'Sunglasses', category: 'Sun + Bug Protection' },
+    { name: 'Baseball cap or buff', category: 'Sun + Bug Protection' },
+    { name: 'Bug spray', category: 'Sun + Bug Protection' },
+    // Navigation Gear
+    { name: 'Topographical map', category: 'Navigation Gear' },
+    { name: 'Compass', category: 'Navigation Gear' },
+    { name: 'Route description', category: 'Navigation Gear' },
+    { name: 'Cell phone with portable battery', category: 'Navigation Gear' },
+    { name: 'Permits (if required)', category: 'Navigation Gear' },
+    // Wildlife Supplies
+    { name: 'Whistle', category: 'Wildlife Supplies' },
+    { name: 'First aid kit', category: 'Wildlife Supplies' },
+    { name: 'Headlamp + extra batteries', category: 'Wildlife Supplies' },
+    { name: 'Knife or multi-tool', category: 'Wildlife Supplies' },
+    { name: 'Bear canister (if required)', category: 'Wildlife Supplies' },
+    { name: 'Nylon rope', category: 'Wildlife Supplies' },
+    { name: 'Duct tape', category: 'Wildlife Supplies' },
+    // Camp Bathroom
+    { name: 'Toilet paper', category: 'Camp Bathroom' },
+    { name: 'Trowel for burying waste', category: 'Camp Bathroom' },
+    { name: 'Hand sanitizer', category: 'Camp Bathroom' },
+    { name: 'Toothbrush and biodegradable toothpaste', category: 'Camp Bathroom' },
+    { name: 'Plastic bag (for used products)', category: 'Camp Bathroom' }
   ];
   items.push(...baseItems);
   
