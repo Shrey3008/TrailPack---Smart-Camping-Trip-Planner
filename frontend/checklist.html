@@ -1800,14 +1800,23 @@
             people + ' ' + (people === 1 ? 'person' : 'people') + ' · ' +
             days + ' ' + (days === 1 ? 'day' : 'days');
 
+          // Per-person baselines come straight from the provisions service.
+          const waterPerPerson = Number(p.water.perPersonPerDay) || 0;
+          const calPerPerson   = Number(p.food.caloriesPerPersonPerDay) || 0;
+          // Totals are (re)computed on the client from trip.groupSize so
+          // the card always reflects the latest group size, even if the
+          // backend payload is stale.
+          const totalWater = Math.round(waterPerPerson * people * 10) / 10; // L / day for the group
+          const totalCal   = Math.round(calPerPerson   * people);           // kcal / day for the group
+
           // Big tiles
-          document.getElementById('cw-water-big').textContent = p.water.perPersonPerDay + ' L';
+          document.getElementById('cw-water-big').textContent = waterPerPerson + ' L';
           document.getElementById('cw-water-sub').textContent =
-            'per person / day · ' + p.water.totalLiters + ' L total';
+            'per person / day · ' + totalWater + ' L for group / day';
           document.getElementById('cw-cal-big').textContent =
-            p.food.caloriesPerPersonPerDay.toLocaleString() + ' kcal';
+            calPerPerson.toLocaleString() + ' kcal';
           document.getElementById('cw-cal-sub').textContent =
-            'per person / day · ' + (p.food.totalCalories || (p.food.caloriesPerPersonPerDay * people * days)).toLocaleString() + ' kcal total';
+            'per person / day · ' + totalCal.toLocaleString() + ' kcal for group / day';
 
           // Progress bars: "current / goal" — we have the goal; without an
           // intake tracker, current defaults to 0 so the bar is empty.
