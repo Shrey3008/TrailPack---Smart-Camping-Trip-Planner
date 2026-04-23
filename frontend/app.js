@@ -82,6 +82,30 @@ async function apiCall(endpoint, options = {}) {
 // Alias for backward compatibility
 const apiCallWithAuth = apiCall;
 
+// Season → emoji + pill palette. Keys are lowercased for lookup.
+const SEASON_EMOJI = {
+  summer: { icon: '☀️', bg: '#FEF9C3', color: '#92400E', border: '#FDE68A' },
+  winter: { icon: '❄️', bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
+  fall:   { icon: '🍂', bg: '#FFF7ED', color: '#92400E', border: '#FED7AA' },
+  autumn: { icon: '🍂', bg: '#FFF7ED', color: '#92400E', border: '#FED7AA' },
+  spring: { icon: '🌸', bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8' },
+};
+
+// Render a season badge with emoji + palette. Falls back to a plain
+// trip-badge (empty string if no season given) so existing layout stays
+// stable. Returns an HTML string.
+function renderSeasonBadge(season, { suffix = '' } = {}) {
+  const raw = (season || '').toString().trim();
+  if (!raw) return `<span class="trip-badge"></span>`;
+  const label = escapeHtml(raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase() + suffix);
+  const style = SEASON_EMOJI[raw.toLowerCase()];
+  if (!style) return `<span class="trip-badge">${label}</span>`;
+  // Use !important inline so our palette beats the generic .trip-badge
+  // rules in index.html (and the dark-theme color override) which are
+  // declared with !important at equal specificity.
+  return `<span class="trip-badge season-badge" style="background:${style.bg} !important;color:${style.color} !important;border:1px solid ${style.border} !important;">${style.icon} ${label}</span>`;
+}
+
 // Load dashboard stats
 async function loadStats() {
   try {
@@ -122,7 +146,7 @@ async function loadTrips() {
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-meta">
           <span class="trip-badge">${escapeHtml(trip.terrain)}</span>
-          <span class="trip-badge">${escapeHtml(trip.season)}</span>
+          ${renderSeasonBadge(trip.season)}
           <span class="trip-badge">${trip.duration} days</span>
         </div>
         <div class="trip-date">
@@ -171,7 +195,7 @@ async function loadSharedTrips() {
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-meta">
           <span class="trip-badge">${escapeHtml(trip.terrain || '')}</span>
-          <span class="trip-badge">${escapeHtml(trip.season || '')}</span>
+          ${renderSeasonBadge(trip.season)}
           <span class="trip-badge">${trip.duration || 0} days</span>
           <span class="trip-badge" style="background:#E8F5E9;color:#1B4332;">Collaborator</span>
         </div>
@@ -382,7 +406,7 @@ function displayTripDetails(trip) {
     <h2>${escapeHtml(trip.name)}</h2>
     <div class="trip-info">
       <span class="trip-badge">${escapeHtml(trip.terrain)} Terrain</span>
-      <span class="trip-badge">${escapeHtml(trip.season)} Trip</span>
+      ${renderSeasonBadge(trip.season, { suffix: ' Trip' })}
       <span class="trip-badge">${trip.duration} Days</span>
       ${trip.status ? `<span class="trip-badge" style="background: ${statusColors[trip.status] || '#666'}; color: white;">${trip.status}</span>` : ''}
     </div>

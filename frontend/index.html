@@ -345,6 +345,10 @@
       letter-spacing: 0.01em;
       text-transform: capitalize;
     }
+    /* Season badges are rendered by app.js renderSeasonBadge() with
+       inline styles using !important so each season gets its own emoji
+       palette (see SEASON_EMOJI in app.js). Plain .trip-badge rules
+       above still apply for padding / radius / font. */
     .trip-date {
       font-size: 0.78rem !important;
       color: var(--ink-soft) !important;
