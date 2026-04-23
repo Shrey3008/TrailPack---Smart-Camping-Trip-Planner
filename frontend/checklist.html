@@ -1307,7 +1307,7 @@
         form.className = 'add-item-form';
         form.setAttribute('novalidate', '');
         form.innerHTML =
-          '<input type="text" placeholder="Item name" required autocomplete="off" maxlength="120">' +
+          '<input type="text" name="itemName" placeholder="Item name" required autocomplete="off" maxlength="120">' +
           '<button type="submit">Add</button>' +
           '<button type="button" class="cancel">Cancel</button>';
 
@@ -1621,7 +1621,7 @@
 
         const inviteForm = isOwner
           ? '<form class="invite-form" id="invite-form" autocomplete="off">' +
-              '<input type="email" id="invite-email" placeholder="Invite by email…" required>' +
+              '<input type="email" id="invite-email" name="email" placeholder="Invite by email…" required>' +
               '<button type="submit" id="invite-btn">Send Invite</button>' +
             '</form>'
           : '<div class="muted-note">Only the trip owner can invite collaborators.</div>';
