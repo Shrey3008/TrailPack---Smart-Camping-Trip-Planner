@@ -2,6 +2,62 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 
+// ISO 3166-1 alpha-2 → display name. Used so the /weather response
+// returns 'Manali, India' instead of 'Manali, IN'.
+const COUNTRY_NAMES = {
+  AF:'Afghanistan',AL:'Albania',DZ:'Algeria',AD:'Andorra',
+  AO:'Angola',AG:'Antigua and Barbuda',AR:'Argentina',
+  AM:'Armenia',AU:'Australia',AT:'Austria',AZ:'Azerbaijan',
+  BS:'Bahamas',BH:'Bahrain',BD:'Bangladesh',BB:'Barbados',
+  BY:'Belarus',BE:'Belgium',BZ:'Belize',BJ:'Benin',
+  BT:'Bhutan',BO:'Bolivia',BA:'Bosnia and Herzegovina',
+  BW:'Botswana',BR:'Brazil',BN:'Brunei',BG:'Bulgaria',
+  BF:'Burkina Faso',BI:'Burundi',CV:'Cape Verde',
+  KH:'Cambodia',CM:'Cameroon',CA:'Canada',
+  CF:'Central African Republic',TD:'Chad',CL:'Chile',
+  CN:'China',CO:'Colombia',KM:'Comoros',CG:'Congo',
+  CR:'Costa Rica',HR:'Croatia',CU:'Cuba',CY:'Cyprus',
+  CZ:'Czech Republic',DK:'Denmark',DJ:'Djibouti',
+  DM:'Dominica',DO:'Dominican Republic',EC:'Ecuador',
+  EG:'Egypt',SV:'El Salvador',GQ:'Equatorial Guinea',
+  ER:'Eritrea',EE:'Estonia',SZ:'Eswatini',ET:'Ethiopia',
+  FJ:'Fiji',FI:'Finland',FR:'France',GA:'Gabon',
+  GM:'Gambia',GE:'Georgia',DE:'Germany',GH:'Ghana',
+  GR:'Greece',GD:'Grenada',GT:'Guatemala',GN:'Guinea',
+  GW:'Guinea-Bissau',GY:'Guyana',HT:'Haiti',HN:'Honduras',
+  HU:'Hungary',IS:'Iceland',IN:'India',ID:'Indonesia',
+  IR:'Iran',IQ:'Iraq',IE:'Ireland',IL:'Israel',IT:'Italy',
+  JM:'Jamaica',JP:'Japan',JO:'Jordan',KZ:'Kazakhstan',
+  KE:'Kenya',KI:'Kiribati',KW:'Kuwait',KG:'Kyrgyzstan',
+  LA:'Laos',LV:'Latvia',LB:'Lebanon',LS:'Lesotho',
+  LR:'Liberia',LY:'Libya',LI:'Liechtenstein',LT:'Lithuania',
+  LU:'Luxembourg',MG:'Madagascar',MW:'Malawi',MY:'Malaysia',
+  MV:'Maldives',ML:'Mali',MT:'Malta',MH:'Marshall Islands',
+  MR:'Mauritania',MU:'Mauritius',MX:'Mexico',FM:'Micronesia',
+  MD:'Moldova',MC:'Monaco',MN:'Mongolia',ME:'Montenegro',
+  MA:'Morocco',MZ:'Mozambique',MM:'Myanmar',NA:'Namibia',
+  NR:'Nauru',NP:'Nepal',NL:'Netherlands',NZ:'New Zealand',
+  NI:'Nicaragua',NE:'Niger',NG:'Nigeria',NO:'Norway',
+  OM:'Oman',PK:'Pakistan',PW:'Palau',PA:'Panama',
+  PG:'Papua New Guinea',PY:'Paraguay',PE:'Peru',
+  PH:'Philippines',PL:'Poland',PT:'Portugal',QA:'Qatar',
+  RO:'Romania',RU:'Russia',RW:'Rwanda',KN:'Saint Kitts and Nevis',
+  LC:'Saint Lucia',VC:'Saint Vincent and the Grenadines',
+  WS:'Samoa',SM:'San Marino',ST:'Sao Tome and Principe',
+  SA:'Saudi Arabia',SN:'Senegal',RS:'Serbia',SC:'Seychelles',
+  SL:'Sierra Leone',SG:'Singapore',SK:'Slovakia',SI:'Slovenia',
+  SB:'Solomon Islands',SO:'Somalia',ZA:'South Africa',
+  SS:'South Sudan',ES:'Spain',LK:'Sri Lanka',SD:'Sudan',
+  SR:'Suriname',SE:'Sweden',CH:'Switzerland',SY:'Syria',
+  TW:'Taiwan',TJ:'Tajikistan',TZ:'Tanzania',TH:'Thailand',
+  TL:'Timor-Leste',TG:'Togo',TO:'Tonga',TT:'Trinidad and Tobago',
+  TN:'Tunisia',TR:'Turkey',TM:'Turkmenistan',TV:'Tuvalu',
+  UG:'Uganda',UA:'Ukraine',AE:'United Arab Emirates',
+  GB:'United Kingdom',US:'United States',UY:'Uruguay',
+  UZ:'Uzbekistan',VU:'Vanuatu',VE:'Venezuela',VN:'Vietnam',
+  YE:'Yemen',ZM:'Zambia',ZW:'Zimbabwe'
+};
+
 // Try multiple variations of the location string to improve geocoding hit-rate.
 // Returns the most populous match, which usually corresponds to the well-known place.
 async function geocodeLocation(location) {
@@ -45,97 +101,6 @@ const OWM_EMOJI = {
 function iconToEmoji(icon) { return OWM_EMOJI[icon] || '🌤️'; }
 function titleCase(str) {
   return (str || '').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// ISO 3166-1 alpha-2 → display name. The first block (AF..ZW, up through
-// the user-supplied list) uses the naming the user explicitly requested
-// ('Czech Republic' not 'Czechia', 'Brunei' not 'Brunei Darussalam', etc.).
-// The remainder fills in standard country names and common territories so
-// every OWM sys.country code we might see resolves to a readable string.
-const COUNTRY_NAMES = {
-  AF: 'Afghanistan', AL: 'Albania', DZ: 'Algeria',
-  AD: 'Andorra', AO: 'Angola', AG: 'Antigua and Barbuda',
-  AR: 'Argentina', AM: 'Armenia', AU: 'Australia',
-  AT: 'Austria', AZ: 'Azerbaijan', BS: 'Bahamas',
-  BH: 'Bahrain', BD: 'Bangladesh', BB: 'Barbados',
-  BY: 'Belarus', BE: 'Belgium', BZ: 'Belize',
-  BJ: 'Benin', BT: 'Bhutan', BO: 'Bolivia',
-  BA: 'Bosnia and Herzegovina', BW: 'Botswana',
-  BR: 'Brazil', BN: 'Brunei', BG: 'Bulgaria',
-  BF: 'Burkina Faso', BI: 'Burundi', CV: 'Cape Verde',
-  KH: 'Cambodia', CM: 'Cameroon', CA: 'Canada',
-  CF: 'Central African Republic', TD: 'Chad',
-  CL: 'Chile', CN: 'China', CO: 'Colombia',
-  KM: 'Comoros', CG: 'Congo', CR: 'Costa Rica',
-  HR: 'Croatia', CU: 'Cuba', CY: 'Cyprus',
-  CZ: 'Czech Republic', DK: 'Denmark', DJ: 'Djibouti',
-  DM: 'Dominica', DO: 'Dominican Republic', EC: 'Ecuador',
-  EG: 'Egypt', SV: 'El Salvador', GQ: 'Equatorial Guinea',
-  ER: 'Eritrea', EE: 'Estonia', SZ: 'Eswatini',
-  ET: 'Ethiopia', FJ: 'Fiji', FI: 'Finland',
-  FR: 'France', GA: 'Gabon', GM: 'Gambia',
-  GE: 'Georgia', DE: 'Germany', GH: 'Ghana',
-  GR: 'Greece', GD: 'Grenada', GT: 'Guatemala',
-  GN: 'Guinea', GW: 'Guinea-Bissau', GY: 'Guyana',
-  HT: 'Haiti', HN: 'Honduras', HU: 'Hungary',
-  IS: 'Iceland', IN: 'India', ID: 'Indonesia',
-  IR: 'Iran', IQ: 'Iraq', IE: 'Ireland',
-  IL: 'Israel', IT: 'Italy', JM: 'Jamaica',
-  JP: 'Japan', JO: 'Jordan', KZ: 'Kazakhstan',
-  KE: 'Kenya', KI: 'Kiribati', KW: 'Kuwait',
-  KG: 'Kyrgyzstan', LA: 'Laos', LV: 'Latvia',
-  LB: 'Lebanon', LS: 'Lesotho', LR: 'Liberia',
-  LY: 'Libya', LI: 'Liechtenstein', LT: 'Lithuania',
-  LU: 'Luxembourg', MG: 'Madagascar', MW: 'Malawi',
-  MY: 'Malaysia', MV: 'Maldives', ML: 'Mali',
-  MT: 'Malta', MH: 'Marshall Islands', MR: 'Mauritania',
-  MU: 'Mauritius', MX: 'Mexico', FM: 'Micronesia',
-  MD: 'Moldova', MC: 'Monaco', MN: 'Mongolia',
-  ME: 'Montenegro', MA: 'Morocco', MZ: 'Mozambique',
-  MM: 'Myanmar', NA: 'Namibia', NR: 'Nauru',
-  NP: 'Nepal', NL: 'Netherlands', NZ: 'New Zealand',
-  NI: 'Nicaragua', NE: 'Niger', NG: 'Nigeria',
-  NO: 'Norway', OM: 'Oman', PK: 'Pakistan',
-  PW: 'Palau', PA: 'Panama', PG: 'Papua New Guinea',
-  PY: 'Paraguay', PE: 'Peru', PH: 'Philippines',
-  PL: 'Poland', PT: 'Portugal', QA: 'Qatar',
-  RO: 'Romania', RU: 'Russia', RW: 'Rwanda',
-  KN: 'Saint Kitts and Nevis', LC: 'Saint Lucia',
-  VC: 'Saint Vincent and the Grenadines', WS: 'Samoa',
-  SM: 'San Marino', ST: 'Sao Tome and Principe',
-  SA: 'Saudi Arabia', SN: 'Senegal', RS: 'Serbia',
-  SC: 'Seychelles', SL: 'Sierra Leone', SG: 'Singapore',
-  SK: 'Slovakia', SI: 'Slovenia', SB: 'Solomon Islands',
-  SO: 'Somalia', ZA: 'South Africa', KR: 'South Korea',
-  KP: 'North Korea', SS: 'South Sudan', ES: 'Spain',
-  LK: 'Sri Lanka', SD: 'Sudan', SR: 'Suriname',
-  SE: 'Sweden', CH: 'Switzerland', SY: 'Syria',
-  TW: 'Taiwan', TJ: 'Tajikistan', TZ: 'Tanzania',
-  TH: 'Thailand', TL: 'Timor-Leste', TG: 'Togo',
-  TO: 'Tonga', TT: 'Trinidad and Tobago', TN: 'Tunisia',
-  TR: 'Turkey', TM: 'Turkmenistan', TV: 'Tuvalu',
-  UG: 'Uganda', UA: 'Ukraine', AE: 'United Arab Emirates',
-  GB: 'United Kingdom', US: 'United States', UY: 'Uruguay',
-  UZ: 'Uzbekistan', VU: 'Vanuatu', VA: 'Vatican City',
-  VE: 'Venezuela', VN: 'Vietnam', YE: 'Yemen',
-  ZM: 'Zambia', ZW: 'Zimbabwe',
-  // Territories / dependencies commonly returned by OWM
-  HK: 'Hong Kong', MO: 'Macao', PR: 'Puerto Rico',
-  PS: 'Palestine', XK: 'Kosovo', GL: 'Greenland',
-  FO: 'Faroe Islands', GI: 'Gibraltar', BM: 'Bermuda',
-  KY: 'Cayman Islands', VG: 'British Virgin Islands',
-  VI: 'U.S. Virgin Islands', TC: 'Turks and Caicos Islands',
-  AW: 'Aruba', CW: 'Curaçao', SX: 'Sint Maarten',
-  GP: 'Guadeloupe', MQ: 'Martinique', RE: 'Réunion',
-  YT: 'Mayotte', NC: 'New Caledonia', PF: 'French Polynesia',
-  GU: 'Guam', MP: 'Northern Mariana Islands', AS: 'American Samoa',
-  CD: 'Democratic Republic of the Congo', CI: "Côte d'Ivoire",
-  MK: 'North Macedonia',
-};
-function countryName(code) {
-  if (!code) return '';
-  const key = String(code).trim().toUpperCase();
-  return COUNTRY_NAMES[key] || key;
 }
 
 // GET /weather
@@ -224,16 +189,12 @@ router.get('/', authenticate, async (req, res) => {
       ? Math.round(Math.min(...today.lows))
       : (cur.main && cur.main.temp_min != null ? Math.round(cur.main.temp_min) : null);
 
-    // Prefer "City, Country" (e.g. "Rome, Italy") over the raw OWM
-    // city name. Falls back gracefully: no country code → just the city;
-    // no city → the user-supplied location query; finally empty string.
-    const city    = cur.name || '';
-    const country = countryName(cur.sys && cur.sys.country);
-    const locationLabel = city && country ? `${city}, ${country}`
-                        : city || location || '';
+    const countryCode = cur.sys.country;
+    const countryName = COUNTRY_NAMES[countryCode] || countryCode;
+    const locationString = `${cur.name}, ${countryName}`;
 
     const result = {
-      location:   locationLabel,
+      location:   locationString,
       temp:       cur.main && cur.main.temp != null ? Math.round(cur.main.temp) : null,
       feels_like: cur.main && cur.main.feels_like != null ? Math.round(cur.main.feels_like) : null,
       condition:  titleCase((cur.weather && cur.weather[0] && cur.weather[0].description) || ''),
