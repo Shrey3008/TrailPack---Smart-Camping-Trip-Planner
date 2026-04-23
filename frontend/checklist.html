@@ -1081,28 +1081,6 @@
 
     <div id="categories"><div class="loading">Loading your checklist…</div></div>
 
-    <!-- Weather -->
-    <section class="info-card" id="weather-card">
-      <div class="category-head">
-        <h3 class="category-title">🌤️ Weather Forecast</h3>
-      </div>
-      <hr class="category-divider">
-      <div class="card-body" id="weather-body">
-        <div class="muted-note">Loading weather…</div>
-      </div>
-    </section>
-
-    <!-- Provisions -->
-    <section class="info-card" id="provisions-card">
-      <div class="category-head">
-        <h3 class="category-title">🎒 Provisions Estimate</h3>
-      </div>
-      <hr class="category-divider">
-      <div class="card-body" id="provisions-body">
-        <div class="muted-note">Loading provisions…</div>
-      </div>
-    </section>
-
     <!-- Risk -->
     <section class="info-card" id="risk-card">
       <div class="category-head">
@@ -1969,10 +1947,11 @@
           items = Array.isArray(itemsData) ? itemsData : (itemsData && itemsData.items) || [];
           renderHeader();
           renderCategories();
-          // Fire the 4 info cards in parallel — each handles its own
-          // loading / error state and should never block the main flow.
-          loadWeather();
-          loadProvisions();
+          // Fire the remaining info cards in parallel — each handles
+          // its own loading / error state and should never block the
+          // main flow. (The old #weather-card and #provisions-card
+          // were removed; their replacements live between .actions
+          // and #categories and are loaded below.)
           loadRisk();
           loadCollaborators();
           // Inserted cards (weather hero / calorie-water / smart gear).
