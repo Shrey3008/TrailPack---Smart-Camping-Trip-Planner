@@ -180,7 +180,7 @@ class EmailService {
               <p><strong>🌤️ Season:</strong> ${tripDetails.season}</p>
             </div>
             <p>It's time to finalize your preparations! Make sure your checklist is complete and you have all the necessary gear.</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/dashboard.html" class="cta-button">View Your Trip</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/index.html" class="cta-button">View Your Trip</a>
             <p>Check the weather forecast and review your route before you leave. Have a fantastic trip!</p>
           </div>
           <div class="footer">
@@ -233,7 +233,7 @@ class EmailService {
               `).join('') || '<p>Weather data temporarily unavailable</p>'}
             </div>
             <p>Make sure you're prepared for these conditions. Check your gear and consider adjusting your plans if necessary.</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/dashboard.html" class="cta-button">Review Your Trip</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/index.html" class="cta-button">Review Your Trip</a>
           </div>
         </div>
       </body>
@@ -369,7 +369,7 @@ class EmailService {
               <p>Optimize your hiking routes with AI-powered insights and elevation data.</p>
             </div>
             <p>Ready to start your first adventure?</p>
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/dashboard.html" class="cta-button">Plan Your First Trip</a>
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:8080'}/index.html" class="cta-button">Plan Your First Trip</a>
           </div>
         </div>
       </body>

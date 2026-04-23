@@ -156,8 +156,13 @@ async function loadSharedTrips() {
   if (!section || !container) return;
 
   try {
-    const trips = await apiCallWithAuth('/trips/shared');
-    if (!Array.isArray(trips) || trips.length === 0) {
+    // Real endpoint lives on the sharedTrips router: GET /shared-trips/mine
+    // (see backend/routes/sharedTrips.js). Response shape: { trips: [...] }.
+    const response = await apiCallWithAuth('/shared-trips/mine');
+    const trips = Array.isArray(response)
+      ? response
+      : (response && Array.isArray(response.trips) ? response.trips : []);
+    if (trips.length === 0) {
       section.style.display = 'none';
       return;
     }
@@ -181,8 +186,9 @@ async function loadSharedTrips() {
       </div>
     `).join('');
     section.style.display = 'block';
-  } catch (error) {
-    console.warn('Failed to load shared trips:', error);
+  } catch (_error) {
+    // Fail silently — shared-trips is a best-effort dashboard section.
+    // If the endpoint is unavailable (404/network), just hide the section.
     section.style.display = 'none';
   }
 }
