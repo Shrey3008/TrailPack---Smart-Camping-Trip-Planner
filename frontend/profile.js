@@ -46,12 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
           body: JSON.stringify({ name, phone })
         });
         
-        // Update stored user data
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        // Update stored user data (sessionStorage mirrors what login writes).
+        const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
         user.name = name;
-        localStorage.setItem('user', JSON.stringify(user));
-        
+        sessionStorage.setItem('currentUser', JSON.stringify(user));
+
         showMessage('profile-message', 'Profile updated successfully', 'success');
+        if (window.showToast) window.showToast('Profile updated.', 'success', 2000);
       } catch (error) {
         console.error('Error updating profile:', error);
         showMessage('profile-message', 'Failed to update profile', 'error');

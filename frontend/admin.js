@@ -2,37 +2,129 @@
 
 let currentEditUserId = null;
 
+// Helper function to escape HTML
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Logout function
+function logout() {
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('currentUser');
+  window.location.href = 'login.html';
+}
+
+// Promote current user to admin
+async function promoteToAdmin() {
+  const confirmed = window.showConfirm
+    ? await window.showConfirm('You will be logged out so a fresh admin token can be issued.', { title: 'Promote to admin?', confirmText: 'Promote' })
+    : confirm('Are you sure you want to promote yourself to admin?');
+  if (!confirmed) return;
+
+  try {
+    await apiCallWithAuth('/admin/setup', {
+      method: 'POST'
+    });
+
+    if (window.showToast) window.showToast('Promoted to admin. Please log in again.', 'success', 2200);
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('currentUser');
+    setTimeout(() => { window.location.href = 'login.html'; }, 700);
+  } catch (error) {
+    console.error('Error promoting to admin:', error);
+    (window.showToast ? window.showToast('Failed to promote to admin.', 'error') : alert('Failed to promote to admin'));
+  }
+}
+
 // Check if user has admin access
 function checkAdminAccess() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  if (user.role !== 'admin') {
-    alert('Access denied. Admin privileges required.');
-    window.location.href = 'dashboard.html';
+  const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+  
+  if (user.role === 'admin') {
+    // Hide promote button for admins
+    const promoteBtn = document.getElementById('promote-admin-btn');
+    if (promoteBtn) promoteBtn.style.display = 'none';
+    return true;
+  } else {
+    // Show promote button for non-admins
+    const promoteBtn = document.getElementById('promote-admin-btn');
+    if (promoteBtn) {
+      promoteBtn.style.display = 'inline-block';
+      promoteBtn.textContent = 'You are not an admin. Click to promote yourself to admin.';
+    }
+    
+    // Hide admin features
+    const adminFeatures = document.querySelector('.admin-grid');
+    const userManagement = document.querySelector('.trips-section');
+    const analytics = document.querySelector('.analytics-section');
+    
+    if (adminFeatures) adminFeatures.style.display = 'none';
+    if (userManagement) userManagement.style.display = 'none';
+    if (analytics) analytics.style.display = 'none';
+    
     return false;
   }
-  return true;
+}
+
+// API call helper with authentication
+async function apiCallWithAuth(endpoint, options = {}) {
+  const token = sessionStorage.getItem('authToken');
+  if (!token) {
+    window.location.href = 'login.html';
+    throw new Error('No authentication token');
+  }
+
+  const defaultOptions = {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  };
+
+  const finalOptions = {
+    ...defaultOptions,
+    ...options,
+    headers: { ...defaultOptions.headers, ...options.headers }
+  };
+
+  const baseUrl = window.API_URL || 'http://localhost:3000';
+  const response = await fetch(`${baseUrl}${endpoint}`, finalOptions);
+
+  if (response.status === 401) {
+    sessionStorage.removeItem('authToken');
+    sessionStorage.removeItem('currentUser');
+    if (window.showToast) window.showToast('Session expired — please log in again.', 'warning', 2400);
+    setTimeout(() => { window.location.href = 'login.html'; }, 600);
+    throw new Error('Unauthenticated');
+  }
+
+  if (!response.ok) {
+    let error = {};
+    try { error = await response.json(); } catch (_) {}
+    throw new Error(error.message || 'API request failed');
+  }
+
+  return response.json();
 }
 
 // Load admin dashboard data
 async function loadAdminDashboard() {
   try {
-    const data = await apiCallWithAuth('/trips/admin/dashboard');
+    const data = await apiCallWithAuth('/admin/stats');
     
     // Update overview stats
-    updateOverviewStats(data.overview);
+    document.getElementById('total-users').textContent = data.users.total;
+    document.getElementById('total-trips').textContent = data.trips.total;
+    document.getElementById('total-items').textContent = data.items.total;
     
-    // Update role distribution
-    updateRoleStats(data.roleDistribution);
-    
-    // Update trip status distribution
-    updateStatusStats(data.tripStatusDistribution);
-    
-    // Update top users
-    updateTopUsers(data.topUsers);
+    // Hide new users/trips for now (not implemented in backend yet)
+    document.getElementById('new-users').textContent = 'N/A';
+    document.getElementById('new-trips').textContent = 'N/A';
     
   } catch (error) {
     console.error('Error loading admin dashboard:', error);
-    showError('Failed to load admin dashboard data');
   }
 }
 
@@ -154,44 +246,48 @@ async function loadUsers(page = 1) {
     const roleFilter = document.getElementById('role-filter')?.value || '';
     const statusFilter = document.getElementById('status-filter')?.value || '';
     
-    let url = `/auth/users?page=${page}`;
-    if (roleFilter) url += `&role=${roleFilter}`;
-    if (statusFilter) url += `&isActive=${statusFilter}`;
-    
+    let url = `/admin/users`;
     const data = await apiCallWithAuth(url);
+    
+    // Filter users locally (simplified approach)
+    let filteredUsers = data.users || [];
+    if (roleFilter) {
+      filteredUsers = filteredUsers.filter(u => u.role === roleFilter);
+    }
+    if (statusFilter) {
+      filteredUsers = filteredUsers.filter(u => u.isActive === (statusFilter === 'true'));
+    }
     
     const tbody = document.querySelector('#users-table tbody');
     const pagination = document.getElementById('users-pagination');
     
     if (!tbody) return;
     
-    if (data.users.length === 0) {
+    if (filteredUsers.length === 0) {
       tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No users found</td></tr>';
       if (pagination) pagination.innerHTML = '';
       return;
     }
     
-    tbody.innerHTML = data.users.map(user => `
+    tbody.innerHTML = filteredUsers.map(user => `
       <tr>
         <td>${escapeHtml(user.name)}</td>
         <td>${escapeHtml(user.email)}</td>
         <td><span class="role-badge role-${user.role}">${user.role}</span></td>
         <td><span class="status-${user.isActive ? 'active' : 'inactive'}">${user.isActive ? 'Active' : 'Inactive'}</span></td>
         <td>${new Date(user.createdAt).toLocaleDateString()}</td>
-        <td>${user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}</td>
+        <td>N/A</td>
         <td>
-          <button class="btn btn-small btn-edit" onclick="openRoleModal('${user._id}', '${escapeHtml(user.name)}', '${user.role}')">Change Role</button>
-          <button class="btn btn-small ${user.isActive ? 'btn-danger' : 'btn-primary'}" onclick="toggleUserStatus('${user._id}', ${!user.isActive})">
+          <button class="btn btn-small btn-edit" onclick="openRoleModal('${user.userId}', '${escapeHtml(user.name)}', '${user.role}')">Change Role</button>
+          <button class="btn btn-small ${user.isActive ? 'btn-danger' : 'btn-primary'}" onclick="toggleUserStatus('${user.userId}', ${!user.isActive})">
             ${user.isActive ? 'Deactivate' : 'Activate'}
           </button>
         </td>
       </tr>
     `).join('');
     
-    // Update pagination
-    if (pagination) {
-      pagination.innerHTML = generatePagination(data.currentPage, data.totalPages, 'loadUsers');
-    }
+    // Hide pagination for now (not implemented)
+    if (pagination) pagination.innerHTML = '';
     
   } catch (error) {
     console.error('Error loading users:', error);
@@ -236,38 +332,39 @@ async function saveUserRole() {
   const newRole = document.getElementById('new-role').value;
   
   try {
-    await apiCallWithAuth(`/auth/users/${currentEditUserId}/role`, {
+    await apiCallWithAuth(`/admin/users/${currentEditUserId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role: newRole })
     });
     
     closeRoleModal();
     loadUsers();
-    loadAdminDashboard();
-    alert('User role updated successfully');
+    (window.showToast ? window.showToast('User role updated.', 'success', 2000) : alert('User role updated successfully'));
   } catch (error) {
     console.error('Error updating role:', error);
-    alert('Failed to update user role');
+    (window.showToast ? window.showToast('Failed to update user role.', 'error') : alert('Failed to update user role'));
   }
 }
 
 // Toggle user active status
 async function toggleUserStatus(userId, isActive) {
-  if (!confirm(`Are you sure you want to ${isActive ? 'activate' : 'deactivate'} this user?`)) {
-    return;
-  }
-  
+  const action = isActive ? 'activate' : 'deactivate';
+  const confirmed = window.showConfirm
+    ? await window.showConfirm(`This will ${action} the user's account.`, { title: `${isActive ? 'Activate' : 'Deactivate'} user?`, confirmText: isActive ? 'Activate' : 'Deactivate', danger: !isActive })
+    : confirm(`Are you sure you want to ${action} this user?`);
+  if (!confirmed) return;
+
   try {
-    await apiCallWithAuth(`/auth/users/${userId}/status`, {
+    await apiCallWithAuth(`/admin/users/${userId}/status`, {
       method: 'PUT',
       body: JSON.stringify({ isActive })
     });
-    
+
     loadUsers();
-    alert(`User ${isActive ? 'activated' : 'deactivated'} successfully`);
+    (window.showToast ? window.showToast(`User ${isActive ? 'activated' : 'deactivated'}.`, 'success', 2000) : alert(`User ${isActive ? 'activated' : 'deactivated'} successfully`));
   } catch (error) {
     console.error('Error updating user status:', error);
-    alert('Failed to update user status');
+    (window.showToast ? window.showToast('Failed to update user status.', 'error') : alert('Failed to update user status'));
   }
 }
 

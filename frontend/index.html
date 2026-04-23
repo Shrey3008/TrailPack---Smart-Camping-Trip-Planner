@@ -3,17 +3,664 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrailPack - Smart Camping Trip Planner</title>
+  <title>TrailPack — Smart Camping Trip Planner</title>
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Design-system fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+
+  <style>
+    /* =========================================================================
+       TrailPack Dashboard — scoped design-system overrides.
+       Applied ONLY on this page. Targets app.js-rendered markup so we don't
+       need to touch any other files.
+       ========================================================================= */
+    :root {
+      --green:       #2D6A4F;
+      --green-dark:  #1B4332;
+      --green-light: #52B788;
+      --green-pale:  #D8F3DC;
+      --cream:       #F5F7F5;
+      --surface:     #FFFFFF;
+      --ink:         #1b2422;
+      --ink-soft:    #5a6560;
+      --line:        #E3EAE5;
+      --danger:      #C0392B;
+      --danger-soft: #F9E2DE;
+      --shadow-sm:   0 1px 2px rgba(15, 36, 28, 0.04), 0 2px 8px rgba(15, 36, 28, 0.05);
+      --shadow-md:   0 8px 24px rgba(15, 36, 28, 0.10);
+      --radius:      14px;
+    }
+
+    /* Dark theme — activated by [data-theme="dark"] on <html>. */
+    html[data-theme="dark"] {
+      --cream:       #0F1713;
+      --surface:     #17231D;
+      --ink:         #E6EDE7;
+      --ink-soft:    #9BA8A1;
+      --line:        #233129;
+      --green-pale:  #1F3B2C;
+      --shadow-sm:   0 1px 2px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.35);
+      --shadow-md:   0 10px 28px rgba(0,0,0,0.45);
+    }
+    html[data-theme="dark"] .trip-badge { color: #C8E6C9 !important; }
+    html[data-theme="dark"] .empty-state { border-color: var(--line); }
+    html[data-theme="dark"] .tp-ct-modal input,
+    html[data-theme="dark"] .tp-ct-modal select {
+      background: #101A14;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+    html[data-theme="dark"] .tp-ct-cancel:hover { background: #1E2C23; }
+    html[data-theme="dark"] .section-sub { color: var(--ink-soft); }
+
+    html, body {
+      background: var(--cream) !important;
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+    }
+    body { margin: 0; }
+
+    /* ---------- Navbar ---------- */
+    .navbar {
+      background: var(--green-dark) !important;
+      color: #fff !important;
+      padding: 18px 32px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 12px; }
+    .nav-brand h1,
+    .nav-brand .brand-text {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.55rem !important;
+      color: #fff !important;
+      letter-spacing: 0.005em;
+      margin: 0 !important;
+    }
+    .nav-brand .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(82, 183, 136, 0.15);
+    }
+    .nav-brand .logo-mark svg { display: block; }
+
+    .nav-user {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      flex-wrap: wrap;
+    }
+    .nav-user .user-name,
+    .nav-user #user-info {
+      color: rgba(255,255,255,0.88) !important;
+      font-weight: 500 !important;
+      font-size: 0.92rem !important;
+      margin-right: 6px;
+    }
+
+    /* Pill buttons in navbar. Override existing .btn.btn-ghost + buttons. */
+    .navbar .btn,
+    .navbar a.btn,
+    .navbar button {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 0.85rem !important;
+      line-height: 1 !important;
+      padding: 8px 16px !important;
+      border-radius: 999px !important;
+      border: 1px solid rgba(255,255,255,0.35) !important;
+      background: transparent !important;
+      color: #fff !important;
+      cursor: pointer;
+      text-decoration: none !important;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+    }
+    .navbar .btn:hover,
+    .navbar a.btn:hover,
+    .navbar button:hover {
+      background: rgba(255,255,255,0.10) !important;
+      border-color: rgba(255,255,255,0.65) !important;
+    }
+    /* Logout = red outlined pill */
+    .navbar .btn-logout,
+    .navbar button[onclick*="logout"] {
+      border-color: rgba(255, 138, 128, 0.55) !important;
+      color: #FFBFBA !important;
+    }
+    .navbar .btn-logout:hover,
+    .navbar button[onclick*="logout"]:hover {
+      background: rgba(192, 57, 43, 0.20) !important;
+      border-color: #FF8A80 !important;
+      color: #fff !important;
+    }
+
+    /* ---------- Layout ---------- */
+    main.container {
+      max-width: 1200px;
+      margin: 32px auto !important;
+      padding: 0 24px !important;
+    }
+
+    /* ---------- Stat cards ---------- */
+    .stats-bar {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 20px !important;
+      margin-bottom: 36px !important;
+      /* Guard against any rule in styles.css that might hide the row. */
+      visibility: visible !important;
+      opacity: 1 !important;
+      height: auto !important;
+      min-height: 92px;
+      overflow: visible !important;
+      position: relative;
+      z-index: 1;
+    }
+    .stat-card {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius) !important;
+      padding: 20px !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 16px !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md) !important;
+    }
+    .stat-card .stat-icon {
+      flex: 0 0 52px;
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      background: var(--green-pale) !important;
+      color: var(--green) !important;
+      display: grid !important;
+      place-items: center !important;
+      font-size: 1.55rem !important;
+    }
+    .stat-card .stat-content { display: flex; flex-direction: column; }
+    .stat-card .stat-value {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 2rem !important;
+      font-weight: 700 !important;
+      line-height: 1.1 !important;
+      color: var(--ink) !important;
+      letter-spacing: -0.015em;
+    }
+    .stat-card .stat-label {
+      font-size: 0.72rem !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.08em !important;
+      text-transform: uppercase !important;
+      color: var(--ink-soft) !important;
+      margin-top: 2px;
+    }
+
+    /* ---------- Section header ---------- */
+    .section-header {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: space-between !important;
+      gap: 16px;
+      margin-bottom: 16px !important;
+    }
+    .section-header-left { display: flex; flex-direction: column; gap: 4px; }
+    .section-header h2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.75rem !important;
+      color: var(--ink) !important;
+      margin: 0 !important;
+      letter-spacing: -0.005em;
+    }
+    .section-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: var(--ink-soft);
+      margin: 0;
+      font-style: italic;
+      letter-spacing: 0.005em;
+    }
+
+    /* ---------- Filter tabs ---------- */
+    .filter-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 22px;
+    }
+    .filter-tab {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-soft);
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-tab:hover {
+      color: var(--ink);
+      border-color: var(--green-light);
+    }
+    .filter-tab.is-active {
+      background: var(--green);
+      color: #fff;
+      border-color: var(--green);
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.28);
+    }
+    .filter-tab.is-active:hover { background: var(--green-dark); border-color: var(--green-dark); }
+    .trip-card.is-hidden-by-filter { display: none !important; }
+    .section-header .btn.btn-primary {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.88rem !important;
+      padding: 10px 20px !important;
+      border-radius: 999px !important;
+      background: var(--green) !important;
+      color: #fff !important;
+      border: 0 !important;
+      cursor: pointer;
+      box-shadow: 0 1px 0 rgba(27, 67, 50, 0.2), 0 6px 18px rgba(45, 106, 79, 0.28);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .section-header .btn.btn-primary:hover {
+      background: var(--green-dark) !important;
+      transform: translateY(-1px);
+    }
+
+    .dashboard-section { margin-bottom: 48px; }
+
+    /* ---------- Trip grid & trip cards ----------
+       app.js renders: .trip-card > h3, .trip-meta > .trip-badge*, .trip-date,
+       .trip-actions > .btn.btn-primary + .btn.btn-danger.
+       We skin them and then enhance via the small script at the bottom. */
+    .trips-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+      gap: 22px !important;
+    }
+    .trip-card {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius) !important;
+      padding: 22px !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 14px !important;
+      position: relative;
+    }
+    .trip-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md) !important;
+      border-color: rgba(82, 183, 136, 0.45) !important;
+    }
+    .trip-card h3 {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 1.05rem !important;
+      font-weight: 700 !important;
+      color: var(--ink) !important;
+      margin: 0 !important;
+      letter-spacing: -0.005em;
+    }
+    .trip-meta {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    .trip-badge {
+      background: var(--green-pale) !important;
+      color: var(--green-dark) !important;
+      border-radius: 999px !important;
+      padding: 4px 10px !important;
+      font-size: 0.72rem !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.01em;
+      text-transform: capitalize;
+    }
+    .trip-date {
+      font-size: 0.78rem !important;
+      color: var(--ink-soft) !important;
+      font-weight: 500 !important;
+    }
+    /* Terrain emoji row — injected by script below. Emoji sits top-left,
+       above the trip name. Created-date stays in its original spot. */
+    .tp-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: -4px;
+    }
+    .tp-card-top .tp-terrain-emoji {
+      font-size: 1.75rem !important;
+      line-height: 1;
+      display: inline-block;
+    }
+    /* Progress block */
+    .tp-progress-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .tp-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+    .tp-progress-label strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .tp-progress-bar {
+      height: 8px;
+      width: 100%;
+      background: var(--green-pale);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .tp-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--green-light), var(--green));
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    /* Trip card buttons */
+    .trip-actions {
+      display: flex !important;
+      gap: 10px !important;
+      margin-top: auto !important;
+    }
+    .trip-card .trip-actions .btn {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.82rem !important;
+      padding: 9px 16px !important;
+      border-radius: 999px !important;
+      border: 0 !important;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .trip-card .trip-actions .btn.btn-primary {
+      background: var(--green) !important;
+      color: #fff !important;
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+    .trip-card .trip-actions .btn.btn-primary:hover {
+      background: var(--green-dark) !important;
+      transform: translateY(-1px);
+    }
+    .trip-card .trip-actions .btn.btn-danger {
+      background: transparent !important;
+      color: var(--danger) !important;
+      border: 1px solid var(--danger) !important;
+    }
+    .trip-card .trip-actions .btn.btn-danger:hover {
+      background: var(--danger) !important;
+      color: #fff !important;
+    }
+
+    /* ---------- Empty state ---------- */
+    .empty-state {
+      background: var(--surface);
+      border: 1px dashed var(--line);
+      border-radius: var(--radius);
+      padding: 48px 24px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .empty-state .empty-icon { font-size: 2.75rem; margin-bottom: 12px; }
+    .empty-state h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 600;
+      font-size: 1.4rem;
+      color: var(--ink);
+      margin: 0 0 6px;
+    }
+    .empty-state p {
+      color: var(--ink-soft);
+      margin: 0 0 18px;
+    }
+    .empty-state .btn.btn-primary {
+      background: var(--green) !important;
+      color: #fff !important;
+      border: 0 !important;
+      padding: 10px 22px !important;
+      border-radius: 999px !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+    }
+
+    /* ---------- Create Trip modal ---------- */
+    .tp-ct-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 36, 28, 0.45);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1200;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    .tp-ct-overlay.open { opacity: 1; }
+    .tp-ct-modal {
+      background: var(--surface);
+      border-radius: 18px;
+      width: min(520px, 92vw);
+      padding: 28px 28px 24px;
+      box-shadow: 0 30px 80px rgba(15, 36, 28, 0.35);
+      transform: translateY(24px) scale(0.98);
+      opacity: 0;
+      transition: transform 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.22s ease;
+    }
+    .tp-ct-overlay.open .tp-ct-modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    .tp-ct-modal h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--ink);
+      margin: 0 0 4px;
+    }
+    .tp-ct-modal p.tp-ct-sub {
+      color: var(--ink-soft);
+      margin: 0 0 20px;
+      font-size: 0.92rem;
+    }
+    .tp-ct-modal .tp-field {
+      display: flex; flex-direction: column;
+      margin-bottom: 14px;
+    }
+    .tp-ct-modal .tp-field label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      margin-bottom: 6px;
+    }
+    .tp-ct-modal input,
+    .tp-ct-modal select {
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .tp-ct-modal input:focus,
+    .tp-ct-modal select:focus {
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.18);
+    }
+    .tp-ct-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .tp-ct-actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 18px;
+    }
+    .tp-ct-actions button {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .tp-ct-cancel {
+      background: transparent;
+      color: var(--ink-soft);
+      border: 1px solid var(--line) !important;
+    }
+    .tp-ct-cancel:hover {
+      background: var(--cream);
+      color: var(--ink);
+    }
+    .tp-ct-confirm {
+      background: var(--green);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(45, 106, 79, 0.28);
+    }
+    .tp-ct-confirm:hover { background: var(--green-dark); transform: translateY(-1px); }
+    .tp-ct-confirm:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ---------- Style ui.js confirm modal + toast to match the design ---------- */
+    .tp-modal-overlay {
+      background: rgba(15, 36, 28, 0.45) !important;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .tp-modal {
+      border-radius: 18px !important;
+      box-shadow: 0 30px 80px rgba(15, 36, 28, 0.35) !important;
+      padding: 26px !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    .tp-modal-title {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 600 !important;
+      font-size: 1.3rem !important;
+      color: var(--ink) !important;
+    }
+    .tp-modal-body {
+      color: var(--ink-soft) !important;
+      font-size: 0.95rem !important;
+    }
+    .tp-modal-actions .btn {
+      border-radius: 999px !important;
+      padding: 10px 20px !important;
+      font-weight: 600 !important;
+    }
+    .tp-modal-actions .tp-modal-cancel {
+      background: transparent !important;
+      border: 1px solid var(--line) !important;
+      color: var(--ink-soft) !important;
+    }
+    .tp-modal-actions .tp-modal-confirm {
+      background: var(--danger) !important;
+      color: #fff !important;
+      border: 0 !important;
+    }
+
+    /* Toasts — dark forest green, bottom-right, slide up */
+    .tp-toast-container {
+      bottom: 24px !important;
+      right: 24px !important;
+      left: auto !important;
+      top: auto !important;
+    }
+    .tp-toast {
+      background: var(--green-dark) !important;
+      color: #fff !important;
+      border-radius: 12px !important;
+      padding: 12px 16px !important;
+      font-family: 'Inter', sans-serif !important;
+      box-shadow: 0 18px 40px rgba(15, 36, 28, 0.35) !important;
+      animation: tp-toast-rise 0.25s ease-out both;
+    }
+    .tp-toast-success { background: var(--green) !important; }
+    .tp-toast-error   { background: var(--danger) !important; }
+    .tp-toast-warning { background: #B45309 !important; }
+    @keyframes tp-toast-rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      .stats-bar { grid-template-columns: repeat(2, 1fr) !important; }
+      .navbar { padding: 16px 20px !important; }
+      .nav-user .user-name,
+      .nav-user #user-info { display: none !important; }
+    }
+    @media (max-width: 560px) {
+      .stats-bar { grid-template-columns: 1fr !important; }
+      main.container { padding: 0 16px !important; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .trip-card .trip-actions { flex-direction: column; }
+      .trip-card .trip-actions .btn { width: 100%; }
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <h1><span class="logo-icon">⛺</span> TrailPack</h1>
+      <span class="logo-mark" aria-hidden="true">
+        <!-- Mountain mark in --green-light -->
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+        </svg>
+      </span>
+      <h1 class="brand-text">TrailPack</h1>
     </div>
     <div class="nav-user">
-      <span id="user-name" class="user-name"></span>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+      <span id="user-info" class="user-name"></span>
+      <a href="profile.html" class="btn btn-ghost btn-sm">Profile</a>
+      <a href="organizer.html" id="organizer-link" class="btn btn-ghost btn-sm" style="display:none;">Organizer</a>
+      <button id="admin-panel-btn" class="btn btn-ghost btn-sm" onclick="window.location.href='admin.html'">Admin Panel</button>
+      <button id="theme-toggle" class="btn btn-ghost btn-sm btn-theme" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+      <button class="btn btn-ghost btn-sm btn-logout" onclick="logout()">Logout</button>
     </div>
   </nav>
 
@@ -53,39 +700,373 @@
     <!-- Dashboard Section -->
     <section class="dashboard-section">
       <div class="section-header">
-        <h2>Your Trips</h2>
-        <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
-          + Create New Trip
-        </button>
+        <div class="section-header-left">
+          <h2>Your Trips</h2>
+          <p class="section-sub">Plan smart. Pack light. Hike better.</p>
+        </div>
+        <button class="btn btn-primary" id="open-create-trip">+ Create New Trip</button>
+      </div>
+
+      <div class="filter-tabs" id="trip-filters" role="tablist" aria-label="Filter trips by terrain">
+        <button type="button" class="filter-tab is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="filter-tab" data-filter="mountain" role="tab" aria-selected="false"><span aria-hidden="true">🏔️</span> Mountain</button>
+        <button type="button" class="filter-tab" data-filter="forest" role="tab" aria-selected="false"><span aria-hidden="true">🌲</span> Forest</button>
+        <button type="button" class="filter-tab" data-filter="desert" role="tab" aria-selected="false"><span aria-hidden="true">🏜️</span> Desert</button>
       </div>
 
       <div id="trips-container" class="trips-grid">
-        <!-- Trips will be loaded here dynamically -->
+        <!-- Trips rendered by app.js; enhanced below -->
       </div>
 
       <div id="empty-state" class="empty-state" style="display: none;">
         <div class="empty-icon">🏕️</div>
         <h3>No trips yet</h3>
         <p>Create your first camping trip to get started!</p>
-        <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
-          Create Trip
-        </button>
+        <button class="btn btn-primary" id="open-create-trip-empty">Create Trip</button>
       </div>
+    </section>
+
+    <!-- Shared With Me Section -->
+    <section class="dashboard-section" id="shared-trips-section" style="display: none;">
+      <div class="section-header">
+        <h2>Shared With Me</h2>
+      </div>
+      <div id="shared-trips-container" class="trips-grid"></div>
     </section>
   </main>
 
+  <!-- ================= Create Trip modal ================= -->
+  <div class="tp-ct-overlay" id="tp-ct-overlay" aria-hidden="true" role="dialog" aria-labelledby="tp-ct-title">
+    <div class="tp-ct-modal">
+      <h3 id="tp-ct-title">Plan a new trip</h3>
+      <p class="tp-ct-sub">We'll generate a personalized packing checklist for you.</p>
+      <form id="tp-ct-form" autocomplete="off">
+        <div class="tp-field">
+          <label for="tp-ct-name">Trip name</label>
+          <input id="tp-ct-name" name="name" required placeholder="e.g. Rocky Mountain Weekend">
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-terrain">Terrain</label>
+            <select id="tp-ct-terrain" name="terrain" required>
+              <option value="Mountain">Mountain</option>
+              <option value="Forest">Forest</option>
+              <option value="Desert">Desert</option>
+              <option value="Beach">Beach</option>
+              <option value="Lake">Lake</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-season">Season</label>
+            <select id="tp-ct-season" name="season" required>
+              <option value="Spring">Spring</option>
+              <option value="Summer" selected>Summer</option>
+              <option value="Fall">Fall</option>
+              <option value="Winter">Winter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-duration">Duration (days)</label>
+            <input id="tp-ct-duration" name="duration" type="number" min="1" max="60" value="3" required>
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-location">Location (optional)</label>
+            <input id="tp-ct-location" name="location" placeholder="Banff, AB">
+          </div>
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-start">Start date</label>
+            <input id="tp-ct-start" name="startDate" type="date">
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-end">End date</label>
+            <input id="tp-ct-end" name="endDate" type="date">
+          </div>
+        </div>
+
+        <div class="tp-ct-actions">
+          <button type="button" class="tp-ct-cancel" id="tp-ct-cancel">Cancel</button>
+          <button type="submit" class="tp-ct-confirm" id="tp-ct-confirm">Create Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
   <script src="app.js"></script>
   <script>
-    // Check auth and load data when page loads
+    // ---------- Boot ----------
     document.addEventListener('DOMContentLoaded', () => {
       checkAuth();
       loadTrips();
       loadStats();
-      // Display user name
+      if (typeof loadSharedTrips === 'function') loadSharedTrips();
+
       if (window.currentUser) {
-        document.getElementById('user-name').textContent = window.currentUser.name;
+        const userInfo = document.getElementById('user-info');
+        userInfo.textContent = `${window.currentUser.name} (${window.currentUser.role || 'user'})`;
+
+        const adminBtn = document.getElementById('admin-panel-btn');
+        if (window.currentUser.role === 'admin') {
+          adminBtn.style.display = 'inline-block';
+        } else {
+          adminBtn.style.display = 'none';
+        }
+        if (window.currentUser.role === 'organizer' || window.currentUser.role === 'admin') {
+          const orgLink = document.getElementById('organizer-link');
+          if (orgLink) orgLink.style.display = 'inline-block';
+        }
       }
+
+      wireCreateTripModal();
+      wireTripCardEnhancer();
+      wireFilterTabs();
+      wireThemeToggle();
     });
+
+    // ---------- Theme toggle ----------
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+      if (theme === 'dark') {
+        root.setAttribute('data-theme', 'dark');
+        if (btn) { btn.textContent = '☀️'; btn.setAttribute('aria-label', 'Switch to light theme'); }
+      } else {
+        root.removeAttribute('data-theme');
+        if (btn) { btn.textContent = '🌙'; btn.setAttribute('aria-label', 'Switch to dark theme'); }
+      }
+    }
+    function wireThemeToggle() {
+      const stored = localStorage.getItem('tp-theme');
+      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+      applyTheme(stored || (prefersDark ? 'dark' : 'light'));
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        localStorage.setItem('tp-theme', next);
+      });
+    }
+
+    // ---------- Filter tabs ----------
+    function wireFilterTabs() {
+      const tabs = document.querySelectorAll('#trip-filters .filter-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('is-active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          tab.classList.add('is-active');
+          tab.setAttribute('aria-selected', 'true');
+          applyTripFilter(tab.dataset.filter || 'all');
+        });
+      });
+    }
+    function applyTripFilter(filter) {
+      const container = document.getElementById('trips-container');
+      if (!container) return;
+      const cards = container.querySelectorAll('.trip-card');
+      cards.forEach(card => {
+        if (filter === 'all') {
+          card.classList.remove('is-hidden-by-filter');
+          return;
+        }
+        const firstBadge = card.querySelector('.trip-meta .trip-badge');
+        const terrain = (firstBadge?.textContent || '').trim().toLowerCase();
+        const match = terrain === filter || terrain.startsWith(filter);
+        card.classList.toggle('is-hidden-by-filter', !match);
+      });
+    }
+
+    // ---------- Create Trip modal ----------
+    function openCreateTripModal() {
+      const ov = document.getElementById('tp-ct-overlay');
+      ov.style.display = 'flex';
+      requestAnimationFrame(() => ov.classList.add('open'));
+      setTimeout(() => document.getElementById('tp-ct-name')?.focus(), 120);
+    }
+    function closeCreateTripModal() {
+      const ov = document.getElementById('tp-ct-overlay');
+      ov.classList.remove('open');
+      setTimeout(() => { ov.style.display = 'none'; }, 220);
+    }
+
+    function wireCreateTripModal() {
+      const open = () => openCreateTripModal();
+      document.getElementById('open-create-trip')?.addEventListener('click', open);
+      document.getElementById('open-create-trip-empty')?.addEventListener('click', open);
+
+      const ov = document.getElementById('tp-ct-overlay');
+      ov.addEventListener('click', (e) => { if (e.target === ov) closeCreateTripModal(); });
+      document.getElementById('tp-ct-cancel').addEventListener('click', closeCreateTripModal);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && ov.classList.contains('open')) closeCreateTripModal();
+      });
+
+      document.getElementById('tp-ct-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('tp-ct-confirm');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating…';
+
+        const body = {
+          name: document.getElementById('tp-ct-name').value.trim(),
+          terrain: document.getElementById('tp-ct-terrain').value,
+          season: document.getElementById('tp-ct-season').value,
+          duration: parseInt(document.getElementById('tp-ct-duration').value, 10) || 1,
+          location: document.getElementById('tp-ct-location').value.trim() || null,
+          startDate: document.getElementById('tp-ct-start').value || null,
+          endDate: document.getElementById('tp-ct-end').value || null,
+        };
+
+        try {
+          // Reuse the shared helper from app.js so auth headers stay consistent.
+          const result = await apiCallWithAuth('/trips', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          const tripId = result?.trip?.tripId || result?.tripId;
+          if (tripId) {
+            sessionStorage.setItem('tripJustCreated', '1');
+            window.location.href = `checklist.html?tripId=${tripId}`;
+            return;
+          }
+          closeCreateTripModal();
+          if (window.showToast) window.showToast('Trip created.', 'success');
+          loadTrips();
+          loadStats();
+        } catch (err) {
+          if (window.showToast) window.showToast(err?.message || 'Failed to create trip', 'error');
+          else alert('Failed to create trip: ' + (err?.message || err));
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Trip';
+        }
+      });
+    }
+
+    // ---------- Trip card enhancer ----------
+    // app.js renders bare trip cards. We observe the containers and decorate
+    // each card with: (1) a top row (terrain emoji + created date) and
+    // (2) a progress bar + "X of Y items packed". No other files touched.
+    const TERRAIN_EMOJI = {
+      mountain: '🏔️', mountains: '🏔️', alpine: '🏔️', snow: '🏔️',
+      forest: '🌲', woods: '🌲', woodland: '🌲',
+      desert: '🏜️', dunes: '🏜️',
+      beach: '🏖️', coast: '🏖️', ocean: '🏖️',
+      lake: '🛶', river: '🏞️', canyon: '🏞️', valley: '🏞️',
+      tundra: '🥶', arctic: '🥶',
+      jungle: '🌴', rainforest: '🌴', tropical: '🌴',
+      plains: '🌾', prairie: '🌾', grassland: '🌾',
+    };
+    const itemCache = new Map(); // tripId -> { total, packed }
+
+    async function fetchItemStats(tripId) {
+      if (itemCache.has(tripId)) return itemCache.get(tripId);
+      try {
+        const items = await apiCallWithAuth(`/trips/${tripId}/items`);
+        const arr = Array.isArray(items) ? items : (items?.items || []);
+        const stats = {
+          total: arr.length,
+          packed: arr.filter(i => i.packed).length,
+        };
+        itemCache.set(tripId, stats);
+        return stats;
+      } catch (_) {
+        return { total: 0, packed: 0 };
+      }
+    }
+
+    function enhanceCard(card) {
+      if (!card || card.dataset.tpEnhanced === '1') return;
+      card.dataset.tpEnhanced = '1';
+
+      // Extract terrain from the first badge + original created-date text.
+      const firstBadge = card.querySelector('.trip-meta .trip-badge');
+      const terrain = (firstBadge?.textContent || '').trim();
+      const emoji = TERRAIN_EMOJI[terrain.toLowerCase()] || '⛺';
+      const dateEl = card.querySelector('.trip-date');
+      const dateText = (dateEl?.textContent || '').trim() || '';
+
+      // Emoji row, placed as the very first child so it sits above the
+      // trip name at the top-left of the card. Leave the original
+      // .trip-date in place (below the badges).
+      const top = document.createElement('div');
+      top.className = 'tp-card-top';
+      top.innerHTML = `<span class="tp-terrain-emoji" aria-hidden="true">${emoji}</span>`;
+      card.insertBefore(top, card.firstChild);
+      void dateText; // intentionally unused — we no longer move the date
+
+      // Extract tripId from the card's inline onclick (app.js renders: viewChecklist('<id>')).
+      const onclick = card.getAttribute('onclick') || '';
+      const m = onclick.match(/viewChecklist\('([^']+)'\)/);
+      const tripId = m ? m[1] : null;
+      if (!tripId) return;
+
+      // Insert progress block before .trip-actions
+      const actions = card.querySelector('.trip-actions');
+      const block = document.createElement('div');
+      block.className = 'tp-progress-block';
+      block.innerHTML = `
+        <div class="tp-progress-label">
+          <span><strong>0</strong> of <strong>0</strong> items packed</span>
+          <span>0%</span>
+        </div>
+        <div class="tp-progress-bar"><div class="tp-progress-fill"></div></div>
+      `;
+      if (actions) card.insertBefore(block, actions);
+      else card.appendChild(block);
+
+      fetchItemStats(tripId).then(({ total, packed }) => {
+        const pct = total > 0 ? Math.round((packed / total) * 100) : 0;
+        const label = block.querySelector('.tp-progress-label');
+        const fill  = block.querySelector('.tp-progress-fill');
+        if (label) label.innerHTML = `
+          <span><strong>${packed}</strong> of <strong>${total}</strong> items packed</span>
+          <span>${pct}%</span>
+        `;
+        if (fill) fill.style.width = pct + '%';
+      });
+    }
+
+    function wireTripCardEnhancer() {
+      const containers = [
+        document.getElementById('trips-container'),
+        document.getElementById('shared-trips-container'),
+      ].filter(Boolean);
+
+      const sweep = (root) => root.querySelectorAll('.trip-card').forEach(enhanceCard);
+
+      containers.forEach(c => {
+        sweep(c);
+        const obs = new MutationObserver(() => {
+          sweep(c);
+          // Re-apply the active filter to any newly rendered cards.
+          const activeTab = document.querySelector('#trip-filters .filter-tab.is-active');
+          if (activeTab) applyTripFilter(activeTab.dataset.filter || 'all');
+        });
+        obs.observe(c, { childList: true, subtree: false });
+      });
+
+      // Bust the per-trip cache whenever the user returns to the dashboard
+      // (e.g. after packing items on the checklist page).
+      window.addEventListener('pageshow', () => {
+        itemCache.clear();
+        containers.forEach(c => c.querySelectorAll('.trip-card').forEach(card => {
+          delete card.dataset.tpEnhanced;
+          card.querySelector('.tp-card-top')?.remove();
+          card.querySelector('.tp-progress-block')?.remove();
+          enhanceCard(card);
+        }));
+      });
+    }
   </script>
 </body>
 </html>

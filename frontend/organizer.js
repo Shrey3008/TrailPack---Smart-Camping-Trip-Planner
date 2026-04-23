@@ -2,10 +2,12 @@
 
 // Check if user has organizer or admin access
 function checkOrganizerAccess() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
   if (user.role !== 'organizer' && user.role !== 'admin') {
-    alert('Access denied. Organizer privileges required.');
-    window.location.href = 'dashboard.html';
+    (window.showToast
+      ? window.showToast('Organizer privileges required.', 'error')
+      : alert('Access denied. Organizer privileges required.'));
+    setTimeout(() => { window.location.href = 'index.html'; }, 700);
     return false;
   }
   return true;
@@ -15,13 +17,8 @@ function checkOrganizerAccess() {
 async function loadOrganizerDashboard() {
   try {
     const data = await apiCallWithAuth('/trips/organizer/dashboard');
-    
-    // Update overview stats
-    updateOverviewStats(data.stats);
-    
-    // Update trips list
-    updateTripsList(data.trips);
-    
+    updateOverviewStats(data.stats || {});
+    updateTripsList(data.trips || []);
   } catch (error) {
     console.error('Error loading organizer dashboard:', error);
     showError('Failed to load organizer dashboard data');
@@ -194,19 +191,18 @@ async function viewParticipants(tripId) {
   }
 }
 
-// Get add participant form
+// Get add participant form (uses the invite flow under the hood).
 function getAddParticipantForm(tripId) {
   return `
     <div class="add-participant-section">
-      <h4>Add New Participant</h4>
+      <h4>Invite a Participant</h4>
       <div class="share-form">
         <input type="email" id="add-participant-email-${tripId}" placeholder="Enter email address" class="share-input">
-        <select id="add-participant-role-${tripId}" class="share-select">
-          <option value="participant">Participant</option>
-          <option value="organizer">Organizer</option>
-        </select>
-        <button class="btn btn-primary" onclick="addParticipant('${tripId}')">Add Participant</button>
+        <button class="btn btn-primary" onclick="addParticipant('${tripId}')">Send Invitation</button>
       </div>
+      <p class="muted-help" style="font-size:0.8rem;color:#6b7280;margin-top:0.5rem;">
+        A shareable link is copied to your clipboard. The recipient clicks it to join the trip.
+      </p>
     </div>
   `;
 }
@@ -219,61 +215,60 @@ function closeParticipantsView() {
   }
 }
 
-// Add participant to trip
+// Invite a participant by email. Uses the invite flow so the organizer
+// doesn't need to know the target user's userId ahead of time.
 async function addParticipant(tripId) {
   const emailInput = document.getElementById(`add-participant-email-${tripId}`);
-  const roleSelect = document.getElementById(`add-participant-role-${tripId}`);
-  
   const email = emailInput?.value.trim();
-  const role = roleSelect?.value || 'participant';
-  
-  if (!email) {
-    alert('Please enter an email address');
+
+  if (!email || !email.includes('@')) {
+    (window.showToast
+      ? window.showToast('Enter a valid email address.', 'warning')
+      : alert('Please enter an email address'));
     return;
   }
-  
+
   try {
-    // First, find user by email to get userId
-    const usersResponse = await apiCallWithAuth('/auth/users?limit=1000');
-    const user = usersResponse.users?.find(u => u.email === email);
-    
-    if (!user) {
-      alert('User not found. Make sure they have registered.');
-      return;
-    }
-    
-    await apiCallWithAuth(`/trips/${tripId}/participants`, {
+    const data = await apiCallWithAuth(`/trips/${tripId}/invites`, {
       method: 'POST',
-      body: JSON.stringify({ userId: user.userId || user.id, role })
+      body: JSON.stringify({ email })
     });
-    
+
     emailInput.value = '';
-    showNotification('Participant added successfully!', 'success');
+
+    const link = data.acceptUrl || (window.location.origin + '/accept-invite.html?token=' + encodeURIComponent(data.token || ''));
+    try { await navigator.clipboard.writeText(link); } catch (_) {}
+    (window.showToast
+      ? window.showToast(`Invitation sent to ${email}. Link copied to clipboard.`, 'success', 3000)
+      : showNotification('Invitation sent. Link: ' + link, 'success'));
+
     viewParticipants(tripId);
     loadOrganizerDashboard();
   } catch (error) {
-    console.error('Error adding participant:', error);
-    alert(error.message || 'Failed to add participant');
+    console.error('Error sending invite:', error);
+    (window.showToast
+      ? window.showToast(error.message || 'Failed to send invitation', 'error')
+      : alert(error.message || 'Failed to send invitation'));
   }
 }
 
 // Remove participant from trip
 async function removeParticipant(tripId, userId) {
-  if (!confirm('Are you sure you want to remove this participant?')) {
-    return;
-  }
-  
+  const ok = window.showConfirm
+    ? await window.showConfirm('Remove this participant from the trip?', { title: 'Remove participant', confirmText: 'Remove', danger: true })
+    : confirm('Are you sure you want to remove this participant?');
+  if (!ok) return;
+
   try {
     await apiCallWithAuth(`/trips/${tripId}/participants/${userId}`, {
       method: 'DELETE'
     });
-    
-    showNotification('Participant removed successfully!', 'success');
+    (window.showToast ? window.showToast('Participant removed.', 'success', 2000) : null);
     viewParticipants(tripId);
     loadOrganizerDashboard();
   } catch (error) {
     console.error('Error removing participant:', error);
-    showNotification('Failed to remove participant', 'error');
+    (window.showToast ? window.showToast('Failed to remove participant.', 'error') : null);
   }
 }
 

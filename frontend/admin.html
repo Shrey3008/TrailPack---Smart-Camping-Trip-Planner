@@ -11,15 +11,13 @@
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <h1>TrailPack</h1>
+      <h1>⛺ TrailPack</h1>
       <span class="tagline">Admin Dashboard</span>
     </div>
     <div class="nav-links">
       <span id="user-name" class="user-greeting"></span>
-      <a href="dashboard.html" class="nav-link">Dashboard</a>
-      <a href="organizer.html" class="nav-link">Organizer</a>
-      <a href="profile.html" class="nav-link">Profile</a>
-      <button class="btn btn-secondary" id="logout-btn">Logout</button>
+      <a href="index.html" class="nav-link">Dashboard</a>
+      <button class="btn btn-secondary" id="logout-btn" onclick="logout()">Logout</button>
     </div>
   </nav>
 
@@ -27,6 +25,7 @@
     <header class="admin-header">
       <h2>📊 Admin Dashboard</h2>
       <p>Manage users, view system statistics, and monitor activity</p>
+      <button id="promote-admin-btn" class="btn btn-primary" onclick="promoteToAdmin()" style="margin-top: 10px;">Promote Current User to Admin</button>
     </header>
 
     <!-- Overview Stats -->
@@ -153,14 +152,20 @@
     </div>
   </div>
 
-  <script src="auth.js"></script>
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
   <script src="admin.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      checkAuth();
       checkAdminAccess();
       loadAdminDashboard();
       loadUsers();
+      
+      // Display user name
+      const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
+      if (user.name) {
+        document.getElementById('user-name').textContent = `Welcome, ${user.name}`;
+      }
     });
   </script>
 </body>

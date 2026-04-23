@@ -1,9 +1,25 @@
-// API Configuration
-const API_URL = 'http://localhost:3000';
+// API Configuration (shared via window.API_URL from config.js)
+if (!window.API_URL) {
+  console.warn('[app.js] window.API_URL not set; did config.js load? Falling back to localhost.');
+  window.API_URL = 'http://localhost:3000';
+}
 
 // Auth token storage (in sessionStorage for persistence)
 window.authToken = sessionStorage.getItem('authToken');
 window.currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+
+// Centralized unauthenticated handler: clear session, toast, redirect.
+let __tpRedirecting = false;
+function handleUnauthenticated(reason) {
+  if (__tpRedirecting) return;
+  __tpRedirecting = true;
+  sessionStorage.removeItem('authToken');
+  sessionStorage.removeItem('currentUser');
+  window.authToken = null;
+  window.currentUser = null;
+  if (window.showToast) window.showToast(reason || 'Session expired — please log in again.', 'warning', 2400);
+  setTimeout(() => { window.location.href = 'login.html'; }, 600);
+}
 
 // Check authentication status
 function checkAuth() {
@@ -40,13 +56,19 @@ async function apiCall(endpoint, options = {}) {
       headers['Authorization'] = `Bearer ${window.authToken}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const response = await fetch(`${window.API_URL}${endpoint}`, {
       headers,
       ...options
     });
 
+    if (response.status === 401) {
+      handleUnauthenticated('Your session has expired. Please log in again.');
+      throw new Error('Unauthenticated');
+    }
+
     if (!response.ok) {
-      const error = await response.json();
+      let error = {};
+      try { error = await response.json(); } catch (_) {}
       throw new Error(error.message || `HTTP error! status: ${response.status}`);
     }
 
@@ -127,6 +149,44 @@ async function loadTrips() {
   }
 }
 
+// Load trips shared with the current user (dashboard "Shared With Me")
+async function loadSharedTrips() {
+  const section = document.getElementById('shared-trips-section');
+  const container = document.getElementById('shared-trips-container');
+  if (!section || !container) return;
+
+  try {
+    const trips = await apiCallWithAuth('/trips/shared');
+    if (!Array.isArray(trips) || trips.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+    container.innerHTML = trips.map(trip => `
+      <div class="trip-card" onclick="viewChecklist('${trip.tripId}')">
+        <h3>${escapeHtml(trip.name)}</h3>
+        <div class="trip-meta">
+          <span class="trip-badge">${escapeHtml(trip.terrain || '')}</span>
+          <span class="trip-badge">${escapeHtml(trip.season || '')}</span>
+          <span class="trip-badge">${trip.duration || 0} days</span>
+          <span class="trip-badge" style="background:#E8F5E9;color:#1B4332;">Collaborator</span>
+        </div>
+        <div class="trip-date">
+          Joined: ${trip.sharedSince ? new Date(trip.sharedSince).toLocaleDateString() : '—'}
+        </div>
+        <div class="trip-actions">
+          <button class="btn btn-primary" onclick="event.stopPropagation(); viewChecklist('${trip.tripId}')">
+            View Checklist
+          </button>
+        </div>
+      </div>
+    `).join('');
+    section.style.display = 'block';
+  } catch (error) {
+    console.warn('Failed to load shared trips:', error);
+    section.style.display = 'none';
+  }
+}
+
 // Create a new trip
 async function handleCreateTrip(e) {
   console.log('[handleCreateTrip] Handler fired!');
@@ -155,7 +215,7 @@ async function handleCreateTrip(e) {
     // Validate required fields
     if (!formData.location || !formData.terrain || !formData.season) {
       console.error('[handleCreateTrip] Missing location, terrain or season');
-      alert('Please fill in all required fields including location');
+      (window.showFormError ? window.showFormError('form-error', 'Please fill in all required fields including location') : alert('Please fill in all required fields including location'));
       submitBtn.disabled = false;
       submitBtn.textContent = 'Create Trip';
       return;
@@ -177,15 +237,16 @@ async function handleCreateTrip(e) {
       console.log('[handleCreateTrip] Redirecting to:', checklistUrl);
       // Store in sessionStorage as backup
       sessionStorage.setItem('pendingTripId', tripId);
-      alert('About to redirect to: ' + checklistUrl);
+      // Flag so the checklist page can greet the user with a success toast.
+      sessionStorage.setItem('tripJustCreated', '1');
       window.location.href = checklistUrl;
     } else {
       console.error('[handleCreateTrip] Missing tripId in response:', result);
-      alert('Trip created but failed to redirect. Response: ' + JSON.stringify(result));
+      (window.showToast ? window.showToast('Trip created but failed to redirect.', 'warning') : alert('Trip created but failed to redirect.'));
     }
   } catch (error) {
     console.error('Failed to create trip:', error);
-    alert('Failed to create trip: ' + error.message);
+    (window.showToast ? window.showToast('Failed to create trip: ' + error.message, 'error') : alert('Failed to create trip: ' + error.message));
     submitBtn.disabled = false;
     submitBtn.textContent = 'Create Trip';
   }
@@ -201,19 +262,21 @@ function viewChecklist(tripId) {
 
 // Delete a trip
 async function deleteTrip(tripId) {
-  if (!confirm('Are you sure you want to delete this trip?')) {
-    return;
-  }
-  
+  const confirmed = window.showConfirm
+    ? await window.showConfirm('This will permanently remove the trip and its checklist.', { title: 'Delete trip?', confirmText: 'Delete', danger: true })
+    : confirm('Are you sure you want to delete this trip?');
+  if (!confirmed) return;
+
   try {
     await apiCallWithAuth(`/trips/${tripId}`, {
       method: 'DELETE'
     });
-    
+    if (window.showToast) window.showToast('Trip deleted.', 'success');
     // Reload trips
     loadTrips();
+    if (typeof loadStats === 'function') loadStats();
   } catch (error) {
-    alert('Failed to delete trip. Please try again.');
+    (window.showToast ? window.showToast('Failed to delete trip.', 'error') : alert('Failed to delete trip. Please try again.'));
   }
 }
 
@@ -396,7 +459,7 @@ async function togglePacked(itemId, packed) {
       updateProgress(items);
     }
   } catch (error) {
-    alert('Failed to update item. Please try again.');
+    (window.showToast ? window.showToast('Failed to update item.', 'error') : alert('Failed to update item. Please try again.'));
   }
 }
 
@@ -411,7 +474,10 @@ async function handleAddItem(tripId) {
   const category = categoryInput.value;
   
   if (!name || !category) {
-    alert('Please enter both item name and category');
+    (window.showToast ? window.showToast('Please enter both item name and category.', 'warning') : alert('Please enter both item name and category'));
+    if (!name) nameInput.classList.add('tp-invalid');
+    if (!category) categoryInput.classList.add('tp-invalid');
+    setTimeout(() => { nameInput.classList.remove('tp-invalid'); categoryInput.classList.remove('tp-invalid'); }, 1200);
     return;
   }
   
@@ -428,16 +494,18 @@ async function handleAddItem(tripId) {
     // Reload checklist
     loadChecklist(tripId);
     loadRecommendations(tripId);
+    if (window.showToast) window.showToast('Item added.', 'success', 1800);
   } catch (error) {
-    alert('Failed to add item. Please try again.');
+    (window.showToast ? window.showToast('Failed to add item.', 'error') : alert('Failed to add item. Please try again.'));
   }
 }
 
 // Delete checklist item
 async function deleteItem(itemId, tripId, itemName, itemCategory) {
-  if (!confirm(`Are you sure you want to remove "${itemName}"?`)) {
-    return;
-  }
+  const confirmed = window.showConfirm
+    ? await window.showConfirm(`Remove "${itemName}" from this checklist?`, { title: 'Remove item?', confirmText: 'Remove', danger: true })
+    : confirm(`Are you sure you want to remove "${itemName}"?`);
+  if (!confirmed) return;
   
   try {
     // Store item info before deleting (for recovery)
@@ -463,8 +531,9 @@ async function deleteItem(itemId, tripId, itemName, itemCategory) {
     // Reload checklist
     loadChecklist(tripId);
     loadRecommendations(tripId);
+    if (window.showToast) window.showToast(`Removed "${itemName}". You can restore it below.`, 'info');
   } catch (error) {
-    alert('Failed to delete item. Please try again.');
+    (window.showToast ? window.showToast('Failed to delete item.', 'error') : alert('Failed to delete item. Please try again.'));
   }
 }
 
@@ -519,11 +588,11 @@ async function restoreItem(index) {
     
     // Reload checklist
     loadChecklist(item.tripId);
-    
-    alert(`"${item.name}" restored successfully!`);
+
+    (window.showToast ? window.showToast(`"${item.name}" restored.`, 'success', 2000) : alert(`"${item.name}" restored successfully!`));
   } catch (error) {
     console.error('Error restoring item:', error);
-    alert('Failed to restore item');
+    (window.showToast ? window.showToast('Failed to restore item.', 'error') : alert('Failed to restore item'));
   }
 }
 
@@ -590,23 +659,24 @@ async function changeTripStatus(tripId, newStatus) {
       body: JSON.stringify({ status: newStatus })
     });
     
-    alert(`Trip status updated to: ${newStatus}`);
-    
+    (window.showToast ? window.showToast(`Trip status: ${newStatus}`, 'success', 2000) : alert(`Trip status updated to: ${newStatus}`));
+
     // Reload trip details
     const trip = await apiCallWithAuth(`/trips/${tripId}`);
     displayTripDetails(trip);
     updateTripStatusControls(trip);
   } catch (error) {
     console.error('Error updating trip status:', error);
-    alert('Failed to update trip status');
+    (window.showToast ? window.showToast('Failed to update trip status.', 'error') : alert('Failed to update trip status'));
   }
 }
 
 // Uncheck all items (mark all as unpacked)
 async function uncheckAllItems(tripId) {
-  if (!confirm('Uncheck all items? This will mark everything as unpacked.')) {
-    return;
-  }
+  const confirmed = window.showConfirm
+    ? await window.showConfirm('This will mark every item as unpacked.', { title: 'Uncheck all items?', confirmText: 'Uncheck all', danger: true })
+    : confirm('Uncheck all items? This will mark everything as unpacked.');
+  if (!confirmed) return;
   
   try {
     // Get all items and uncheck them
@@ -621,11 +691,11 @@ async function uncheckAllItems(tripId) {
       });
     }
     
-    alert(`${packedItems.length} items unchecked`);
+    (window.showToast ? window.showToast(`${packedItems.length} items unchecked.`, 'success', 2000) : alert(`${packedItems.length} items unchecked`));
     loadChecklist(tripId);
   } catch (error) {
     console.error('Error unchecking items:', error);
-    alert('Failed to uncheck items');
+    (window.showToast ? window.showToast('Failed to uncheck items.', 'error') : alert('Failed to uncheck items'));
   }
 }
 

@@ -10,52 +10,69 @@ class EmailService {
     this.setupScheduledNotifications();
   }
 
-  // Initialize email service based on environment
+  // Initialize email service based on environment.
+  // Returns silently (no transport configured) when credentials are missing or
+  // when running in a test/no-email environment.
   initializeEmailService() {
-    if (process.env.AWS_REGION && process.env.AWS_ACCESS_KEY_ID) {
-      // Use AWS SES for production
+    this.enabled = false;
+
+    if (process.env.DISABLE_EMAIL === 'true' || process.env.NODE_ENV === 'test') {
+      return; // Explicitly disabled — operate as a no-op.
+    }
+
+    // Prefer AWS SES when AWS credentials are present.
+    if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
       this.sesClient = new SESClient({
-        region: process.env.AWS_REGION,
+        region: process.env.AWS_SES_REGION,
         credentials: {
           accessKeyId: process.env.AWS_ACCESS_KEY_ID,
           secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
         }
       });
-      console.log('Email service initialized with AWS SES');
-    } else {
-      // Use Gmail/SMTP for development
-      this.transporter = nodemailer.createTransporter({
+      this.enabled = true;
+      console.log('[email] Using AWS SES transport');
+      return;
+    }
+
+    // Otherwise, Gmail/SMTP if credentials are provided.
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS
         }
       });
-      console.log('Email service initialized with Gmail SMTP');
+      this.enabled = true;
+      console.log('[email] Using Gmail SMTP transport');
+      return;
     }
+
+    console.log('[email] No email credentials configured — emails will no-op.');
   }
 
-  // Send email using appropriate service
+  // Send email using the configured service. Returns { skipped: true } when
+  // the service is not configured (development / tests) rather than throwing,
+  // so callers can fire-and-forget without wrapping in try/catch.
   async sendEmail(to, subject, html, text = null) {
-    try {
-      const emailData = {
-        from: process.env.EMAIL_FROM || 'noreply@trailpack.app',
-        to: Array.isArray(to) ? to.join(', ') : to,
-        subject,
-        html,
-        text: text || this.htmlToText(html)
-      };
+    const emailData = {
+      from: process.env.EMAIL_FROM || 'noreply@trailpack.app',
+      to: Array.isArray(to) ? to.join(', ') : to,
+      subject,
+      html,
+      text: text || this.htmlToText(html)
+    };
 
-      if (this.sesClient) {
-        return await this.sendSESEmail(emailData);
-      } else if (this.transporter) {
-        return await this.sendSMTPEmail(emailData);
-      } else {
-        throw new Error('No email service configured');
-      }
+    if (!this.enabled || (!this.sesClient && !this.transporter)) {
+      return { skipped: true, reason: 'email service not configured', to: emailData.to, subject };
+    }
+
+    try {
+      if (this.sesClient) return await this.sendSESEmail(emailData);
+      if (this.transporter) return await this.sendSMTPEmail(emailData);
     } catch (error) {
-      console.error('Email sending failed:', error);
-      throw error;
+      console.error('[email] send failed:', error.message);
+      return { failed: true, error: error.message };
     }
   }
 
@@ -89,9 +106,10 @@ class EmailService {
   async sendTripReminder(userEmail, tripDetails, daysUntil) {
     const subject = `Trip Reminder: ${tripDetails.name} in ${daysUntil} days!`;
     const html = this.generateTripReminderHTML(tripDetails, daysUntil);
-    
-    await this.sendEmail(userEmail, subject, html);
-    console.log(`Trip reminder sent to ${userEmail} for trip ${tripDetails.name}`);
+
+    const result = await this.sendEmail(userEmail, subject, html);
+    console.log(`[email] Trip reminder dispatched to ${userEmail} for trip ${tripDetails.name}`);
+    return result;
   }
 
   // Send weather alert email
@@ -359,43 +377,62 @@ class EmailService {
     `;
   }
 
-  // Setup scheduled notifications
+  // Setup scheduled notifications. Disabled by default so tests / dev don't
+  // trigger side effects. Set ENABLE_EMAIL_SCHEDULER=true to opt in.
   setupScheduledNotifications() {
-    // Check for trip reminders every day at 9 AM
+    if (process.env.ENABLE_EMAIL_SCHEDULER !== 'true') {
+      return;
+    }
+
     cron.schedule('0 9 * * *', async () => {
-      console.log('Running scheduled trip reminders...');
+      console.log('[email] Running scheduled trip reminders...');
       await this.checkTripReminders();
     });
 
-    // Check for weather alerts every 6 hours
     cron.schedule('0 */6 * * *', async () => {
-      console.log('Running scheduled weather alerts...');
+      console.log('[email] Running scheduled weather alerts...');
       await this.checkWeatherAlerts();
     });
   }
 
-  // Check for upcoming trips and send reminders
-  async checkTripReminders() {
+  // Scan for trips whose startDate falls on day N from today and send reminders
+  // to their owners. Defaults to reminders at 7, 3, and 1 day out.
+  async checkTripReminders(windowsDays = [7, 3, 1]) {
     try {
-      // This would integrate with your trip service
-      // For now, it's a placeholder that would be implemented
-      // based on your database structure
-      console.log('Checking for trip reminders...');
+      // Late-require to avoid circular deps at module load.
+      const docClient = require('../db.js');
+      const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
+
+      const res = await docClient.send(new ScanCommand({
+        TableName: process.env.DYNAMODB_TABLE_NAME,
+        FilterExpression: 'begins_with(SK, :sk) AND attribute_exists(startDate)',
+        ExpressionAttributeValues: { ':sk': 'TRIP#' },
+      }));
+      const trips = res.Items || [];
+
+      const results = [];
+      for (const trip of trips) {
+        const daysUntil = daysBetweenTodayAnd(trip.startDate);
+        if (daysUntil === null) continue;
+        if (!windowsDays.includes(daysUntil)) continue;
+
+        const owner = await lookupUserById(trip.userId);
+        if (!owner || !owner.email) continue;
+
+        const sent = await this.sendTripReminder(owner.email, { ...trip, id: trip.tripId }, daysUntil);
+        results.push({ tripId: trip.tripId, daysUntil, sent });
+      }
+      return results;
     } catch (error) {
-      console.error('Error checking trip reminders:', error);
+      console.error('[email] checkTripReminders failed:', error.message);
+      return [];
     }
   }
 
-  // Check for weather alerts for active trips
+  // Placeholder: future wiring to OpenWeather alerts per trip location.
   async checkWeatherAlerts() {
-    try {
-      // This would integrate with your AI service and trip service
-      // For now, it's a placeholder that would be implemented
-      // based on your database structure
-      console.log('Checking for weather alerts...');
-    } catch (error) {
-      console.error('Error checking weather alerts:', error);
-    }
+    console.log('[email] checkWeatherAlerts is not yet implemented.');
+    return [];
   }
 
   // Convert HTML to plain text
@@ -404,4 +441,38 @@ class EmailService {
   }
 }
 
-module.exports = new EmailService();
+// ---------- Module-level helpers (outside the class) ----------
+
+// Compute whole-day difference between today (UTC) and a given date string.
+// Returns null when the date is missing/invalid.
+function daysBetweenTodayAnd(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  const midnightNow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const midnightTarget = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return Math.round((midnightTarget - midnightNow) / (24 * 60 * 60 * 1000));
+}
+
+async function lookupUserById(userId) {
+  try {
+    const docClient = require('../db.js');
+    const { GetCommand } = require('@aws-sdk/lib-dynamodb');
+    const usersTable = process.env.DYNAMODB_USERS_TABLE || 'TrailPack-Users';
+    const res = await docClient.send(new GetCommand({
+      TableName: usersTable,
+      Key: { userId },
+    }));
+    return res.Item || null;
+  } catch (e) {
+    console.warn('[email] lookupUserById failed:', e.message);
+    return null;
+  }
+}
+
+const singleton = new EmailService();
+// Expose helpers for tests.
+singleton._internals = { daysBetweenTodayAnd };
+
+module.exports = singleton;

@@ -4,425 +4,112 @@ const { v4: uuidv4 } = require('uuid');
 const docClient = require('../db.js');
 const { authenticate, authorize } = require('../middleware/auth');
 const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
+const { estimateProvisions } = require('../services/provisionsService');
+const sharedTrips = require('../services/sharedTripsService');
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
-// AI-Powered Smart Checklist Generator
-// Combines rule-based logic with weather-aware AI recommendations
-const generateSmartChecklist = async (terrain, season, duration, location = null) => {
-  const items = [];
-  let weatherInsights = null;
-  
-  // Fetch weather data if location provided
-  if (location && process.env.WEATHER_API_KEY) {
-    try {
-      const weatherResponse = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(location)}&appid=${process.env.WEATHER_API_KEY}&units=imperial`
-      );
-      if (weatherResponse.ok) {
-        const weatherData = await weatherResponse.json();
-        weatherInsights = {
-          temp: weatherData.main.temp,
-          condition: weatherData.weather[0].main,
-          humidity: weatherData.main.humidity,
-          windSpeed: weatherData.wind.speed
-        };
-      }
-    } catch (e) {
-      console.log('Weather fetch failed, using terrain/season rules only');
-    }
-  }
-  
-  // Comprehensive base items for all trips (45+ essential items)
-  const baseItems = [
-    // Primary Gear
-    { name: 'Backpack and rain cover', category: 'Primary Gear' },
-    { name: 'Tent + tarp', category: 'Primary Gear' },
-    { name: 'Sleeping bag (rated for conditions)', category: 'Primary Gear' },
-    { name: 'Sleeping pad', category: 'Primary Gear' },
-    // Clothing
-    { name: 'Hiking boots or shoes', category: 'Clothing' },
-    { name: 'Wool socks (plus one extra pair)', category: 'Clothing' },
-    { name: 'Sandals for around camp', category: 'Clothing' },
-    { name: 'Long underwear (top + bottom)', category: 'Clothing' },
-    { name: 'Underwear + small towel', category: 'Clothing' },
-    { name: 'Hiking pants + shorts', category: 'Clothing' },
-    { name: 'T-shirt + long sleeve shirt', category: 'Clothing' },
-    { name: 'Fleece or insulated jacket', category: 'Clothing' },
-    { name: 'Hat + gloves', category: 'Clothing' },
-    { name: 'Rain jacket', category: 'Clothing' },
-    // Food + Water
-    { name: 'Meals and snacks', category: 'Food & Water' },
-    { name: 'Water filter', category: 'Food & Water' },
-    { name: 'Stuff sack or plastic bag for storing food', category: 'Food & Water' },
-    { name: 'Stove and fuel', category: 'Food & Water' },
-    { name: 'Lighter', category: 'Food & Water' },
-    { name: 'Cookset with pot grabber', category: 'Food & Water' },
-    { name: 'Bowl, mug, + utensils', category: 'Food & Water' },
-    { name: 'Biodegradable soap + small sponge', category: 'Food & Water' },
-    { name: 'Water bottle', category: 'Food & Water' },
-    // Sun + Bug Protection
-    { name: 'Sunscreen', category: 'Sun + Bug Protection' },
-    { name: 'Lip balm w/ spf', category: 'Sun + Bug Protection' },
-    { name: 'Sunglasses', category: 'Sun + Bug Protection' },
-    { name: 'Baseball cap or buff', category: 'Sun + Bug Protection' },
-    { name: 'Bug spray', category: 'Sun + Bug Protection' },
-    // Navigation Gear
-    { name: 'Topographical map', category: 'Navigation Gear' },
-    { name: 'Compass', category: 'Navigation Gear' },
-    { name: 'Route description', category: 'Navigation Gear' },
-    { name: 'Cell phone with portable battery', category: 'Navigation Gear' },
-    { name: 'Permits (if required)', category: 'Navigation Gear' },
-    // Wildlife Supplies
-    { name: 'Whistle', category: 'Wildlife Supplies' },
-    { name: 'First aid kit', category: 'Wildlife Supplies' },
-    { name: 'Headlamp + extra batteries', category: 'Wildlife Supplies' },
-    { name: 'Knife or multi-tool', category: 'Wildlife Supplies' },
-    { name: 'Bear canister (if required)', category: 'Wildlife Supplies' },
-    { name: 'Nylon rope', category: 'Wildlife Supplies' },
-    { name: 'Duct tape', category: 'Wildlife Supplies' },
-    // Camp Bathroom
-    { name: 'Toilet paper', category: 'Camp Bathroom' },
-    { name: 'Trowel for burying waste', category: 'Camp Bathroom' },
-    { name: 'Hand sanitizer', category: 'Camp Bathroom' },
-    { name: 'Toothbrush and biodegradable toothpaste', category: 'Camp Bathroom' },
-    { name: 'Plastic bag (for used products)', category: 'Camp Bathroom' }
-  ];
-  items.push(...baseItems);
-  
-  // AI-Powered Weather-Aware Items
-  if (weatherInsights) {
-    const temp = weatherInsights.temp;
-    const condition = weatherInsights.condition;
-    
-    // Temperature-based AI recommendations
-    if (temp > 90) {
-      items.push(
-        { name: 'Extra water (heat warning - 1 gallon)', category: 'Food & Water' },
-        { name: 'Electrolyte supplements', category: 'Food & Water' },
-        { name: 'Cooling towel', category: 'Clothing' },
-        { name: 'Wide-brim sun hat', category: 'Clothing' },
-        { name: 'SPF 50+ sunscreen', category: 'Safety' },
-        { name: 'Lightweight breathable shirt', category: 'Clothing' },
-        { name: 'UV protection lip balm', category: 'Personal' }
-      );
-    } else if (temp < 40) {
-      items.push(
-        { name: 'Insulated water bottle', category: 'Food & Water' },
-        { name: 'Hand warmers', category: 'Safety' },
-        { name: 'Thermal base layers', category: 'Clothing' },
-        { name: 'Insulated boots', category: 'Clothing' },
-        { name: 'Heavy winter jacket', category: 'Clothing' },
-        { name: 'Neck gaiter/scarf', category: 'Clothing' },
-        { name: 'Insulated gloves', category: 'Clothing' }
-      );
-    }
-    
-    // Weather condition-based AI recommendations
-    const conditionItems = {
-      'Rain': [
-        { name: 'Waterproof rain jacket', category: 'Clothing' },
-        { name: 'Waterproof rain pants', category: 'Clothing' },
-        { name: 'Packable umbrella', category: 'Tools' },
-        { name: 'Waterproof bag covers', category: 'Tools' },
-        { name: 'Waterproof boots', category: 'Clothing' },
-        { name: 'Extra socks (waterproofed)', category: 'Clothing' }
-      ],
-      'Thunderstorm': [
-        { name: 'Emergency shelter/tarp', category: 'Shelter' },
-        { name: 'Waterproof phone case', category: 'Tools' },
-        { name: 'Lightning safety guide', category: 'Safety' },
-        { name: 'Emergency radio', category: 'Electronics' }
-      ],
-      'Snow': [
-        { name: 'Microspikes/crampons', category: 'Tools' },
-        { name: 'Snow gaiters', category: 'Clothing' },
-        { name: 'Goggles/sunglasses (snow)', category: 'Clothing' },
-        { name: 'Insulated water bottle', category: 'Food & Water' }
-      ],
-      'Clouds': [
-        { name: 'Light rain jacket', category: 'Clothing' },
-        { name: 'Packable down jacket', category: 'Clothing' }
-      ],
-      'Clear': [
-        { name: 'Lightweight long sleeve (sun)', category: 'Clothing' }
-      ]
-    };
-    
-    if (conditionItems[condition]) {
-      items.push(...conditionItems[condition]);
-    }
-    
-    // Wind-based recommendations
-    if (weatherInsights.windSpeed > 15) {
-      items.push(
-        { name: 'Windbreaker jacket', category: 'Clothing' },
-        { name: 'Guy lines for tent', category: 'Shelter' },
-        { name: 'Wind-resistant hat', category: 'Clothing' }
-      );
-    }
-  }
-  
-  // Terrain-specific items (AI-enhanced with expanded lists)
-  const terrainRules = {
-    'Mountain': [
-      { name: 'Hiking boots (ankle support)', category: 'Clothing' },
-      { name: 'Warm layers (fleece/down)', category: 'Clothing' },
-      { name: 'Trekking poles', category: 'Tools' },
-      { name: 'Altitude sickness medication', category: 'Safety' },
-      { name: 'Rock climbing helmet', category: 'Safety' },
-      { name: 'Rope (30 feet)', category: 'Tools' },
-      { name: 'Carabiners (2-3)', category: 'Tools' },
-      { name: 'Belay device', category: 'Tools' },
-      { name: 'High-altitude sunscreen', category: 'Safety' },
-      { name: 'Navigation tools (altimeter)', category: 'Tools' },
-      { name: 'Emergency bivy', category: 'Safety' },
-      { name: 'Crampons/ice axe (if snowy)', category: 'Tools' }
-    ],
-    'Forest': [
-      { name: 'Bug spray (DEET 30%+)', category: 'Safety' },
-      { name: 'Tarp/footprint', category: 'Shelter' },
-      { name: 'Long pants (quick-dry)', category: 'Clothing' },
-      { name: 'Long sleeve shirt', category: 'Clothing' },
-      { name: 'Tick removal tool', category: 'Safety' },
-      { name: 'Permethrin clothing treatment', category: 'Safety' },
-      { name: 'Bear spray (bear country)', category: 'Safety' },
-      { name: 'Hanging food bag/rope', category: 'Food & Water' },
-      { name: 'Headnet (mosquito protection)', category: 'Clothing' },
-      { name: 'Camp shoes (closed toe)', category: 'Clothing' }
-    ],
-    'Desert': [
-      { name: 'Extra water (1 gallon/person/day)', category: 'Food & Water' },
-      { name: 'Water purification method', category: 'Food & Water' },
-      { name: 'Sun hat with neck flap', category: 'Clothing' },
-      { name: 'SPF 50+ sunscreen', category: 'Safety' },
-      { name: 'Sunglasses (polarized)', category: 'Clothing' },
-      { name: 'Cooling bandana/towel', category: 'Clothing' },
-      { name: 'Lightweight long sleeve (sun)', category: 'Clothing' },
-      { name: 'Snake gaiters', category: 'Clothing' },
-      { name: 'Extra electrolyte packets', category: 'Food & Water' },
-      { name: 'Emergency water container', category: 'Food & Water' },
-      { name: 'Signal mirror', category: 'Safety' }
-    ]
-  };
-  
-  if (terrainRules[terrain]) {
-    items.push(...terrainRules[terrain]);
-  }
-  
-  // Season-specific items (expanded)
-  const seasonRules = {
-    'Winter': [
-      { name: 'Winter jacket (down/puffy)', category: 'Clothing' },
-      { name: 'Insulated gloves', category: 'Clothing' },
-      { name: 'Warm hat (wool/fleece)', category: 'Clothing' },
-      { name: 'Insulated sleeping bag (0°F rated)', category: 'Shelter' },
-      { name: 'Four-season tent', category: 'Shelter' },
-      { name: 'Insulated sleeping pad (R5+)', category: 'Shelter' },
-      { name: 'Winter boots', category: 'Clothing' },
-      { name: 'Gaiters (snow)', category: 'Clothing' },
-      { name: 'Traction devices (microspikes)', category: 'Tools' },
-      { name: 'Hot beverage container', category: 'Food & Water' },
-      { name: 'Hand/toe warmers', category: 'Safety' }
-    ],
-    'Summer': [
-      { name: 'Lightweight breathable clothing', category: 'Clothing' },
-      { name: 'Cooling towel', category: 'Clothing' },
-      { name: 'Lightweight mesh tent', category: 'Shelter' },
-      { name: 'Sunscreen SPF 50+', category: 'Safety' },
-      { name: 'Insect repellent', category: 'Safety' },
-      { name: 'Swimwear (if water nearby)', category: 'Personal' },
-      { name: 'Lightweight sleeping bag (40°F)', category: 'Shelter' },
-      { name: 'UV protective shirt', category: 'Clothing' },
-      { name: 'Portable fan', category: 'Electronics' },
-      { name: 'Electrolyte supplements', category: 'Food & Water' }
-    ],
-    'Fall': [
-      { name: 'Layered clothing system', category: 'Clothing' },
-      { name: 'Rain jacket', category: 'Clothing' },
-      { name: 'Warm sleeping bag (20°F rated)', category: 'Shelter' },
-      { name: 'Beanie/warm hat', category: 'Clothing' },
-      { name: 'Gloves (lightweight)', category: 'Clothing' },
-      { name: 'Headlamp (earlier darkness)', category: 'Safety' },
-      { name: 'Warm socks (wool)', category: 'Clothing' },
-      { name: 'Insulated mug', category: 'Food & Water' }
-    ],
-    'Spring': [
-      { name: 'Layered clothing system', category: 'Clothing' },
-      { name: 'Rain jacket', category: 'Clothing' },
-      { name: 'Waterproof hiking boots', category: 'Clothing' },
-      { name: 'Rain pants', category: 'Clothing' },
-      { name: 'Waterproof bag liners', category: 'Tools' },
-      { name: 'Quick-dry towel', category: 'Personal' },
-      { name: 'Waterproof phone case', category: 'Electronics' },
-      { name: 'Mud gaiters', category: 'Clothing' }
-    ]
-  };
-  
-  if (seasonRules[season]) {
-    items.push(...seasonRules[season]);
-  }
-  
-  // Duration-based items
-  if (duration > 1) {
-    items.push(
-      { name: 'Tent', category: 'Shelter' },
-      { name: 'Sleeping pad', category: 'Shelter' },
-      { name: 'Camping stove + fuel', category: 'Food & Water' },
-      { name: 'Food supplies', category: 'Food & Water' }
-    );
-  }
-  
-  if (duration > 3) {
-    items.push(
-      { name: 'Extra batteries/power bank', category: 'Tools' },
-      { name: 'Water purification tablets', category: 'Food & Water' },
-      { name: 'Multi-tool', category: 'Tools' },
-      { name: 'Duct tape (repairs)', category: 'Tools' }
-    );
-  }
-  
-  // AI Risk Assessment - add items based on risk factors
-  if (duration > 5 || (terrain === 'Mountain' && season === 'Winter')) {
-    items.push(
-      { name: 'Satellite communicator/GPS', category: 'Safety' },
-      { name: 'Emergency bivy sack', category: 'Safety' }
-    );
-  }
-  
-  // Common safety items
-  items.push(
-    { name: 'Flashlight/Headlamp + extra batteries', category: 'Safety' },
-    { name: 'Emergency whistle', category: 'Safety' },
-    { name: 'Map and compass/GPS', category: 'Tools' }
-  );
-  
-  // Remove duplicates by name
-  const uniqueItems = [];
-  const seenNames = new Set();
-  for (const item of items) {
-    if (!seenNames.has(item.name.toLowerCase())) {
-      seenNames.add(item.name.toLowerCase());
-      uniqueItems.push(item);
-    }
-  }
-  
-  return {
-    items: uniqueItems,
-    weatherUsed: !!weatherInsights,
-    aiRecommendations: weatherInsights ? 
-      `AI added ${uniqueItems.length - baseItems.length} items based on ${weatherInsights.condition}, ${Math.round(weatherInsights.temp)}°F` : 
-      'Used rule-based generation (no weather data)'
-  };
-};
-
-// Legacy function for backwards compatibility
+// Smart Rule-Based Checklist Generator
+// Generates items based on terrain, season, and duration rules (no AI or external API)
 const generateChecklist = (terrain, season, duration) => {
   const items = [];
   
-  // Base items for all trips
+  // BASE ITEMS (every trip) - category: "Essentials"
   const baseItems = [
-    { name: 'Backpack', category: 'Tools' },
-    { name: 'Water bottle', category: 'Food & Water' },
-    { name: 'First aid kit', category: 'Safety' }
+    { name: 'Backpack', category: 'Essentials' },
+    { name: 'Water bottle', category: 'Essentials' },
+    { name: 'First aid kit', category: 'Essentials' },
+    { name: 'Map and compass', category: 'Essentials' },
+    { name: 'Lighter or matches', category: 'Essentials' },
+    { name: 'Headlamp', category: 'Essentials' }
   ];
   items.push(...baseItems);
   
-  // Terrain-specific items
-  const terrainRules = {
-    'Mountain': [
+  // TERRAIN RULES
+  if (terrain === 'Mountain') {
+    items.push(
       { name: 'Hiking boots', category: 'Clothing' },
       { name: 'Warm layers', category: 'Clothing' },
-      { name: 'Trekking poles', category: 'Tools' }
-    ],
-    'Forest': [
-      { name: 'Bug spray', category: 'Safety' },
-      { name: 'Tarp', category: 'Shelter' },
-      { name: 'Long pants', category: 'Clothing' }
-    ],
-    'Desert': [
-      { name: 'Extra water containers', category: 'Food & Water' },
-      { name: 'Sun hat', category: 'Clothing' },
-      { name: 'Sunscreen', category: 'Safety' },
-      { name: 'Sunglasses', category: 'Clothing' }
-    ]
-  };
-  
-  if (terrainRules[terrain]) {
-    items.push(...terrainRules[terrain]);
-  }
-  
-  // Season-specific items
-  const seasonRules = {
-    'Winter': [
-      { name: 'Winter jacket', category: 'Clothing' },
-      { name: 'Gloves', category: 'Clothing' },
-      { name: 'Warm hat', category: 'Clothing' },
-      { name: 'Insulated sleeping bag', category: 'Shelter' }
-    ],
-    'Summer': [
-      { name: 'Lightweight clothing', category: 'Clothing' },
-      { name: 'Cooling towel', category: 'Clothing' },
-      { name: 'Lightweight tent', category: 'Shelter' }
-    ],
-    'Fall': [
-      { name: 'Layered clothing', category: 'Clothing' },
-      { name: 'Rain jacket', category: 'Clothing' },
-      { name: 'Warm sleeping bag', category: 'Shelter' }
-    ],
-    'Spring': [
-      { name: 'Layered clothing', category: 'Clothing' },
-      { name: 'Rain jacket', category: 'Clothing' },
-      { name: 'Waterproof boots', category: 'Clothing' }
-    ]
-  };
-  
-  if (seasonRules[season]) {
-    items.push(...seasonRules[season]);
-  }
-  
-  // Duration-based items
-  if (duration > 1) {
-    items.push(
+      { name: 'Trekking poles', category: 'Clothing' },
       { name: 'Tent', category: 'Shelter' },
-      { name: 'Sleeping pad', category: 'Shelter' },
-      { name: 'Camping stove', category: 'Food & Water' },
-      { name: 'Food supplies', category: 'Food & Water' }
+      { name: 'Cold-rated sleeping bag', category: 'Shelter' }
+    );
+  } else if (terrain === 'Forest') {
+    items.push(
+      { name: 'Bug spray', category: 'Tools' },
+      { name: 'Tarp', category: 'Tools' },
+      { name: 'Rope', category: 'Tools' },
+      { name: 'Tent', category: 'Shelter' },
+      { name: 'Sleeping bag', category: 'Shelter' }
+    );
+  } else if (terrain === 'Desert') {
+    items.push(
+      { name: 'Extra water bottles', category: 'Food & Water' },
+      { name: 'Electrolyte tablets', category: 'Food & Water' },
+      { name: 'Sun hat', category: 'Clothing' },
+      { name: 'UV protection shirt', category: 'Clothing' }
     );
   }
   
+  // SEASON RULES
+  if (season === 'Winter') {
+    items.push(
+      { name: 'Insulated jacket', category: 'Clothing' },
+      { name: 'Gloves', category: 'Clothing' },
+      { name: 'Beanie', category: 'Clothing' },
+      { name: 'Thermal base layer', category: 'Clothing' }
+    );
+  } else if (season === 'Summer') {
+    items.push(
+      { name: 'Lightweight shirt', category: 'Clothing' },
+      { name: 'Sunscreen SPF 50', category: 'Clothing' },
+      { name: 'Sunglasses', category: 'Clothing' }
+    );
+  } else if (season === 'Fall') {
+    items.push(
+      { name: 'Rain jacket', category: 'Clothing' },
+      { name: 'Layered clothing', category: 'Clothing' },
+      { name: 'Warm socks', category: 'Clothing' }
+    );
+  } else if (season === 'Spring') {
+    items.push(
+      { name: 'Waterproof boots', category: 'Clothing' },
+      { name: 'Light rain jacket', category: 'Clothing' },
+      { name: 'Layered clothing', category: 'Clothing' }
+    );
+  }
+  
+  // DURATION RULES
   if (duration > 3) {
     items.push(
-      { name: 'Extra batteries', category: 'Tools' },
-      { name: 'Water purification tablets', category: 'Food & Water' },
-      { name: 'Multi-tool', category: 'Tools' }
+      { name: 'Extra meal supplies', category: 'Food & Water' },
+      { name: 'Water filter', category: 'Food & Water' }
     );
   }
-  
-  // Common safety items
-  items.push(
-    { name: 'Flashlight/Headlamp', category: 'Safety' },
-    { name: 'Whistle', category: 'Safety' },
-    { name: 'Map and compass', category: 'Tools' }
-  );
+  if (duration > 5) {
+    items.push(
+      { name: 'Emergency whistle', category: 'Safety' },
+      { name: 'Satellite communicator', category: 'Safety' }
+    );
+  }
   
   return items;
 };
 
-// POST /trips - Create a new trip with AI-powered checklist
+// POST /trips - Create a new trip with rule-based checklist
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, terrain, season, duration, location } = req.body;
-    
+    const { name, terrain, season, duration, location, startDate, endDate } = req.body;
+
     // Validation
     if (!name || !terrain || !season || !duration) {
       return res.status(400).json({ message: 'All fields are required' });
     }
-    
+
     const userId = req.user.userId;
     const tripId = uuidv4();
     const parsedDuration = parseInt(duration);
-    
+
     // Save trip with PutCommand
     const tripItem = {
       PK: `USER#${userId}`,
@@ -434,6 +121,9 @@ router.post('/', authenticate, async (req, res) => {
       season,
       duration: parsedDuration,
       location: location || null,
+      startDate: startDate || null,
+      endDate: endDate || null,
+      status: 'planned',
       createdAt: new Date().toISOString()
     };
     
@@ -441,16 +131,12 @@ router.post('/', authenticate, async (req, res) => {
       TableName: TABLE_NAME,
       Item: tripItem
     }));
-    
-    // Generate AI-powered checklist items
-    const smartChecklist = await generateSmartChecklist(terrain, season, parsedDuration, location);
-    const checklistItems = smartChecklist.items;
-    
-    // Store AI metadata with the trip
-    if (smartChecklist.weatherUsed) {
-      tripItem.aiGenerated = true;
-      tripItem.aiRecommendations = smartChecklist.aiRecommendations;
-    }
+
+    // Write a tripId pointer so collaborators can look up the trip by id alone.
+    await sharedTrips.putTripPointer(tripId, userId);
+
+    // Generate rule-based checklist items
+    const checklistItems = generateChecklist(terrain, season, parsedDuration);
     
     const itemPromises = checklistItems.map(item => {
       const itemId = uuidv4();
@@ -473,9 +159,7 @@ router.post('/', authenticate, async (req, res) => {
     
     res.status(201).json({
       message: 'Trip created successfully',
-      trip: tripItem,
-      aiPowered: smartChecklist.weatherUsed,
-      aiRecommendations: smartChecklist.aiRecommendations
+      trip: tripItem
     });
   } catch (error) {
     console.error('Error creating trip:', error);
@@ -560,6 +244,36 @@ router.get('/stats', authenticate, async (req, res) => {
   }
 });
 
+// GET /trips/:id/provisions - Estimated water + food for a trip
+router.get('/:id/provisions', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const tripId = req.params.id;
+
+    const result = await docClient.send(new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` }
+    }));
+
+    if (!result.Item) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+
+    const trip = result.Item;
+    const provisions = estimateProvisions({
+      duration: trip.duration,
+      terrain: trip.terrain,
+      season: trip.season,
+      participants: trip.participants || 1,
+    });
+
+    res.json(provisions);
+  } catch (error) {
+    console.error('Error estimating provisions:', error);
+    res.status(500).json({ message: 'Error estimating provisions' });
+  }
+});
+
 // GET /trips/:id - Get a single trip
 router.get('/:id', authenticate, async (req, res) => {
   try {
@@ -590,7 +304,7 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    const { name, terrain, season, duration } = req.body;
+    const { name, terrain, season, duration, status } = req.body;
     
     const updateExpressions = [];
     const expressionAttributeNames = {};
@@ -613,45 +327,60 @@ router.put('/:id', authenticate, async (req, res) => {
       updateExpressions.push('duration = :duration');
       expressionAttributeValues[':duration'] = parseInt(duration);
     }
+    if (status) {
+      updateExpressions.push('#status = :status');
+      expressionAttributeNames['#status'] = 'status';
+      expressionAttributeValues[':status'] = status;
+    }
     
     if (updateExpressions.length === 0) {
       return res.status(400).json({ message: 'No fields to update' });
     }
     
-    const result = await docClient.send(new UpdateCommand({
+    const updateParams = {
       TableName: TABLE_NAME,
       Key: {
         PK: `USER#${userId}`,
         SK: `TRIP#${tripId}`
       },
       UpdateExpression: 'SET ' + updateExpressions.join(', '),
-      ExpressionAttributeNames: expressionAttributeNames,
       ExpressionAttributeValues: expressionAttributeValues,
       ReturnValues: 'ALL_NEW'
-    }));
+    };
+    if (Object.keys(expressionAttributeNames).length > 0) {
+      updateParams.ExpressionAttributeNames = expressionAttributeNames;
+    }
+    const result = await docClient.send(new UpdateCommand(updateParams));
     
     res.json(result.Attributes);
   } catch (error) {
     console.error('Error updating trip:', error);
-    res.status(500).json({ message: 'Error updating trip' });
+    res.status(500).json({ message: 'Error updating trip: ' + error.message });
   }
 });
 
-// DELETE /trips/:id - Delete a trip and its checklist items
+// DELETE /trips/:id - Delete a trip and its checklist items (owner only)
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    
+
+    // Only the owner may delete. Returns 403 for collaborators, 404 if missing.
+    try {
+      await sharedTrips.assertTripOwner(tripId, userId);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+
     // Delete the trip
     await docClient.send(new DeleteCommand({
       TableName: TABLE_NAME,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: `TRIP#${tripId}`
-      }
+      Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` }
     }));
-    
+
+    // Delete the pointer so this tripId is fully gone.
+    await sharedTrips.deleteTripPointer(tripId);
+
     // Query all items for the trip
     const itemsResult = await docClient.send(new QueryCommand({
       TableName: TABLE_NAME,
@@ -661,22 +390,22 @@ router.delete('/:id', authenticate, async (req, res) => {
         ':sk': 'ITEM#'
       }
     }));
-    
+
     const items = itemsResult.Items || [];
-    
-    // Delete each item
-    const deletePromises = items.map(item => {
-      return docClient.send(new DeleteCommand({
-        TableName: TABLE_NAME,
-        Key: {
-          PK: `TRIP#${tripId}`,
-          SK: `ITEM#${item.itemId}`
-        }
-      }));
-    });
-    
+    const deletePromises = items.map(item => docClient.send(new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { PK: `TRIP#${tripId}`, SK: `ITEM#${item.itemId}` }
+    })));
     await Promise.all(deletePromises);
-    
+
+    // Best-effort: remove collaborator rows + their reverse-lookup entries.
+    try {
+      const collaborators = await sharedTrips.listCollaborators(tripId);
+      await Promise.all(collaborators.map(c => sharedTrips.removeCollaborator(tripId, c.userId)));
+    } catch (e) {
+      console.warn('Could not clean up collaborators on trip delete:', e.message);
+    }
+
     res.json({ message: 'Trip deleted successfully' });
   } catch (error) {
     console.error('Error deleting trip:', error);
@@ -684,44 +413,11 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
-// GET /trips/shared - Get trips shared with current user
+// GET /trips/shared - List trips that have been shared with the current user
+// Uses the reverse-lookup (SHARED_TRIP#) path — O(trips) instead of a full scan.
 router.get('/shared', authenticate, async (req, res) => {
   try {
-    const userId = req.user.userId;
-    
-    // Scan for all participants where user is a participant
-    const scanResult = await docClient.send(new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'SK begins_with :sk AND userId = :userId',
-      ExpressionAttributeValues: {
-        ':sk': 'PARTICIPANT#',
-        ':userId': userId
-      }
-    }));
-    
-    const participants = scanResult.Items || [];
-    
-    // Get unique trip IDs
-    const tripIds = [...new Set(participants.map(p => p.tripId))];
-    
-    // Fetch trip details for each trip by scanning and filtering
-    const trips = [];
-    for (const tripId of tripIds) {
-      // Scan all items with SK beginning with TRIP# and filter by tripId
-      const tripScanResult = await docClient.send(new ScanCommand({
-        TableName: TABLE_NAME,
-        FilterExpression: 'begins_with(SK, :sk) AND tripId = :tripId',
-        ExpressionAttributeValues: {
-          ':sk': 'TRIP#',
-          ':tripId': tripId
-        }
-      }));
-      
-      if (tripScanResult.Items && tripScanResult.Items.length > 0) {
-        trips.push(tripScanResult.Items[0]);
-      }
-    }
-    
+    const trips = await sharedTrips.listSharedTripsForUser(req.user.userId);
     res.json(trips);
   } catch (error) {
     console.error('Error fetching shared trips:', error);
@@ -729,21 +425,16 @@ router.get('/shared', authenticate, async (req, res) => {
   }
 });
 
-// GET /trips/:id/participants - Get trip participants
+// GET /trips/:id/participants - List collaborators on a trip (owner or collaborator)
 router.get('/:id/participants', authenticate, async (req, res) => {
   try {
     const tripId = req.params.id;
-    
-    const result = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':pk': `TRIP#${tripId}`,
-        ':sk': 'PARTICIPANT#'
-      }
-    }));
-    
-    const participants = result.Items || [];
+    try {
+      await sharedTrips.assertTripAccess(tripId, req.user.userId);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+    const participants = await sharedTrips.listCollaborators(tripId);
     res.json({ participants });
   } catch (error) {
     console.error('Error fetching participants:', error);
@@ -751,28 +442,26 @@ router.get('/:id/participants', authenticate, async (req, res) => {
   }
 });
 
-// POST /trips/:id/participants - Add participant to trip
+// POST /trips/:id/participants - Directly add a participant by userId (owner only)
+// Kept for backward compatibility with the existing organizer/dashboard flows;
+// now also writes the reverse SHARED_TRIP# lookup via the service.
 router.post('/:id/participants', authenticate, async (req, res) => {
   try {
     const tripId = req.params.id;
-    const { userId, role = 'member' } = req.body;
-    
-    if (!userId) {
+    const { userId: targetUserId, email, name } = req.body || {};
+    if (!targetUserId) {
       return res.status(400).json({ message: 'User ID is required' });
     }
-    
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        PK: `TRIP#${tripId}`,
-        SK: `PARTICIPANT#${userId}`,
-        userId,
-        tripId,
-        role,
-        joinedAt: new Date().toISOString()
-      }
-    }));
-    
+    try {
+      await sharedTrips.assertTripOwner(tripId, req.user.userId);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+    await sharedTrips.addCollaborator(
+      tripId,
+      { userId: targetUserId, email: email || null, name: name || null },
+      req.user.userId
+    );
     res.json({ message: 'Participant added successfully' });
   } catch (error) {
     console.error('Error adding participant:', error);
@@ -780,20 +469,17 @@ router.post('/:id/participants', authenticate, async (req, res) => {
   }
 });
 
-// DELETE /trips/:id/participants/:userId - Remove participant
+// DELETE /trips/:id/participants/:userId - Remove collaborator (owner only)
 router.delete('/:id/participants/:userId', authenticate, async (req, res) => {
   try {
     const tripId = req.params.id;
-    const userId = req.params.userId;
-    
-    await docClient.send(new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `TRIP#${tripId}`,
-        SK: `PARTICIPANT#${userId}`
-      }
-    }));
-    
+    const targetUserId = req.params.userId;
+    try {
+      await sharedTrips.assertTripOwner(tripId, req.user.userId);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+    await sharedTrips.removeCollaborator(tripId, targetUserId);
     res.json({ message: 'Participant removed successfully' });
   } catch (error) {
     console.error('Error removing participant:', error);
@@ -801,12 +487,12 @@ router.delete('/:id/participants/:userId', authenticate, async (req, res) => {
   }
 });
 
-// GET /trips/organizer/dashboard - Get organizer dashboard
+// GET /trips/organizer/dashboard - Stats + trips list for the organizer page.
+// Response shape: { stats: {...}, trips: [...] }.
 router.get('/organizer/dashboard', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    
-    // Get all trips created by this user
+
     const tripsResult = await docClient.send(new QueryCommand({
       TableName: TABLE_NAME,
       KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
@@ -815,29 +501,23 @@ router.get('/organizer/dashboard', authenticate, async (req, res) => {
         ':sk': 'TRIP#'
       }
     }));
-    
-    const trips = tripsResult.Items || [];
-    
-    // Get participant count for each trip
-    const tripsWithCounts = await Promise.all(trips.map(async (trip) => {
-      const participantsResult = await docClient.send(new QueryCommand({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': `TRIP#${trip.tripId}`,
-          ':sk': 'PARTICIPANT#'
-        }
-      }));
-      
-      const participants = participantsResult.Items || [];
-      
-      return {
-        ...trip,
-        participantCount: participants.length
-      };
+
+    const ownedTrips = tripsResult.Items || [];
+
+    // Attach participant lists to each trip for the UI.
+    const tripsWithParticipants = await Promise.all(ownedTrips.map(async (trip) => {
+      const participants = await sharedTrips.listCollaborators(trip.tripId);
+      return { ...trip, participants, participantCount: participants.length };
     }));
-    
-    res.json(tripsWithCounts);
+
+    const stats = {
+      totalOrganized: tripsWithParticipants.length,
+      activeTrips: tripsWithParticipants.filter(t => t.status === 'active' || t.status === 'in_progress').length,
+      completedTrips: tripsWithParticipants.filter(t => t.status === 'completed').length,
+      totalParticipants: tripsWithParticipants.reduce((sum, t) => sum + (t.participantCount || 0), 0),
+    };
+
+    res.json({ stats, trips: tripsWithParticipants });
   } catch (error) {
     console.error('Error fetching organizer dashboard:', error);
     res.status(500).json({ message: 'Error fetching organizer dashboard' });

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accept Invite · TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+  <style>
+    .invite-wrap { max-width: 520px; margin: 4rem auto; padding: 0 1.5rem; }
+    .invite-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 2rem; box-shadow: 0 6px 24px rgba(0,0,0,0.08); text-align: center; }
+    .invite-card h1 { color: #1B4332; margin-top: 0; font-size: 1.6rem; }
+    .invite-card .muted { color: #6b7280; font-size: 0.95rem; }
+    .invite-card .trip-box { background: #F1F8F4; border-radius: 8px; padding: 1rem; margin: 1.25rem 0; text-align: left; }
+    .invite-card .trip-box h3 { margin: 0 0 0.4rem; color: #1B4332; font-size: 1.1rem; }
+    .invite-card .trip-box .meta { font-size: 0.85rem; color: #374151; }
+    .invite-card .actions { display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.25rem; flex-wrap: wrap; }
+    .invite-card .actions .btn { min-width: 140px; }
+    .invite-card .state-msg { padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; }
+    .invite-card .state-msg.ok { background: #E8F5E9; color: #1B4332; border: 1px solid #40916C; }
+    .invite-card .state-msg.err { background: #FEE2E2; color: #991B1B; border: 1px solid #dc2626; }
+    .invite-card .state-msg.warn { background: #FFF3E0; color: #78350F; border: 1px solid #F59E0B; }
+  </style>
+</head>
+<body>
+  <div class="invite-wrap">
+    <div class="invite-card">
+      <div id="loading">
+        <h1>⛺ TrailPack</h1>
+        <p class="muted">Checking your invitation…</p>
+      </div>
+
+      <div id="content" style="display:none;">
+        <h1>🎉 You're invited!</h1>
+        <p class="muted" id="invited-by"></p>
+        <div class="trip-box" id="trip-box" style="display:none;">
+          <h3 id="trip-name"></h3>
+          <div class="meta" id="trip-meta"></div>
+        </div>
+        <div id="email-mismatch" class="state-msg warn" style="display:none;">
+          This invitation was sent to a different email address. Log in with that account to accept.
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="accept-btn">Accept Invitation</button>
+          <a class="btn btn-secondary" href="index.html">Maybe later</a>
+        </div>
+      </div>
+
+      <div id="error" style="display:none;">
+        <h1>Invitation unavailable</h1>
+        <p class="state-msg err" id="error-msg"></p>
+        <div class="actions">
+          <a class="btn btn-secondary" href="index.html">Go to dashboard</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
+  <script>
+    (function () {
+      const API_URL = window.API_URL;
+      const token = sessionStorage.getItem('authToken');
+      const params = new URLSearchParams(window.location.search);
+      const inviteToken = params.get('token');
+
+      if (!inviteToken) {
+        showError('No invitation token in the link.');
+        return;
+      }
+      if (!token) {
+        // Bounce to login; preserve the full current URL so we come back here.
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = 'login.html?next=' + next;
+        return;
+      }
+
+      loadInvite();
+
+      async function loadInvite() {
+        try {
+          const res = await fetch(API_URL + '/invites/' + encodeURIComponent(inviteToken), {
+            headers: { 'Authorization': 'Bearer ' + token }
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Invitation not found');
+
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('content').style.display = 'block';
+
+          const invitedBy = data.invite?.invitedByName
+            ? data.invite.invitedByName + ' invited you to collaborate'
+            : 'You have been invited to collaborate on this trip';
+          document.getElementById('invited-by').textContent = invitedBy;
+
+          if (data.trip) {
+            document.getElementById('trip-name').textContent = data.trip.name || 'Camping trip';
+            const parts = [data.trip.location, data.trip.terrain, data.trip.season, (data.trip.duration || '') + ' days']
+              .filter(Boolean).join(' · ');
+            document.getElementById('trip-meta').textContent = parts;
+            document.getElementById('trip-box').style.display = 'block';
+          }
+
+          if (!data.emailMatches) {
+            document.getElementById('email-mismatch').style.display = 'block';
+          }
+
+          document.getElementById('accept-btn').onclick = acceptInvite;
+        } catch (err) {
+          showError(err.message);
+        }
+      }
+
+      async function acceptInvite() {
+        const btn = document.getElementById('accept-btn');
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.textContent = 'Accepting…';
+        try {
+          const res = await fetch(API_URL + '/invites/accept', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: inviteToken })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Accept failed');
+          (window.showToast ? window.showToast('You have joined the trip!', 'success') : null);
+          setTimeout(() => {
+            window.location.href = 'checklist.html?tripId=' + encodeURIComponent(data.tripId);
+          }, 700);
+        } catch (err) {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          (window.showToast ? window.showToast(err.message, 'error') : alert(err.message));
+        }
+      }
+
+      function showError(message) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'none';
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('error-msg').textContent = message;
+      }
+    })();
+  </script>
+</body>
+</html>

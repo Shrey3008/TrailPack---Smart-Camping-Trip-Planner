@@ -21,11 +21,10 @@
     .progress-bar-container { background: #e5e7eb; border-radius: 9999px; height: 10px; margin: 0.75rem 0; }
     .progress-bar-fill { background: #40916C; height: 10px; border-radius: 9999px; transition: width 0.4s ease; }
     .progress-text { color: #6b7280; font-size: 0.9rem; }
-    .checklist-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5rem; max-width: 900px; margin: 2rem auto; padding: 0 2rem 4rem; }
-    @media (max-width: 768px) { .checklist-grid { grid-template-columns: 1fr; } }
-    .category-col h3 { font-weight: 800; font-size: 1.1rem; text-align: center; margin-bottom: 0.5rem; }
+    .checklist-grid { display: flex; flex-direction: column; gap: 2rem; max-width: 700px; margin: 2rem auto; padding: 0 2rem 4rem; }
+    .category-col h3 { font-weight: 800; font-size: 1.2rem; margin-bottom: 1rem; color: #1B4332; }
     .dotted-divider { border: none; border-top: 3px dotted #999; margin-bottom: 1.25rem; }
-    .checklist-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.35rem 0; font-size: 0.92rem; }
+    .checklist-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.35rem 0; font-size: 0.92rem; }
     .checklist-item input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: #40916C; cursor: pointer; flex-shrink: 0; }
     .checklist-item.packed span { text-decoration: line-through; color: #9ca3af; }
     .navbar { background: #1B4332; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
@@ -33,6 +32,90 @@
     .navbar a { color: rgba(255,255,255,0.8); text-decoration: none; margin-right: 1rem; font-size: 0.9rem; }
     .navbar button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.35rem 0.85rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
     .loading { text-align: center; padding: 4rem; color: #6b7280; font-size: 1.1rem; }
+    .weather-section { max-width: 900px; margin: 2rem auto; padding: 0 2rem; }
+    .weather-card { background: linear-gradient(135deg, #40916C, #1B4332); color: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .weather-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .weather-header h3 { font-size: 1.3rem; font-weight: 700; margin: 0; }
+    .weather-location { font-size: 0.9rem; opacity: 0.9; }
+    .weather-current { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem; }
+    .weather-temp { font-size: 2.5rem; font-weight: 800; }
+    .weather-desc { flex: 1; }
+    .weather-forecast { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem; }
+    .forecast-day { background: rgba(255,255,255,0.15); border-radius: 8px; padding: 0.75rem; text-align: center; font-size: 0.85rem; }
+    .forecast-day .day-name { font-weight: 600; margin-bottom: 0.25rem; }
+    .forecast-day .icon { font-size: 1.5rem; margin: 0.25rem 0; }
+    .forecast-day .temps { font-weight: 600; }
+    .forecast-day .precip { font-size: 0.75rem; opacity: 0.85; margin-top: 0.25rem; }
+    .weather-suggestions { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; }
+    .weather-suggestions h4 { color: #1B4332; margin: 0 0 0.75rem 0; font-size: 1.1rem; }
+    .suggestion-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .suggestion-chip { background: #E8F5E9; border: 1px solid #40916C; color: #1B4332; padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; }
+    .suggestion-chip.high { background: #FFF3E0; border-color: #F57C00; color: #E65100; }
+    .weather-error { color: #fff; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; }
+    .provisions-section { max-width: 900px; margin: 1.5rem auto; padding: 0 2rem; }
+    .provisions-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .provisions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .provisions-header h3 { color: #1B4332; margin: 0; font-size: 1.2rem; font-weight: 700; }
+    .provisions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .provisions-stat { background: #F1F8F4; border-radius: 8px; padding: 1rem; text-align: center; }
+    .provisions-stat .big { font-size: 1.6rem; font-weight: 700; color: #1B4332; line-height: 1.1; }
+    .provisions-stat .unit { font-size: 0.8rem; color: #40916C; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+    .provisions-stat .sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.35rem; }
+    .provisions-reasons { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .provisions-reasons .chip { background: #E8F5E9; border: 1px solid #40916C; color: #1B4332; padding: 0.3rem 0.7rem; border-radius: 9999px; font-size: 0.8rem; }
+    .provisions-disclaimer { font-size: 0.75rem; color: #6b7280; font-style: italic; }
+    .risk-section { max-width: 900px; margin: 1.5rem auto; padding: 0 2rem; }
+    .risk-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .risk-card.level-medium { border-color: #F57C00; }
+    .risk-card.level-high { border-color: #dc2626; }
+    .risk-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+    .risk-header h3 { color: #1B4332; margin: 0; font-size: 1.2rem; font-weight: 700; }
+    .risk-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem; border-radius: 9999px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .risk-badge.level-low { background: #E8F5E9; color: #1B4332; border: 1px solid #40916C; }
+    .risk-badge.level-medium { background: #FFF3E0; color: #E65100; border: 1px solid #F57C00; }
+    .risk-badge.level-high { background: #FEE2E2; color: #991B1B; border: 1px solid #dc2626; }
+    .risk-score-track { height: 8px; background: #E5E7EB; border-radius: 9999px; overflow: hidden; margin-bottom: 1rem; }
+    .risk-score-fill { height: 100%; background: linear-gradient(90deg, #40916C, #F57C00, #dc2626); transition: width 0.4s; }
+    .risk-subtitle { font-size: 0.9rem; color: #374151; font-weight: 600; margin: 0.5rem 0 0.5rem; }
+    .risk-factors { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+    .risk-factors .chip { background: #FEF3C7; border: 1px solid #F59E0B; color: #78350F; padding: 0.3rem 0.7rem; border-radius: 9999px; font-size: 0.8rem; }
+    .risk-recs { list-style: none; padding: 0; margin: 0; }
+    .risk-recs li { padding: 0.5rem 0; border-bottom: 1px solid #F3F4F6; color: #1F2937; font-size: 0.9rem; display: flex; gap: 0.5rem; align-items: flex-start; }
+    .risk-recs li:last-child { border-bottom: none; }
+    .risk-recs li::before { content: '✓'; color: #40916C; font-weight: 700; flex-shrink: 0; }
+    .collab-section { max-width: 900px; margin: 1.5rem auto; padding: 0 2rem; }
+    .collab-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .collab-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .collab-header h3 { color: #1B4332; margin: 0; font-size: 1.2rem; font-weight: 700; }
+    .collab-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
+    .collab-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; background: #F1F8F4; border-radius: 8px; font-size: 0.9rem; }
+    .collab-item .avatar { width: 32px; height: 32px; border-radius: 50%; background: #40916C; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .collab-item .info { flex: 1; min-width: 0; }
+    .collab-item .info .n { font-weight: 600; color: #1B4332; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .collab-item .info .e { font-size: 0.75rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .collab-item .role-tag { font-size: 0.7rem; background: #40916C; color: white; padding: 0.15rem 0.5rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.03em; }
+    .collab-item .remove-btn { background: transparent; border: none; color: #dc2626; cursor: pointer; font-size: 1.1rem; padding: 0 0.2rem; }
+    .collab-invite-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .collab-invite-form input { flex: 1; min-width: 200px; padding: 0.55rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
+    .collab-invite-form button { background: #40916C; color: white; border: none; padding: 0.55rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+    .collab-invite-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .collab-pending-title { font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 0.5rem 0 0.4rem; }
+    .collab-pending-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #FFF7ED; border: 1px dashed #F59E0B; border-radius: 6px; font-size: 0.85rem; margin-bottom: 0.4rem; }
+    .collab-pending-item .email { flex: 1; color: #78350F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .collab-pending-item button { background: transparent; border: 1px solid #F59E0B; color: #78350F; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
+    .collab-empty { color: #6b7280; font-size: 0.9rem; text-align: center; padding: 0.5rem 0; }
+    @media (max-width: 640px) {
+      .provisions-grid { grid-template-columns: 1fr; }
+      .navbar { flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; }
+      .navbar > div { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
+      .checklist-hero { padding: 2.5rem 1rem; }
+      .checklist-hero h1 { font-size: 1.75rem; }
+      .progress-section, .weather-section, .checklist-grid { padding-left: 1rem; padding-right: 1rem; }
+      .export-buttons, .action-buttons { flex-wrap: wrap; }
+      .action-buttons button { flex: 1 1 auto; min-width: 140px; }
+      .weather-current { flex-wrap: wrap; }
+      .weather-temp { font-size: 2rem; }
+    }
   </style>
 </head>
 <body>
@@ -48,22 +131,104 @@
     <h1 id="hero-title">Loading...</h1>
     <div class="trip-badges" id="trip-badges"></div>
   </div>
+  <div class="weather-section" id="weather-section" style="display:none;">
+    <div class="weather-card" id="weather-card">
+      <div class="weather-header">
+        <h3>🌤️ Weather Forecast</h3>
+        <span class="weather-location" id="weather-location"></span>
+      </div>
+      <div id="weather-content"></div>
+    </div>
+    <div class="weather-suggestions" id="weather-suggestions" style="display:none;">
+      <h4>🎒 Weather-Based Packing Suggestions</h4>
+      <div class="suggestion-list" id="suggestion-list"></div>
+    </div>
+  </div>
+  <div class="provisions-section" id="provisions-section" style="display:none;">
+    <div class="provisions-card">
+      <div class="provisions-header">
+        <h3>🥤 Food &amp; Water Estimate</h3>
+        <span id="provisions-subtitle" style="font-size:0.85rem;color:#6b7280;"></span>
+      </div>
+      <div class="provisions-grid">
+        <div class="provisions-stat">
+          <div class="big"><span id="prov-water-total">–</span> <span style="font-size:1rem;">L</span></div>
+          <div class="unit">Total Water</div>
+          <div class="sub" id="prov-water-sub"></div>
+        </div>
+        <div class="provisions-stat">
+          <div class="big"><span id="prov-food-grams">–</span> <span style="font-size:1rem;">g</span></div>
+          <div class="unit">Total Food</div>
+          <div class="sub" id="prov-food-sub"></div>
+        </div>
+      </div>
+      <div class="provisions-reasons" id="prov-reasons"></div>
+      <div class="provisions-disclaimer" id="prov-disclaimer"></div>
+    </div>
+  </div>
+  <div class="risk-section" id="risk-section" style="display:none;">
+    <div class="risk-card" id="risk-card">
+      <div class="risk-header">
+        <h3>⚠️ Trip Risk Analysis</h3>
+        <span class="risk-badge" id="risk-badge">—</span>
+      </div>
+      <div class="risk-score-track"><div class="risk-score-fill" id="risk-score-fill" style="width:0%"></div></div>
+      <div class="risk-subtitle">Potential hazards</div>
+      <div class="risk-factors" id="risk-factors"></div>
+      <div class="risk-subtitle">Recommendations</div>
+      <ul class="risk-recs" id="risk-recs"></ul>
+    </div>
+  </div>
+  <div class="collab-section" id="collab-section" style="display:none;">
+    <div class="collab-card">
+      <div class="collab-header">
+        <h3>👥 Trip Collaborators</h3>
+        <span id="collab-role-tag" style="font-size:0.75rem;color:#6b7280;"></span>
+      </div>
+      <div id="collab-invite-wrap" style="display:none;">
+        <form class="collab-invite-form" id="collab-invite-form" autocomplete="off">
+          <input type="email" id="collab-invite-email" placeholder="Invite by email…" required>
+          <button type="submit" id="collab-invite-btn">Send Invite</button>
+        </form>
+      </div>
+      <div class="collab-list" id="collab-list"></div>
+      <div id="collab-pending-wrap" style="display:none;">
+        <div class="collab-pending-title">Pending invitations</div>
+        <div id="collab-pending-list"></div>
+      </div>
+    </div>
+  </div>
   <div class="progress-section">
     <div class="progress-bar-container">
       <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
     </div>
     <p class="progress-text" id="progress-text">Loading items...</p>
-    <div class="export-buttons" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: center;">
+    <div class="export-buttons" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
       <button onclick="exportChecklist('print')" style="background: #40916C; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">🖨️ Print</button>
       <button onclick="exportChecklist('json')" style="background: #1B4332; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">📥 Export JSON</button>
+    </div>
+    <div class="action-buttons" style="margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center;">
+      <button id="start-trip-btn" onclick="startTrip()" style="background: #40916C; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;" disabled>🚀 Start Trip</button>
+      <button id="cancel-trip-btn" onclick="cancelTrip()" style="background: #dc2626; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;">✕ Cancel Trip</button>
     </div>
   </div>
   <div class="checklist-grid" id="checklist-grid">
     <div class="loading">Loading your checklist...</div>
   </div>
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
   <script>
   document.addEventListener('DOMContentLoaded', async function() {
+    const API_URL = window.API_URL;
     const token = sessionStorage.getItem('authToken');
+
+    // One-shot "trip created" toast when arriving from create-trip.
+    if (sessionStorage.getItem('tripJustCreated') === '1') {
+      sessionStorage.removeItem('tripJustCreated');
+      setTimeout(() => {
+        if (window.showToast) window.showToast('Trip created! Here is your personalized checklist.', 'success', 3200);
+      }, 300);
+    }
     const urlParams = new URLSearchParams(window.location.search);
     let tripId = urlParams.get('tripId');
     
@@ -72,11 +237,10 @@
     console.log('Token found:', !!token);
     console.log('Trip ID from URL:', tripId);
     
-    if (!token) { 
+    if (!token) {
       console.log('No token - redirecting to login');
-      alert('No auth token found - redirecting to login');
-      window.location.href = 'login.html'; 
-      return; 
+      window.location.href = 'login.html';
+      return;
     }
     
     if (!tripId) { 
@@ -88,17 +252,17 @@
         sessionStorage.removeItem('pendingTripId'); // Clean up
       } else {
         console.log('No tripId in URL or sessionStorage - redirecting to dashboard');
-        alert('No tripId found. URL search was: ' + window.location.search);
-        window.location.href = 'index.html'; 
-        return; 
+        (window.showToast ? window.showToast('No trip selected — returning to dashboard.', 'warning') : null);
+        setTimeout(() => { window.location.href = 'index.html'; }, 600);
+        return;
       }
     }
     let items = [];
     let trip = null;
     try {
       const [tripRes, itemsRes] = await Promise.all([
-        fetch('http://localhost:3000/trips/' + tripId, { headers: { 'Authorization': 'Bearer ' + token } }),
-        fetch('http://localhost:3000/trips/' + tripId + '/items', { headers: { 'Authorization': 'Bearer ' + token } })
+        fetch(API_URL + '/trips/' + tripId, { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch(API_URL + '/trips/' + tripId + '/items', { headers: { 'Authorization': 'Bearer ' + token } })
       ]);
       console.log('Trip response status:', tripRes.status);
       console.log('Items response status:', itemsRes.status);
@@ -118,6 +282,16 @@
         trip.terrain, trip.season, (trip.duration || '') + ' days'
       ].filter(Boolean).map(b => '<span class="badge">' + b + '</span>').join('');
       renderAll();
+      // Load weather if location is set
+      if (trip.location) {
+        loadWeather(trip.location, trip.startDate, trip.endDate);
+      }
+      // Load provisions estimate (food + water)
+      loadProvisions(tripId);
+      // Load AI-based risk analysis
+      loadRiskAnalysis(trip);
+      // Load collaborators + invite state
+      loadCollaborators(tripId, trip);
     } catch (err) {
       console.error('Error:', err);
       document.getElementById('checklist-grid').innerHTML = '<div class="loading">Error loading checklist: ' + err.message + '</div>';
@@ -128,6 +302,18 @@
       const pct = total ? Math.round(packed / total * 100) : 0;
       document.getElementById('progress-fill').style.width = pct + '%';
       document.getElementById('progress-text').textContent = packed + '/' + total + ' items packed (' + pct + '%)';
+      
+      // Enable Start Trip button when all items are packed
+      const startBtn = document.getElementById('start-trip-btn');
+      if (startBtn) {
+        startBtn.disabled = (packed !== total || total === 0);
+        if (packed === total && total > 0) {
+          startBtn.textContent = '🚀 Start Trip';
+          startBtn.style.opacity = '1';
+        } else {
+          startBtn.style.opacity = '0.5';
+        }
+      }
     }
     function renderAll() {
       updateProgress();
@@ -140,15 +326,16 @@
       const grid = document.getElementById('checklist-grid');
       grid.innerHTML = '';
       Object.entries(grouped).forEach(([category, catItems]) => {
-        const col = document.createElement('div');
-        col.className = 'category-col';
-        col.innerHTML = '<h3>' + category + '</h3><hr class="dotted-divider">' +
+        const section = document.createElement('div');
+        section.className = 'category-col';
+        section.innerHTML = '<h3>' + category + '</h3><hr class="dotted-divider">' +
           catItems.map(item =>
             '<div class="checklist-item' + (item.packed ? ' packed' : '') + '" id="item-' + item.itemId + '">' +
+            '<span>' + item.name + '</span>' +
             '<input type="checkbox"' + (item.packed ? ' checked' : '') + ' onchange="toggleItem(\'' + item.itemId + '\', this.checked)">' +
-            '<span>' + item.name + '</span></div>'
+            '</div>'
           ).join('');
-        grid.appendChild(col);
+        grid.appendChild(section);
       });
     }
     window.toggleItem = async function(itemId, packed) {
@@ -160,7 +347,7 @@
         updateProgress();
       }
       try {
-        await fetch('http://localhost:3000/trips/' + tripId + '/items/' + itemId, {
+        await fetch(API_URL + '/trips/' + tripId + '/items/' + itemId, {
           method: 'PATCH',
           headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify({ packed: packed })
@@ -186,6 +373,378 @@
         a.download = (exportTrip?.name || 'trip') + '_checklist.json';
         a.click();
         URL.revokeObjectURL(url);
+      }
+    };
+    
+    // Start Trip functionality
+    window.startTrip = async function() {
+      const confirmed = window.showConfirm
+        ? await window.showConfirm('This will mark the trip as in progress.', { title: 'Start this trip?', confirmText: 'Start Trip' })
+        : confirm('Are you sure you want to start this trip? This will mark the trip as in progress.');
+      if (!confirmed) return;
+      try {
+        const res = await fetch(API_URL + '/trips/' + tripId, {
+          method: 'PUT',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'in_progress' })
+        });
+        const data = await res.json();
+        console.log('Start trip response:', res.status, data);
+        if (res.ok) {
+          (window.showToast ? window.showToast('Trip started — have a great adventure!', 'success') : null);
+          setTimeout(() => { window.location.href = 'index.html'; }, 900);
+        } else {
+          (window.showToast ? window.showToast('Failed to start trip: ' + (data.message || 'Unknown error'), 'error') : alert('Failed to start trip: ' + (data.message || 'Unknown error')));
+        }
+      } catch(e) {
+        console.error('Start trip failed:', e);
+        (window.showToast ? window.showToast('Failed to start trip: ' + e.message, 'error') : alert('Failed to start trip: ' + e.message));
+      }
+    };
+    
+    // Collaborators panel: list, invite (owner-only), revoke pending invites.
+    async function loadCollaborators(tripId, trip) {
+      const section = document.getElementById('collab-section');
+      const listEl = document.getElementById('collab-list');
+      const inviteWrap = document.getElementById('collab-invite-wrap');
+      const pendingWrap = document.getElementById('collab-pending-wrap');
+      const pendingListEl = document.getElementById('collab-pending-list');
+      const roleTag = document.getElementById('collab-role-tag');
+
+      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null') || {};
+      const isOwner = currentUser.userId && trip && trip.userId && currentUser.userId === trip.userId;
+
+      roleTag.textContent = isOwner ? 'You are the owner' : 'You are a collaborator';
+
+      const initial = (s) => (s || '?').trim().charAt(0).toUpperCase();
+      const renderCollabItem = (user, role, canRemove) => {
+        const name = user.name || user.email || 'Unknown';
+        const email = user.email || '';
+        const avatar = `<div class="avatar">${initial(name)}</div>`;
+        const info = `<div class="info"><div class="n">${escapeHTML(name)}</div><div class="e">${escapeHTML(email)}</div></div>`;
+        const tag = role === 'owner' ? '<span class="role-tag">Owner</span>' : '';
+        const remove = canRemove
+          ? `<button class="remove-btn" title="Remove" data-userid="${user.userId}">&times;</button>`
+          : '';
+        return `<div class="collab-item">${avatar}${info}${tag}${remove}</div>`;
+      };
+
+      // Always show the owner first.
+      const ownerUser = isOwner
+        ? { userId: currentUser.userId, name: currentUser.name, email: currentUser.email }
+        : { userId: trip.userId, name: trip.ownerName || '', email: trip.ownerEmail || '' };
+
+      let collaborators = [];
+      try {
+        const res = await fetch(API_URL + '/trips/' + tripId + '/participants', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          collaborators = Array.isArray(data.participants) ? data.participants : [];
+        }
+      } catch (err) {
+        console.warn('Load collaborators failed:', err);
+      }
+
+      const html = [renderCollabItem(ownerUser, 'owner', false)]
+        .concat(collaborators.map(c => renderCollabItem(c, 'collaborator', isOwner)))
+        .join('');
+      listEl.innerHTML = html || '<div class="collab-empty">No collaborators yet.</div>';
+
+      // Owner-only: show invite form + pending invites + remove buttons.
+      if (isOwner) {
+        inviteWrap.style.display = 'block';
+        await refreshPendingInvites(tripId);
+
+        const form = document.getElementById('collab-invite-form');
+        form.onsubmit = (e) => { e.preventDefault(); sendInvite(tripId); };
+
+        // Wire remove buttons (event delegation).
+        listEl.querySelectorAll('.remove-btn').forEach(btn => {
+          btn.onclick = async () => {
+            const uid = btn.getAttribute('data-userid');
+            if (!uid) return;
+            const ok = window.showConfirm
+              ? await window.showConfirm('Remove this collaborator from the trip?', { title: 'Remove collaborator', confirmText: 'Remove', danger: true })
+              : confirm('Remove this collaborator?');
+            if (!ok) return;
+            try {
+              const res = await fetch(API_URL + '/trips/' + tripId + '/participants/' + uid, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+              });
+              if (!res.ok) throw new Error((await res.json()).message || 'Failed');
+              (window.showToast ? window.showToast('Collaborator removed.', 'success') : null);
+              loadCollaborators(tripId, trip);
+            } catch (err) {
+              (window.showToast ? window.showToast('Failed to remove: ' + err.message, 'error') : alert(err.message));
+            }
+          };
+        });
+      }
+
+      section.style.display = 'block';
+    }
+
+    async function refreshPendingInvites(tripId) {
+      const wrap = document.getElementById('collab-pending-wrap');
+      const listEl = document.getElementById('collab-pending-list');
+      try {
+        const res = await fetch(API_URL + '/trips/' + tripId + '/invites', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) { wrap.style.display = 'none'; return; }
+        const data = await res.json();
+        const invites = data.invites || [];
+        if (invites.length === 0) { wrap.style.display = 'none'; return; }
+        listEl.innerHTML = invites.map(inv => `
+          <div class="collab-pending-item">
+            <span class="email">✉️ ${escapeHTML(inv.email || '')}</span>
+            <button data-invite="${inv.inviteId}">Revoke</button>
+          </div>
+        `).join('');
+        wrap.style.display = 'block';
+        listEl.querySelectorAll('button[data-invite]').forEach(btn => {
+          btn.onclick = async () => {
+            const inviteId = btn.getAttribute('data-invite');
+            try {
+              await fetch(API_URL + '/trips/' + tripId + '/invites/' + inviteId, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + token }
+              });
+              (window.showToast ? window.showToast('Invitation revoked.', 'info') : null);
+              refreshPendingInvites(tripId);
+            } catch (err) {
+              (window.showToast ? window.showToast('Failed to revoke.', 'error') : alert(err.message));
+            }
+          };
+        });
+      } catch (err) {
+        console.warn('Pending invites load failed:', err);
+      }
+    }
+
+    async function sendInvite(tripId) {
+      const input = document.getElementById('collab-invite-email');
+      const btn = document.getElementById('collab-invite-btn');
+      const email = (input.value || '').trim();
+      if (!email) return;
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      btn.textContent = 'Sending…';
+      try {
+        const res = await fetch(API_URL + '/trips/' + tripId + '/invites', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Invite failed');
+        input.value = '';
+        const acceptLink = window.location.origin + '/accept-invite.html?token=' + encodeURIComponent(data.token);
+        // Copy to clipboard if available.
+        try { await navigator.clipboard.writeText(acceptLink); } catch (_) {}
+        (window.showToast
+          ? window.showToast('Invite sent to ' + email + '. Link copied to clipboard.', 'success', 3000)
+          : alert('Invite link: ' + acceptLink));
+        refreshPendingInvites(tripId);
+      } catch (err) {
+        (window.showToast ? window.showToast(err.message, 'error') : alert(err.message));
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }
+    }
+
+    function escapeHTML(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    // Risk analysis loader
+    async function loadRiskAnalysis(trip) {
+      const section = document.getElementById('risk-section');
+      const card = document.getElementById('risk-card');
+      const badge = document.getElementById('risk-badge');
+      const fill = document.getElementById('risk-score-fill');
+      const factors = document.getElementById('risk-factors');
+      const recs = document.getElementById('risk-recs');
+      try {
+        const res = await fetch(API_URL + '/ai/risk-analysis', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            terrain: trip.terrain,
+            season: trip.season,
+            duration: trip.duration,
+            experience: trip.experience || 'Intermediate'
+          })
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.overallRisk) return;
+
+        const level = String(data.overallRisk).toLowerCase();
+        card.classList.remove('level-low', 'level-medium', 'level-high');
+        card.classList.add('level-' + level);
+        badge.classList.remove('level-low', 'level-medium', 'level-high');
+        badge.classList.add('level-' + level);
+        badge.textContent = data.overallRisk + ' risk';
+
+        const score = Math.max(0, Math.min(100, Number(data.riskScore) || 0));
+        fill.style.width = score + '%';
+
+        factors.innerHTML = (data.riskFactors || [])
+          .map(f => `<span class="chip">${f}</span>`)
+          .join('') || '<span style="color:#6b7280;font-size:0.85rem;">No major hazards identified.</span>';
+
+        recs.innerHTML = (data.recommendations || [])
+          .map(r => `<li>${r}</li>`)
+          .join('');
+
+        section.style.display = 'block';
+      } catch (err) {
+        console.warn('Risk analysis load failed:', err);
+      }
+    }
+
+    // Provisions loader (food + water estimate)
+    async function loadProvisions(tripId) {
+      const section = document.getElementById('provisions-section');
+      try {
+        const res = await fetch(API_URL + '/trips/' + tripId + '/provisions', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.water || !data.food) return;
+
+        document.getElementById('prov-water-total').textContent = data.water.totalLiters;
+        document.getElementById('prov-water-sub').textContent =
+          `${data.water.perPersonPerDay} L / person / day`;
+
+        document.getElementById('prov-food-grams').textContent = data.food.totalGrams;
+        document.getElementById('prov-food-sub').textContent =
+          `${data.food.caloriesPerPersonPerDay} kcal / person / day`;
+
+        const { duration, participants } = data.inputs || {};
+        document.getElementById('provisions-subtitle').textContent =
+          `${duration}-day trip · ${participants} ${participants === 1 ? 'person' : 'people'}`;
+
+        const reasonsEl = document.getElementById('prov-reasons');
+        reasonsEl.innerHTML = (data.reasons || [])
+          .map(r => `<span class="chip">${r.icon || ''} ${r.text}</span>`)
+          .join('');
+
+        document.getElementById('prov-disclaimer').textContent = data.disclaimer || '';
+        section.style.display = 'block';
+      } catch (err) {
+        console.warn('Provisions load failed:', err);
+      }
+    }
+
+    // Weather loader
+    async function loadWeather(location, startDate, endDate) {
+      const section = document.getElementById('weather-section');
+      const content = document.getElementById('weather-content');
+      const locEl = document.getElementById('weather-location');
+      section.style.display = 'block';
+      content.innerHTML = '<div style="padding:1rem;text-align:center;">Loading weather...</div>';
+      try {
+        let url = API_URL + '/weather?location=' + encodeURIComponent(location);
+        if (startDate && endDate) url += '&startDate=' + startDate + '&endDate=' + endDate;
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Weather failed');
+
+        locEl.textContent = [data.location.name, data.location.region, data.location.country].filter(Boolean).join(', ');
+
+        const weatherIcons = { 0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'⛈️',71:'🌨️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',85:'🌨️',86:'❄️',95:'⛈️',96:'⛈️',99:'⛈️' };
+        const codeDesc = { 0:'Clear',1:'Mainly Clear',2:'Partly Cloudy',3:'Cloudy',45:'Fog',48:'Freezing Fog',51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',61:'Light Rain',63:'Rain',65:'Heavy Rain',71:'Light Snow',73:'Snow',75:'Heavy Snow',80:'Showers',81:'Heavy Showers',82:'Violent Showers',95:'Thunderstorm',96:'Thunderstorm + Hail',99:'Severe Storm' };
+
+        let html = '';
+        if (data.current) {
+          const c = data.current;
+          html += '<div class="weather-current">' +
+            '<div style="font-size:3rem;">' + (weatherIcons[c.weather_code] || '🌡️') + '</div>' +
+            '<div class="weather-desc">' +
+              '<div class="weather-temp">' + Math.round(c.temperature_2m) + '°C</div>' +
+              '<div>' + (codeDesc[c.weather_code] || 'Current') + ' · 💨 ' + Math.round(c.wind_speed_10m) + ' km/h · 💧 ' + c.relative_humidity_2m + '%</div>' +
+            '</div></div>';
+        }
+
+        if (data.daily && data.daily.time) {
+          const days = data.daily.time.slice(0, 7);
+          html += '<div class="weather-forecast">';
+          days.forEach((dateStr, i) => {
+            const d = new Date(dateStr);
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+            const code = data.daily.weather_code[i];
+            const high = Math.round(data.daily.temperature_2m_max[i]);
+            const low = Math.round(data.daily.temperature_2m_min[i]);
+            const pp = data.daily.precipitation_probability_max?.[i] || 0;
+            html += '<div class="forecast-day">' +
+              '<div class="day-name">' + dayName + '</div>' +
+              '<div class="icon">' + (weatherIcons[code] || '🌡️') + '</div>' +
+              '<div class="temps">' + high + '° / ' + low + '°</div>' +
+              '<div class="precip">💧 ' + pp + '%</div>' +
+              '</div>';
+          });
+          html += '</div>';
+        }
+        content.innerHTML = html;
+
+        // Load suggestions
+        loadWeatherSuggestions(location, startDate, endDate);
+      } catch (err) {
+        console.error('Weather error:', err);
+        content.innerHTML = '<div class="weather-error">Could not load weather: ' + err.message + '</div>';
+      }
+    }
+
+    async function loadWeatherSuggestions(location, startDate, endDate) {
+      try {
+        let url = API_URL + '/weather/suggestions?location=' + encodeURIComponent(location);
+        if (startDate && endDate) url += '&startDate=' + startDate + '&endDate=' + endDate;
+        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        const data = await res.json();
+        if (!res.ok || !data.suggestions) return;
+        const list = document.getElementById('suggestion-list');
+        const section = document.getElementById('weather-suggestions');
+        list.innerHTML = data.suggestions.map(s =>
+          '<span class="suggestion-chip ' + (s.priority === 'high' ? 'high' : '') + '">' + s.icon + ' ' + s.text + '</span>'
+        ).join('');
+        section.style.display = 'block';
+      } catch (err) {
+        console.error('Suggestions error:', err);
+      }
+    }
+
+    // Cancel Trip functionality
+    window.cancelTrip = async function() {
+      const confirmed = window.showConfirm
+        ? await window.showConfirm('This will permanently delete the trip and its checklist.', { title: 'Cancel this trip?', confirmText: 'Cancel Trip', cancelText: 'Keep Trip', danger: true })
+        : confirm('Are you sure you want to cancel this trip? This will delete the trip and all its data.');
+      if (!confirmed) return;
+      try {
+        const res = await fetch(API_URL + '/trips/' + tripId, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) {
+          (window.showToast ? window.showToast('Trip cancelled.', 'success') : null);
+          setTimeout(() => { window.location.href = 'index.html'; }, 700);
+        } else {
+          (window.showToast ? window.showToast('Failed to cancel trip.', 'error') : alert('Failed to cancel trip. Please try again.'));
+        }
+      } catch(e) {
+        console.error('Cancel trip failed:', e);
+        (window.showToast ? window.showToast('Failed to cancel trip.', 'error') : alert('Failed to cancel trip. Please try again.'));
       }
     };
   });

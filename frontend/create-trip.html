@@ -103,6 +103,8 @@
           <input type="date" id="end-date" name="endDate">
         </div>
 
+        <div id="form-error" class="error-message" style="display: none;"></div>
+
         <div class="form-actions">
           <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html'">
             Cancel
@@ -115,6 +117,8 @@
     </div>
   </main>
 
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
   <script src="app.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {

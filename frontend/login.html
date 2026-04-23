@@ -38,8 +38,10 @@
     </div>
   </div>
 
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
   <script>
-    const API_URL = 'http://localhost:3000';
+    const API_URL = window.API_URL;
     window.authToken = null;
 
     // Handle login form submission
@@ -76,8 +78,11 @@
         // Store token in sessionStorage for persistence across pages
         sessionStorage.setItem('authToken', data.token);
         sessionStorage.setItem('currentUser', JSON.stringify(data.user));
-        
-        window.location.href = 'index.html';
+
+        // Honor ?next=<relative path> so flows like /accept-invite can round-trip through login.
+        const next = new URLSearchParams(window.location.search).get('next');
+        const isSafeNext = typeof next === 'string' && next.startsWith('/') && !next.startsWith('//');
+        window.location.href = isSafeNext ? next : 'index.html';
         
       } catch (error) {
         errorDiv.textContent = error.message || 'Invalid email or password';

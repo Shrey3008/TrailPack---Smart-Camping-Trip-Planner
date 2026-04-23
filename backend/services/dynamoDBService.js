@@ -38,13 +38,10 @@ const dynamoDBService = {
   },
 
   getUserById: async (userId) => {
-    console.log('[DynamoDB] getUserById called with:', userId);
     const result = await docClient.send(new GetCommand({
       TableName: TABLES.USERS,
       Key: { userId }
     }));
-    console.log('[DynamoDB] GetCommand result:', result);
-    console.log('[DynamoDB] Item found:', !!result.Item);
     return result.Item;
   },
 
@@ -56,10 +53,9 @@ const dynamoDBService = {
         KeyConditionExpression: 'email = :email',
         ExpressionAttributeValues: { ':email': email }
       }));
-      console.log('DEBUG getUserByEmail - Items found:', result.Items?.length || 0);
       return result.Items && result.Items.length > 0 ? result.Items[0] : null;
     } catch (error) {
-      console.error('DEBUG getUserByEmail error:', error.message);
+      console.error('[DynamoDB] getUserByEmail error:', error.message);
       return null;
     }
   },
@@ -111,10 +107,6 @@ const dynamoDBService = {
     // Only add simple optional fields
     if (tripData.startDate) item.startDate = String(tripData.startDate);
     if (tripData.endDate) item.endDate = String(tripData.endDate);
-    
-    console.log('DEBUG - tripId value:', tripId);
-    console.log('DEBUG - tripId type:', typeof tripId);
-    console.log('DEBUG - item:', JSON.stringify(item));
     
     await docClient.send(new PutCommand({
       TableName: TABLES.TRIPS,

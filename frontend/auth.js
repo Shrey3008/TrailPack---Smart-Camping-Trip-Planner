@@ -1,10 +1,7 @@
 // Authentication utilities
 
-// Detect environment and set API URL
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const API_URL = isLocalhost
-  ? 'http://localhost:3000'  // Local development
-  : 'http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com';  // AWS Elastic Beanstalk
+// API URL is provided by config.js via window.API_URL
+const API_URL = window.API_URL || 'http://localhost:3000';
 
 
 // Check if user is authenticated
