@@ -1723,12 +1723,47 @@
         }
       }
 
-      async function loadWeatherHero() {
-        // Subtle placeholder while the geolocation prompt is live.
-        const locEl = document.getElementById('wx-loc-text');
-        if (locEl) locEl.textContent = 'Detecting location…';
+      // A 'generic' terrain word is one that describes the kind of place
+      // (mountain, lake, etc.) but isn't a real geographic location we can
+      // look up. When trip.location / trip.terrain is one of these we
+      // fall back to device GPS; otherwise we always trust the named
+      // place so a trip planned for 'Lazio, Italy' shows Lazio weather
+      // regardless of where the user actually is.
+      const GENERIC_TERRAIN_WORDS = new Set([
+        'mountain', 'mountains', 'alpine',
+        'lake', 'lakes',
+        'forest', 'forests', 'woods',
+        'trail', 'trails',
+        'valley', 'valleys',
+      ]);
+      function wxIsRealPlace(str) {
+        if (str == null) return false;
+        const trimmed = String(str).trim();
+        if (!trimmed) return false;
+        return !GENERIC_TERRAIN_WORDS.has(trimmed.toLowerCase());
+      }
 
-        // 1) Try device GPS first.
+      async function loadWeatherHero() {
+        const locEl = document.getElementById('wx-loc-text');
+
+        // 1) Prefer the named place on the trip (never prompts for GPS).
+        const namedPlace = wxIsRealPlace(trip && trip.location)
+          ? trip.location
+          : (wxIsRealPlace(trip && trip.terrain) ? trip.terrain : null);
+
+        if (namedPlace) {
+          try {
+            const data = await api('/weather?location=' + encodeURIComponent(namedPlace));
+            if (data) { wxRenderHero(data); return; }
+          } catch (err) {
+            wxHeroUnavailable(namedPlace, 'Weather unavailable');
+            return;
+          }
+        }
+
+        // 2) No real place on the trip (empty or a generic terrain like
+        //    'mountain' / 'lake' / 'forest') → fall back to device GPS.
+        if (locEl) locEl.textContent = 'Detecting location…';
         const coords = await wxGetCoords();
         if (coords) {
           try {
@@ -1736,22 +1771,11 @@
               + '&lon=' + encodeURIComponent(coords.lon));
             if (data) { wxRenderHero(data); return; }
           } catch (err) {
-            // Fall through to trip.location fallback.
+            // Fall through to the unavailable state below.
           }
         }
 
-        // 2) Fallback: trip.location (or trip.terrain as a last resort).
-        const fallbackQ = (trip && (trip.location || trip.terrain)) || '';
-        if (fallbackQ) {
-          try {
-            const data = await api('/weather?location=' + encodeURIComponent(fallbackQ));
-            if (data) { wxRenderHero(data); return; }
-          } catch (err) {
-            wxHeroUnavailable(fallbackQ, 'Weather unavailable');
-            return;
-          }
-        }
-
+        // 3) No named place and GPS unavailable / denied.
         wxHeroUnavailable();
       }
 
