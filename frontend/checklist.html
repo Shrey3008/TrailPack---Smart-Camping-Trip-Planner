@@ -699,24 +699,6 @@
   </nav>
 
   <main class="container">
-    <section class="trip-header" id="trip-header" hidden>
-      <div class="trip-header-top">
-        <div class="trip-header-left">
-          <span class="terrain-emoji" id="terrain-emoji">⛺</span>
-          <h2 class="trip-name" id="trip-name">Trip</h2>
-        </div>
-        <span class="trip-created" id="trip-created"></span>
-      </div>
-      <div class="trip-badges" id="trip-badges"></div>
-      <div class="progress-row">
-        <span id="progress-text">0 of 0 items packed</span>
-        <span class="pct" id="progress-pct">0%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
-      </div>
-    </section>
-
     <div class="actions">
       <button class="btn-action btn-start" id="start-trip-btn" type="button" disabled>🚀 Start Trip</button>
       <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
@@ -869,7 +851,7 @@
         forest:   'photo-1448375240586-882707db888b',
         desert:   'photo-1509316785289-025f5b846b35',
         beach:    'photo-1507525428034-b723cf961d3e',
-        lake:     'photo-1506905925346-21bda4d32df4',
+        lake:     'photo-1439066615861-d1af74d74000',
       };
       function heroPhotoUrl(terrain) {
         const key = (terrain || '').toLowerCase();
@@ -900,52 +882,18 @@
       }
 
       /* ---------- Renderers ---------- */
+      // The old white trip-header card was removed as a duplicate of the hero.
+      // renderHeader now only drives the hero + the Start Trip enable state.
       function renderHeader() {
         renderHero();
-
-        const header = document.getElementById('trip-header');
-        header.hidden = false;
-
-        const terrain = (trip.terrain || '').toLowerCase();
-        document.getElementById('terrain-emoji').textContent =
-          TERRAIN_EMOJI[terrain] || TERRAIN_DEFAULT;
-
-        document.getElementById('trip-name').textContent = trip.name || 'Trip';
-
-        const created = trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : '';
-        document.getElementById('trip-created').textContent = created ? 'Created ' + created : '';
-
-        const badges = [];
-        if (trip.terrain) {
-          badges.push(`<span class="trip-badge">${escapeHtml(cap(trip.terrain))}</span>`);
-        }
-        if (trip.season) {
-          const s = SEASON_EMOJI[(trip.season || '').toLowerCase()];
-          const label = escapeHtml(cap(trip.season));
-          if (s) {
-            badges.push(`<span class="trip-badge season" style="background:${s.bg};color:${s.color};border-color:${s.border};">${s.icon} ${label}</span>`);
-          } else {
-            badges.push(`<span class="trip-badge">${label}</span>`);
-          }
-        }
-        if (trip.duration) {
-          badges.push(`<span class="trip-badge">${Number(trip.duration)} days</span>`);
-        }
-        document.getElementById('trip-badges').innerHTML = badges.join('');
-
         updateProgress();
       }
 
       function updateProgress() {
         const total = items.length;
         const packed = items.filter(i => i.packed).length;
-        const pct = total ? Math.round(packed / total * 100) : 0;
-        document.getElementById('progress-fill').style.width = pct + '%';
-        document.getElementById('progress-text').textContent =
-          packed + ' of ' + total + ' items packed';
-        document.getElementById('progress-pct').textContent = pct + '%';
         const startBtn = document.getElementById('start-trip-btn');
-        startBtn.disabled = !(total > 0 && packed === total);
+        if (startBtn) startBtn.disabled = !(total > 0 && packed === total);
       }
 
       function renderCategories() {
