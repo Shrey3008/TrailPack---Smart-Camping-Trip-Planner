@@ -1456,51 +1456,6 @@
         document.getElementById('weather-body').innerHTML =
           '<div class="muted-note">' + escapeHtml(msg || 'Weather unavailable.') + '</div>';
       }
-      async function loadWeather() {
-        const body = document.getElementById('weather-body');
-        if (!trip || !trip.location) {
-          weatherUnavailable('Weather unavailable — trip has no location.');
-          return;
-        }
-        try {
-          const qs = new URLSearchParams({ location: trip.location });
-          if (trip.startDate) qs.set('startDate', trip.startDate);
-          if (trip.endDate) qs.set('endDate', trip.endDate);
-          const data = await api('/weather?' + qs.toString());
-          if (!data) return weatherUnavailable();
-
-          const loc = data.location || {};
-          const cur = data.current || {};
-          const daily = data.daily || {};
-          const units = (data.units && data.units.current) || {};
-          const dailyUnits = (data.units && data.units.daily) || {};
-
-          const high = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
-          const low  = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
-          const code = cur.weather_code != null ? cur.weather_code : (Array.isArray(daily.weather_code) ? daily.weather_code[0] : null);
-          const condition = code != null ? (WEATHER_CODE[code] || 'Unknown conditions') : '—';
-          const humidity = cur.relative_humidity_2m;
-          const wind = cur.wind_speed_10m;
-          const tempUnit = units.temperature_2m || dailyUnits.temperature_2m_max || '°';
-          const windUnit = units.wind_speed_10m || 'km/h';
-          const humUnit  = units.relative_humidity_2m || '%';
-
-          const locName = [loc.name, loc.region, loc.country].filter(Boolean).join(', ');
-          const fmt = (v, u) => (v == null || Number.isNaN(Number(v))) ? '—' : (Math.round(Number(v) * 10) / 10) + ' ' + u;
-
-          body.innerHTML =
-            '<div class="weather-location">📍 ' + escapeHtml(locName || trip.location) + '</div>' +
-            '<div class="weather-grid">' +
-              '<div class="weather-tile"><div class="label">Condition</div><div class="value">' + escapeHtml(condition) + '</div></div>' +
-              '<div class="weather-tile"><div class="label">High / Low</div><div class="value">' + fmt(high, tempUnit) + ' / ' + fmt(low, tempUnit) + '</div></div>' +
-              '<div class="weather-tile"><div class="label">Humidity</div><div class="value">' + fmt(humidity, humUnit) + '</div></div>' +
-              '<div class="weather-tile"><div class="label">Wind</div><div class="value">' + fmt(wind, windUnit) + '</div></div>' +
-            '</div>';
-        } catch (err) {
-          weatherUnavailable('Weather unavailable — ' + err.message);
-        }
-      }
-
       /* ---------- Provisions card ---------- */
       // GET /trips/:id/provisions → { inputs, water, food, reasons, disclaimer }.
       async function loadProvisions() {
