@@ -61,6 +61,71 @@
     }
     h1, h2, h3, h4 { margin: 0; color: var(--ink); }
 
+    /* ---------- Hero banner ---------- */
+    .checklist-hero {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.5)),
+        url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&q=80');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      overflow: hidden;
+    }
+    .checklist-hero .hero-inner {
+      text-align: center;
+      padding: 24px 20px;
+      max-width: 720px;
+    }
+    .checklist-hero .hero-brand {
+      font-size: 0.9rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      opacity: 0.92;
+      margin-bottom: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .checklist-hero .hero-name {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #fff;
+      margin: 0 0 14px;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.35);
+      word-break: break-word;
+    }
+    .checklist-hero .hero-badges {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .checklist-hero .hero-badge {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 9999px;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: capitalize;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    @media (max-width: 640px) {
+      .checklist-hero { height: 220px; }
+      .checklist-hero .hero-name { font-size: 1.5rem; }
+    }
+
     /* ---------- Navbar (mirrors index.html) ---------- */
     .navbar {
       background: #1B4332;
@@ -601,6 +666,14 @@
   </style>
 </head>
 <body>
+  <section class="checklist-hero" id="checklist-hero" aria-label="Trip hero">
+    <div class="hero-inner">
+      <div class="hero-brand">🏕️ TrailPack</div>
+      <h1 class="hero-name" id="hero-trip-name">Loading trip…</h1>
+      <div class="hero-badges" id="hero-trip-badges"></div>
+    </div>
+  </section>
+
   <nav class="navbar" aria-label="Main">
     <div class="nav-brand">
       <span class="logo-mark" aria-hidden="true">
@@ -783,8 +856,51 @@
       let trip = null;
       let items = [];
 
+      /* ---------- Hero (terrain-based Unsplash photo) ---------- */
+      // Keys are lowercased; values are Unsplash photo IDs.
+      const HERO_PHOTO = {
+        mountain: 'photo-1464822759023-fed622ff2c3b',
+        mountains: 'photo-1464822759023-fed622ff2c3b',
+        alpine:   'photo-1464822759023-fed622ff2c3b',
+        forest:   'photo-1448375240586-882707db888b',
+        woods:    'photo-1448375240586-882707db888b',
+        desert:   'photo-1509316785289-025f5b846b35',
+        dunes:    'photo-1509316785289-025f5b846b35',
+        beach:    'photo-1507525428034-b723cf961d3e',
+        coast:    'photo-1507525428034-b723cf961d3e',
+      };
+      const HERO_DEFAULT = 'photo-1464822759023-fed622ff2c3b';
+      function heroPhotoUrl(terrain) {
+        const id = HERO_PHOTO[(terrain || '').toLowerCase()] || HERO_DEFAULT;
+        return 'https://images.unsplash.com/' + id + '?w=1600&q=80';
+      }
+      function renderHero() {
+        const hero = document.getElementById('checklist-hero');
+        if (!hero) return;
+        const url = heroPhotoUrl(trip && trip.terrain);
+        hero.style.backgroundImage =
+          "linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.5)), url('" + url + "')";
+
+        document.getElementById('hero-trip-name').textContent = (trip && trip.name) || 'Trip';
+
+        const badges = [];
+        if (trip.terrain) {
+          badges.push('<span class="hero-badge">' + escapeHtml(cap(trip.terrain)) + '</span>');
+        }
+        if (trip.season) {
+          badges.push('<span class="hero-badge">' + escapeHtml(cap(trip.season)) + '</span>');
+        }
+        if (trip.duration) {
+          const d = Number(trip.duration);
+          badges.push('<span class="hero-badge">' + d + ' ' + (d === 1 ? 'day' : 'days') + '</span>');
+        }
+        document.getElementById('hero-trip-badges').innerHTML = badges.join('');
+      }
+
       /* ---------- Renderers ---------- */
       function renderHeader() {
+        renderHero();
+
         const header = document.getElementById('trip-header');
         header.hidden = false;
 
