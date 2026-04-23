@@ -3,42 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>Checklist - TrailPack</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>">
+  <title>Checklist · TrailPack</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
   <style>
     /* =========================================================
-       TrailPack checklist — design tokens (mirrors index.html)
+       TrailPack checklist — matches dashboard design system
        ========================================================= */
     :root {
-      --green: #2D6A4F;
-      --green-dark: #1B4332;
-      --green-light: #52B788;
-      --green-pale: #D8F3DC;
-      --cream: #F5F7F5;
-      --surface: #FFFFFF;
-      --ink: #1B2A22;
-      --muted: #6B7A72;
-      --line: #E4EBE5;
-      --danger: #C0392B;
-      --warn: #E67E22;
-      --radius: 14px;
-      --radius-sm: 10px;
-      --shadow-sm: 0 1px 2px rgba(27,67,50,0.06);
-      --shadow-md: 0 8px 24px rgba(27,67,50,0.12);
+      --green:        #2D6A4F;
+      --green-dark:   #1B4332;
+      --green-light:  #52B788;
+      --green-pale:   #D8F3DC;
+      --cream:        #f5f0e8;
+      --surface:      #FFFFFF;
+      --ink:          #1a1a1a;
+      --ink-soft:     #4a4a4a;
+      --muted:        #6B7A72;
+      --line:         #e4dfd4;
+      --dashed:       #d4d1ca;
+      --danger:       #c0392b;
+      --row:          #f9f8f5;
+      --row-checked:  #e8f5e9;
+      --row-checked-ink: #6a9a6e;
+      --radius:       16px;
+      --radius-sm:    10px;
+      --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
     }
     html[data-theme="dark"] {
-      --cream: #0F1A15;
-      --surface: #152219;
-      --ink: #E8F1EA;
-      --muted: #8FA397;
-      --line: #24332B;
-      --green-pale: #1F3C2C;
-      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-      --shadow-md: 0 10px 28px rgba(0,0,0,0.45);
+      --cream:        #0F1A15;
+      --surface:      #152219;
+      --ink:          #E8F1EA;
+      --ink-soft:     #C8D4CC;
+      --muted:        #8FA397;
+      --line:         #24332B;
+      --dashed:       #2E3F35;
+      --green-pale:   #1F3C2C;
+      --row:          #1A2620;
+      --row-checked:  #234332;
+      --row-checked-ink: #9BC8A4;
+      --shadow-card:  0 2px 12px rgba(0,0,0,0.4);
     }
 
     * { box-sizing: border-box; }
@@ -50,17 +57,21 @@
       font-size: 15px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
     }
     h1, h2, h3, h4 { margin: 0; color: var(--ink); }
 
     /* ---------- Navbar (mirrors index.html) ---------- */
     .navbar {
-      background: var(--green-dark) !important;
-      padding: 18px 32px !important;
+      background: #1B4332;
+      padding: 18px 32px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
     .nav-brand { display: flex; align-items: center; gap: 10px; }
     .nav-brand .logo-mark {
@@ -68,8 +79,7 @@
       width: 34px; height: 34px;
       border-radius: 10px;
       background: rgba(82,183,136,0.15);
-      align-items: center;
-      justify-content: center;
+      align-items: center; justify-content: center;
     }
     .nav-brand .brand-text {
       font-family: 'Playfair Display', Georgia, serif;
@@ -101,305 +111,319 @@
     .nav-user .btn-logout:hover { background: rgba(231,76,60,0.15); border-color: rgba(231,76,60,0.85); color: #fff; }
     .nav-user .btn-theme { padding: 6px 10px; font-size: 1rem; }
 
-    /* ---------- Hero ---------- */
-    .checklist-hero {
-      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 55%, var(--green-light) 135%);
-      padding: 52px 24px 44px;
-      text-align: center;
-      color: #fff;
-    }
-    .checklist-hero .brand { display: none; } /* nav already shows brand */
-    .checklist-hero h1 {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 700;
-      font-size: 2.25rem;
-      margin-bottom: 14px;
-      letter-spacing: -0.015em;
-    }
-    .trip-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-    .trip-badges .badge {
-      background: rgba(255,255,255,0.14);
-      border: 1px solid rgba(255,255,255,0.32);
-      color: #fff;
-      padding: 5px 14px;
-      border-radius: 9999px;
-      font-size: 0.78rem;
-      font-weight: 500;
-      letter-spacing: 0.02em;
+    /* ---------- Container ---------- */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
     }
 
-    /* ---------- Shared card chrome ---------- */
-    .weather-section,
-    .provisions-section,
-    .risk-section,
-    .collab-section,
-    .progress-section {
-      max-width: 960px;
-      margin: 22px auto;
-      padding: 0 24px;
-    }
-    .provisions-card,
-    .risk-card,
-    .collab-card {
+    /* ---------- Trip header card ---------- */
+    .trip-header {
       background: var(--surface);
-      border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-card);
+      padding: 24px 26px;
+      margin-bottom: 20px;
     }
-
-    /* ---------- Progress bar ---------- */
-    .progress-bar-container {
-      background: var(--green-pale);
-      border-radius: 9999px;
-      height: 10px;
-      margin: 6px 0;
-      overflow: hidden;
-    }
-    .progress-bar-fill {
-      background: linear-gradient(90deg, var(--green-light), var(--green));
-      height: 10px;
-      border-radius: 9999px;
-      transition: width 0.4s ease;
-    }
-    .progress-text {
-      color: var(--muted);
-      font-size: 0.88rem;
-      margin: 4px 0 0;
-    }
-
-    /* ---------- Checklist grid ---------- */
-    .checklist-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 18px;
-      max-width: 960px;
-      margin: 16px auto 60px;
-      padding: 0 24px;
-    }
-    .category-col {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 20px 22px;
-      box-shadow: var(--shadow-sm);
-    }
-    .category-col h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 700;
-      font-size: 1.2rem;
-      color: var(--ink);
-      margin-bottom: 12px;
-    }
-    .dotted-divider {
-      border: none;
-      border-top: 2px dotted var(--line);
-      margin: 6px 0 14px;
-    }
-    .checklist-item {
+    .trip-header-top {
       display: flex;
-      align-items: center;
       justify-content: space-between;
-      gap: 10px;
-      padding: 9px 0;
-      font-size: 0.95rem;
-      color: var(--ink);
-      border-bottom: 1px solid transparent;
-      transition: border-color 0.15s;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 4px;
     }
-    .checklist-item:hover { border-bottom-color: var(--line); }
-    .checklist-item input[type="checkbox"] {
-      width: 20px; height: 20px;
-      margin-left: 8px;
-      accent-color: var(--green);
-      cursor: pointer;
+    .trip-header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      min-width: 0;
+    }
+    .terrain-emoji {
+      font-size: 1.75rem;
+      line-height: 1;
+      margin-top: 2px;
       flex-shrink: 0;
     }
-    .checklist-item.packed span {
-      text-decoration: line-through;
-      color: var(--muted);
-    }
-
-    /* ---------- Weather card (keeps its green gradient look) ---------- */
-    .weather-card {
-      background: linear-gradient(135deg, var(--green), var(--green-dark));
-      color: #fff;
-      border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: var(--shadow-md);
-    }
-    .weather-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
-    .weather-header h3 {
+    .trip-name {
       font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.2rem;
-      color: #fff;
-      margin: 0;
-    }
-    .weather-location { font-size: 0.88rem; opacity: 0.88; }
-    .weather-current { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.22); margin-bottom: 14px; }
-    .weather-temp { font-size: 2.4rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
-    .weather-desc { flex: 1; }
-    .weather-forecast { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
-    .forecast-day { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 10px; text-align: center; font-size: 0.85rem; }
-    .forecast-day .day-name { font-weight: 600; margin-bottom: 2px; }
-    .forecast-day .icon { font-size: 1.5rem; margin: 2px 0; }
-    .forecast-day .temps { font-weight: 600; }
-    .forecast-day .precip { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
-    .weather-suggestions {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      margin-top: 14px;
-      box-shadow: var(--shadow-sm);
-    }
-    .weather-suggestions h4 {
-      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.55rem;
+      letter-spacing: -0.01em;
       color: var(--ink);
-      margin: 0 0 10px;
-      font-size: 1.05rem;
+      word-break: break-word;
     }
-    .suggestion-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .suggestion-chip {
+    .trip-created {
+      font-size: 0.8rem;
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+      padding-top: 6px;
+    }
+    .trip-badges {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin: 14px 0 18px;
+    }
+    .trip-badge {
       background: var(--green-pale);
-      border: 1px solid var(--green-light);
       color: var(--green-dark);
-      padding: 6px 12px;
-      border-radius: 9999px;
-      font-size: 0.85rem;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      text-transform: capitalize;
+      border: 1px solid transparent;
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
-    .suggestion-chip.high { background: #FFF3E0; border-color: var(--warn); color: #8A4C10; }
-    .weather-error { color: #fff; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; font-size: 0.9rem; }
+    html[data-theme="dark"] .trip-badge { color: #C8E6C9; }
+    /* season-badge carries its own palette via inline style */
 
-    /* ---------- Provisions ---------- */
-    .provisions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
-    .provisions-header h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      color: var(--ink);
-      font-size: 1.15rem;
+    /* ---------- Progress ---------- */
+    .progress-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+      color: var(--muted);
+      margin-bottom: 8px;
     }
-    .provisions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-    .provisions-stat { background: var(--green-pale); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
-    .provisions-stat .big { font-size: 1.7rem; font-weight: 700; color: var(--green-dark); line-height: 1.1; }
-    .provisions-stat .unit { font-size: 0.78rem; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-    .provisions-stat .sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
-    .provisions-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-    .provisions-reasons .chip { background: var(--green-pale); border: 1px solid var(--green-light); color: var(--green-dark); padding: 4px 10px; border-radius: 9999px; font-size: 0.78rem; }
-    .provisions-disclaimer { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+    .progress-row .pct { color: var(--green); font-weight: 700; }
+    html[data-theme="dark"] .progress-row .pct { color: var(--green-light); }
+    .progress-track {
+      height: 10px;
+      background: var(--green-pale);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+    }
 
-    /* ---------- Risk ---------- */
-    .risk-card.level-medium { border-color: var(--warn); }
-    .risk-card.level-high { border-color: var(--danger); }
-    .risk-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
-    .risk-header h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      color: var(--ink);
-      font-size: 1.15rem;
+    /* ---------- Actions ---------- */
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin: 4px 0 24px;
+      flex-wrap: wrap;
     }
-    .risk-badge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    .risk-badge.level-low { background: var(--green-pale); color: var(--green-dark); border: 1px solid var(--green-light); }
-    .risk-badge.level-medium { background: #FFF3E0; color: #8A4C10; border: 1px solid var(--warn); }
-    .risk-badge.level-high { background: #FDECEA; color: #8A1B12; border: 1px solid var(--danger); }
-    .risk-score-track { height: 8px; background: var(--line); border-radius: 9999px; overflow: hidden; margin-bottom: 14px; }
-    .risk-score-fill { height: 100%; background: linear-gradient(90deg, var(--green-light), var(--warn), var(--danger)); transition: width 0.4s; }
-    .risk-subtitle { font-size: 0.88rem; color: var(--ink); font-weight: 600; margin: 8px 0 6px; }
-    .risk-factors { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-    .risk-factors .chip { background: #FEF3C7; border: 1px solid #F59E0B; color: #78350F; padding: 4px 10px; border-radius: 9999px; font-size: 0.78rem; }
-    .risk-recs { list-style: none; padding: 0; margin: 0; }
-    .risk-recs li { padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 0.9rem; display: flex; gap: 8px; align-items: flex-start; }
-    .risk-recs li:last-child { border-bottom: none; }
-    .risk-recs li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 11px 28px;
+      border-radius: 9999px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      min-width: 180px;
+      color: #fff;
+      transition: transform 0.08s, filter 0.15s, opacity 0.15s;
+    }
+    .btn-action:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-start  { background: var(--green); }
+    .btn-cancel { background: var(--danger); }
 
-    /* ---------- Collaborators ---------- */
-    .collab-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .collab-header h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      color: var(--ink);
-      font-size: 1.15rem;
-    }
-    .collab-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 12px; }
-    .collab-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--green-pale); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 0.9rem; }
-    .collab-item .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
-    .collab-item .info { flex: 1; min-width: 0; }
-    .collab-item .info .n { font-weight: 600; color: var(--green-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .collab-item .info .e { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .collab-item .role-tag { font-size: 0.7rem; background: var(--green); color: #fff; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; }
-    .collab-item .remove-btn { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
-    .collab-invite-form { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-    .collab-invite-form input {
-      flex: 1; min-width: 200px;
-      padding: 9px 14px;
-      border: 1px solid var(--line);
+    /* ---------- Category cards ---------- */
+    .category {
       background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    .category-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .category-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.1rem;
       color: var(--ink);
+    }
+    .category-count {
+      background: var(--line);
+      color: var(--muted);
+      padding: 3px 12px;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    .category-divider {
+      border: none;
+      border-bottom: 1.5px dashed var(--dashed);
+      margin: 4px 0 14px;
+    }
+
+    /* ---------- Items ---------- */
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      background: var(--row);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      user-select: none;
+    }
+    .item:focus-visible {
+      outline: 2px solid var(--green-light);
+      outline-offset: 2px;
+    }
+    .item:hover:not(.packed) { background: var(--green-pale); }
+    .item.packed {
+      background: var(--row-checked);
+      color: var(--row-checked-ink);
+    }
+    .item.packed .item-name { text-decoration: line-through; }
+
+    .item-check {
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      border: 2px solid var(--green);
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: transparent;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    html[data-theme="dark"] .item-check {
+      background: var(--surface);
+      border-color: var(--green-light);
+    }
+    .item.packed .item-check {
+      background: var(--green);
+      color: #fff;
+    }
+    .item.packed .item-check::before { content: '✓'; }
+    html[data-theme="dark"] .item.packed .item-check {
+      background: var(--green-light);
+      color: var(--green-dark);
+    }
+    .item-name {
+      flex: 1;
+      font-size: 0.95rem;
+    }
+
+    /* ---------- Add item ---------- */
+    .add-item-btn {
+      margin-top: 12px;
+      width: 100%;
+      padding: 11px;
+      border: 1.5px dashed var(--dashed);
+      background: transparent;
+      border-radius: var(--radius-sm);
+      color: var(--muted);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    .add-item-btn:hover {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-pale);
+    }
+    .add-item-form {
+      display: none;
+      margin-top: 12px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .add-item-form.open { display: flex; }
+    .add-item-form input {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
       border-radius: 9999px;
       font-size: 0.9rem;
       font-family: inherit;
+      background: var(--surface);
+      color: var(--ink);
     }
-    .collab-invite-form input:focus {
+    .add-item-form input:focus {
       outline: none;
       border-color: var(--green-light);
-      box-shadow: 0 0 0 3px rgba(82,183,136,0.18);
+      box-shadow: 0 0 0 3px rgba(82,183,136,0.22);
     }
-    .collab-invite-form button {
-      background: var(--green);
-      color: #fff;
-      border: none;
+    .add-item-form button {
       padding: 9px 18px;
       border-radius: 9999px;
-      cursor: pointer;
+      border: none;
+      background: var(--green);
+      color: #fff;
       font-weight: 600;
-      font-size: 0.88rem;
+      cursor: pointer;
       font-family: inherit;
+      font-size: 0.88rem;
       transition: background 0.15s;
     }
-    .collab-invite-form button:hover { background: var(--green-dark); }
-    .collab-invite-form button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .collab-pending-title { font-size: 0.78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 8px 0 6px; }
-    .collab-pending-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #FFF7ED; border: 1px dashed #F59E0B; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 6px; }
-    .collab-pending-item .email { flex: 1; color: #78350F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .collab-pending-item button { background: transparent; border: 1px solid #F59E0B; color: #78350F; padding: 4px 10px; border-radius: 9999px; cursor: pointer; font-size: 0.75rem; }
-    .collab-empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 8px 0; }
-
-    /* ---------- Export / action rows (inline styles still set colors; round corners) ---------- */
-    .export-buttons button,
-    .action-buttons button {
-      font-family: inherit !important;
-      font-weight: 600 !important;
-      border-radius: 9999px !important;
-      transition: transform 0.08s, filter 0.15s !important;
-    }
-    .export-buttons button:hover,
-    .action-buttons button:hover { transform: translateY(-1px); filter: brightness(1.05); }
-
-    /* ---------- Loading state ---------- */
-    .loading {
-      text-align: center;
-      padding: 3rem;
+    .add-item-form button:hover:not(:disabled) { background: var(--green-dark); }
+    .add-item-form button.cancel {
+      background: transparent;
       color: var(--muted);
-      font-size: 1rem;
+      border: 1px solid var(--line);
     }
+    .add-item-form button.cancel:hover { background: var(--line); }
+    .add-item-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ---------- States ---------- */
+    .loading, .empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .empty strong { color: var(--ink); display: block; margin-bottom: 4px; font-family: 'Playfair Display', serif; font-size: 1.05rem; }
 
     /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
-      .navbar { padding: 14px 18px !important; flex-wrap: wrap; gap: 10px; }
-      .nav-user { flex-wrap: wrap; justify-content: flex-end; }
-      .checklist-hero { padding: 36px 16px 32px; }
-      .checklist-hero h1 { font-size: 1.6rem; }
-      .progress-section, .weather-section, .provisions-section, .risk-section, .collab-section, .checklist-grid { padding-left: 16px; padding-right: 16px; }
-      .provisions-grid { grid-template-columns: 1fr; }
-      .export-buttons, .action-buttons { flex-wrap: wrap; }
-      .action-buttons button { flex: 1 1 auto; min-width: 140px; }
-      .weather-current { flex-wrap: wrap; }
-      .weather-temp { font-size: 2rem; }
+      .navbar { padding: 14px 18px; flex-wrap: wrap; gap: 10px; }
+      .nav-user { justify-content: flex-end; flex-wrap: wrap; }
+      .container { padding: 20px 14px 40px; }
+      .trip-header { padding: 20px 18px; }
+      .trip-name { font-size: 1.3rem; }
+      .trip-header-top { flex-direction: column; gap: 6px; }
+      .trip-created { padding-top: 0; }
+      .actions { flex-direction: column; }
+      .btn-action { width: 100%; }
+      .category { padding: 16px 18px; }
     }
   </style>
 </head>
 <body>
-  <nav class="navbar">
+  <nav class="navbar" aria-label="Main">
     <div class="nav-brand">
       <span class="logo-mark" aria-hidden="true">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -410,656 +434,376 @@
       <h1 class="brand-text">TrailPack</h1>
     </div>
     <div class="nav-user">
-      <a href="index.html" class="btn">← Dashboard</a>
+      <a href="index.html" class="btn">← Back to Dashboard</a>
       <a href="profile.html" class="btn">Profile</a>
+      <a href="organizer.html" class="btn">Organizer</a>
       <button id="theme-toggle" class="btn btn-theme" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
-      <button class="btn btn-logout" onclick="sessionStorage.removeItem('authToken'); sessionStorage.removeItem('currentUser'); window.location.href='login.html'">Logout</button>
+      <button id="logout-btn" class="btn btn-logout" type="button">Logout</button>
     </div>
   </nav>
-  <div id="hero-section" class="checklist-hero">
-    <div class="brand">⛺ TrailPack</div>
-    <h1 id="hero-title">Loading...</h1>
-    <div class="trip-badges" id="trip-badges"></div>
-  </div>
-  <div class="weather-section" id="weather-section" style="display:none;">
-    <div class="weather-card" id="weather-card">
-      <div class="weather-header">
-        <h3>🌤️ Weather Forecast</h3>
-        <span class="weather-location" id="weather-location"></span>
-      </div>
-      <div id="weather-content"></div>
-    </div>
-    <div class="weather-suggestions" id="weather-suggestions" style="display:none;">
-      <h4>🎒 Weather-Based Packing Suggestions</h4>
-      <div class="suggestion-list" id="suggestion-list"></div>
-    </div>
-  </div>
-  <div class="provisions-section" id="provisions-section" style="display:none;">
-    <div class="provisions-card">
-      <div class="provisions-header">
-        <h3>🥤 Food &amp; Water Estimate</h3>
-        <span id="provisions-subtitle" style="font-size:0.85rem;color:#6b7280;"></span>
-      </div>
-      <div class="provisions-grid">
-        <div class="provisions-stat">
-          <div class="big"><span id="prov-water-total">–</span> <span style="font-size:1rem;">L</span></div>
-          <div class="unit">Total Water</div>
-          <div class="sub" id="prov-water-sub"></div>
+
+  <main class="container">
+    <section class="trip-header" id="trip-header" hidden>
+      <div class="trip-header-top">
+        <div class="trip-header-left">
+          <span class="terrain-emoji" id="terrain-emoji">⛺</span>
+          <h2 class="trip-name" id="trip-name">Trip</h2>
         </div>
-        <div class="provisions-stat">
-          <div class="big"><span id="prov-food-grams">–</span> <span style="font-size:1rem;">g</span></div>
-          <div class="unit">Total Food</div>
-          <div class="sub" id="prov-food-sub"></div>
-        </div>
+        <span class="trip-created" id="trip-created"></span>
       </div>
-      <div class="provisions-reasons" id="prov-reasons"></div>
-      <div class="provisions-disclaimer" id="prov-disclaimer"></div>
-    </div>
-  </div>
-  <div class="risk-section" id="risk-section" style="display:none;">
-    <div class="risk-card" id="risk-card">
-      <div class="risk-header">
-        <h3>⚠️ Trip Risk Analysis</h3>
-        <span class="risk-badge" id="risk-badge">—</span>
+      <div class="trip-badges" id="trip-badges"></div>
+      <div class="progress-row">
+        <span id="progress-text">0 of 0 items packed</span>
+        <span class="pct" id="progress-pct">0%</span>
       </div>
-      <div class="risk-score-track"><div class="risk-score-fill" id="risk-score-fill" style="width:0%"></div></div>
-      <div class="risk-subtitle">Potential hazards</div>
-      <div class="risk-factors" id="risk-factors"></div>
-      <div class="risk-subtitle">Recommendations</div>
-      <ul class="risk-recs" id="risk-recs"></ul>
-    </div>
-  </div>
-  <div class="collab-section" id="collab-section" style="display:none;">
-    <div class="collab-card">
-      <div class="collab-header">
-        <h3>👥 Trip Collaborators</h3>
-        <span id="collab-role-tag" style="font-size:0.75rem;color:#6b7280;"></span>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
       </div>
-      <div id="collab-invite-wrap" style="display:none;">
-        <form class="collab-invite-form" id="collab-invite-form" autocomplete="off">
-          <input type="email" id="collab-invite-email" placeholder="Invite by email…" required>
-          <button type="submit" id="collab-invite-btn">Send Invite</button>
-        </form>
-      </div>
-      <div class="collab-list" id="collab-list"></div>
-      <div id="collab-pending-wrap" style="display:none;">
-        <div class="collab-pending-title">Pending invitations</div>
-        <div id="collab-pending-list"></div>
-      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn-action btn-start" id="start-trip-btn" type="button" disabled>🚀 Start Trip</button>
+      <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
     </div>
-  </div>
-  <div class="progress-section">
-    <div class="progress-bar-container">
-      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
-    </div>
-    <p class="progress-text" id="progress-text">Loading items...</p>
-    <div class="export-buttons" style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
-      <button onclick="exportChecklist('print')" style="background: #40916C; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">🖨️ Print</button>
-      <button onclick="exportChecklist('json')" style="background: #1B4332; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;">📥 Export JSON</button>
-    </div>
-    <div class="action-buttons" style="margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center;">
-      <button id="start-trip-btn" onclick="startTrip()" style="background: #40916C; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;" disabled>🚀 Start Trip</button>
-      <button id="cancel-trip-btn" onclick="cancelTrip()" style="background: #dc2626; color: white; border: none; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600;">✕ Cancel Trip</button>
-    </div>
-  </div>
-  <div class="checklist-grid" id="checklist-grid">
-    <div class="loading">Loading your checklist...</div>
-  </div>
-  <script src="config.js"></script>
-  <script src="ui.js"></script>
+
+    <div id="categories"><div class="loading">Loading your checklist…</div></div>
+  </main>
+
   <script>
-  document.addEventListener('DOMContentLoaded', async function() {
-    const API_URL = window.API_URL;
-    const token = sessionStorage.getItem('authToken');
-
-    // One-shot "trip created" toast when arriving from create-trip.
-    if (sessionStorage.getItem('tripJustCreated') === '1') {
-      sessionStorage.removeItem('tripJustCreated');
-      setTimeout(() => {
-        if (window.showToast) window.showToast('Trip created! Here is your personalized checklist.', 'success', 3200);
-      }, 300);
-    }
-    const urlParams = new URLSearchParams(window.location.search);
-    let tripId = urlParams.get('tripId');
-    
-    console.log('Full URL:', window.location.href);
-    console.log('URL search:', window.location.search);
-    console.log('Token found:', !!token);
-    console.log('Trip ID from URL:', tripId);
-    
-    if (!token) {
-      console.log('No token - redirecting to login');
-      window.location.href = 'login.html';
-      return;
-    }
-    
-    if (!tripId) { 
-      // Try sessionStorage as fallback
-      const pendingTripId = sessionStorage.getItem('pendingTripId');
-      if (pendingTripId) {
-        console.log('Found tripId in sessionStorage:', pendingTripId);
-        tripId = pendingTripId;
-        sessionStorage.removeItem('pendingTripId'); // Clean up
-      } else {
-        console.log('No tripId in URL or sessionStorage - redirecting to dashboard');
-        (window.showToast ? window.showToast('No trip selected — returning to dashboard.', 'warning') : null);
-        setTimeout(() => { window.location.href = 'index.html'; }, 600);
-        return;
-      }
-    }
-    let items = [];
-    let trip = null;
-    try {
-      const [tripRes, itemsRes] = await Promise.all([
-        fetch(API_URL + '/trips/' + tripId, { headers: { 'Authorization': 'Bearer ' + token } }),
-        fetch(API_URL + '/trips/' + tripId + '/items', { headers: { 'Authorization': 'Bearer ' + token } })
-      ]);
-      console.log('Trip response status:', tripRes.status);
-      console.log('Items response status:', itemsRes.status);
-      const tripData = await tripRes.json();
-      const itemsData = await itemsRes.json();
-      console.log('Trip data:', tripData);
-      console.log('Items data:', itemsData);
-      trip = tripData.trip || tripData;
-      items = Array.isArray(itemsData) ? itemsData : (itemsData.items || []);
-      console.log('Parsed items count:', items.length);
-      // Expose to window for export function
-      window.currentTrip = trip;
-      window.currentItems = items;
-      // Render hero
-      document.getElementById('hero-title').textContent = (trip.name || 'My Trip') + ' Checklist';
-      document.getElementById('trip-badges').innerHTML = [
-        trip.terrain, trip.season, (trip.duration || '') + ' days'
-      ].filter(Boolean).map(b => '<span class="badge">' + b + '</span>').join('');
-      renderAll();
-      // Load weather if location is set
-      if (trip.location) {
-        loadWeather(trip.location, trip.startDate, trip.endDate);
-      }
-      // Load provisions estimate (food + water)
-      loadProvisions(tripId);
-      // Load AI-based risk analysis
-      loadRiskAnalysis(trip);
-      // Load collaborators + invite state
-      loadCollaborators(tripId, trip);
-    } catch (err) {
-      console.error('Error:', err);
-      document.getElementById('checklist-grid').innerHTML = '<div class="loading">Error loading checklist: ' + err.message + '</div>';
-    }
-    function updateProgress() {
-      const total = items.length;
-      const packed = items.filter(i => i.packed).length;
-      const pct = total ? Math.round(packed / total * 100) : 0;
-      document.getElementById('progress-fill').style.width = pct + '%';
-      document.getElementById('progress-text').textContent = packed + '/' + total + ' items packed (' + pct + '%)';
-      
-      // Enable Start Trip button when all items are packed
-      const startBtn = document.getElementById('start-trip-btn');
-      if (startBtn) {
-        startBtn.disabled = (packed !== total || total === 0);
-        if (packed === total && total > 0) {
-          startBtn.textContent = '🚀 Start Trip';
-          startBtn.style.opacity = '1';
-        } else {
-          startBtn.style.opacity = '0.5';
-        }
-      }
-    }
-    function renderAll() {
-      updateProgress();
-      const grouped = {};
-      items.forEach(item => {
-        const cat = item.category || 'General';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(item);
-      });
-      const grid = document.getElementById('checklist-grid');
-      grid.innerHTML = '';
-      Object.entries(grouped).forEach(([category, catItems]) => {
-        const section = document.createElement('div');
-        section.className = 'category-col';
-        section.innerHTML = '<h3>' + category + '</h3><hr class="dotted-divider">' +
-          catItems.map(item =>
-            '<div class="checklist-item' + (item.packed ? ' packed' : '') + '" id="item-' + item.itemId + '">' +
-            '<span>' + item.name + '</span>' +
-            '<input type="checkbox"' + (item.packed ? ' checked' : '') + ' onchange="toggleItem(\'' + item.itemId + '\', this.checked)">' +
-            '</div>'
-          ).join('');
-        grid.appendChild(section);
-      });
-    }
-    window.toggleItem = async function(itemId, packed) {
-      const item = items.find(i => i.itemId === itemId);
-      if (item) {
-        item.packed = packed;
-        const el = document.getElementById('item-' + itemId);
-        if (el) el.className = 'checklist-item' + (packed ? ' packed' : '');
-        updateProgress();
-      }
-      try {
-        await fetch(API_URL + '/trips/' + tripId + '/items/' + itemId, {
-          method: 'PATCH',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ packed: packed })
-        });
-      } catch(e) { console.error('Toggle failed:', e); }
-    };
-    // Export/Print functionality
-    window.exportChecklist = function(format) {
-      const exportTrip = window.currentTrip || trip;
-      const exportItems = window.currentItems || items;
-      if (format === 'print') {
-        window.print();
-      } else if (format === 'json') {
-        const data = {
-          trip: exportTrip,
-          items: exportItems,
-          exportedAt: new Date().toISOString()
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = (exportTrip?.name || 'trip') + '_checklist.json';
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-    };
-    
-    // Start Trip functionality
-    window.startTrip = async function() {
-      const confirmed = window.showConfirm
-        ? await window.showConfirm('This will mark the trip as in progress.', { title: 'Start this trip?', confirmText: 'Start Trip' })
-        : confirm('Are you sure you want to start this trip? This will mark the trip as in progress.');
-      if (!confirmed) return;
-      try {
-        const res = await fetch(API_URL + '/trips/' + tripId, {
-          method: 'PUT',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'in_progress' })
-        });
-        const data = await res.json();
-        console.log('Start trip response:', res.status, data);
-        if (res.ok) {
-          (window.showToast ? window.showToast('Trip started — have a great adventure!', 'success') : null);
-          setTimeout(() => { window.location.href = 'index.html'; }, 900);
-        } else {
-          (window.showToast ? window.showToast('Failed to start trip: ' + (data.message || 'Unknown error'), 'error') : alert('Failed to start trip: ' + (data.message || 'Unknown error')));
-        }
-      } catch(e) {
-        console.error('Start trip failed:', e);
-        (window.showToast ? window.showToast('Failed to start trip: ' + e.message, 'error') : alert('Failed to start trip: ' + e.message));
-      }
-    };
-    
-    // Collaborators panel: list, invite (owner-only), revoke pending invites.
-    async function loadCollaborators(tripId, trip) {
-      const section = document.getElementById('collab-section');
-      const listEl = document.getElementById('collab-list');
-      const inviteWrap = document.getElementById('collab-invite-wrap');
-      const pendingWrap = document.getElementById('collab-pending-wrap');
-      const pendingListEl = document.getElementById('collab-pending-list');
-      const roleTag = document.getElementById('collab-role-tag');
-
-      const currentUser = JSON.parse(sessionStorage.getItem('currentUser') || 'null') || {};
-      const isOwner = currentUser.userId && trip && trip.userId && currentUser.userId === trip.userId;
-
-      roleTag.textContent = isOwner ? 'You are the owner' : 'You are a collaborator';
-
-      const initial = (s) => (s || '?').trim().charAt(0).toUpperCase();
-      const renderCollabItem = (user, role, canRemove) => {
-        const name = user.name || user.email || 'Unknown';
-        const email = user.email || '';
-        const avatar = `<div class="avatar">${initial(name)}</div>`;
-        const info = `<div class="info"><div class="n">${escapeHTML(name)}</div><div class="e">${escapeHTML(email)}</div></div>`;
-        const tag = role === 'owner' ? '<span class="role-tag">Owner</span>' : '';
-        const remove = canRemove
-          ? `<button class="remove-btn" title="Remove" data-userid="${user.userId}">&times;</button>`
-          : '';
-        return `<div class="collab-item">${avatar}${info}${tag}${remove}</div>`;
-      };
-
-      // Always show the owner first.
-      const ownerUser = isOwner
-        ? { userId: currentUser.userId, name: currentUser.name, email: currentUser.email }
-        : { userId: trip.userId, name: trip.ownerName || '', email: trip.ownerEmail || '' };
-
-      let collaborators = [];
-      try {
-        const res = await fetch(API_URL + '/trips/' + tripId + '/participants', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          collaborators = Array.isArray(data.participants) ? data.participants : [];
-        }
-      } catch (err) {
-        console.warn('Load collaborators failed:', err);
-      }
-
-      const html = [renderCollabItem(ownerUser, 'owner', false)]
-        .concat(collaborators.map(c => renderCollabItem(c, 'collaborator', isOwner)))
-        .join('');
-      listEl.innerHTML = html || '<div class="collab-empty">No collaborators yet.</div>';
-
-      // Owner-only: show invite form + pending invites + remove buttons.
-      if (isOwner) {
-        inviteWrap.style.display = 'block';
-        await refreshPendingInvites(tripId);
-
-        const form = document.getElementById('collab-invite-form');
-        form.onsubmit = (e) => { e.preventDefault(); sendInvite(tripId); };
-
-        // Wire remove buttons (event delegation).
-        listEl.querySelectorAll('.remove-btn').forEach(btn => {
-          btn.onclick = async () => {
-            const uid = btn.getAttribute('data-userid');
-            if (!uid) return;
-            const ok = window.showConfirm
-              ? await window.showConfirm('Remove this collaborator from the trip?', { title: 'Remove collaborator', confirmText: 'Remove', danger: true })
-              : confirm('Remove this collaborator?');
-            if (!ok) return;
-            try {
-              const res = await fetch(API_URL + '/trips/' + tripId + '/participants/' + uid, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + token }
-              });
-              if (!res.ok) throw new Error((await res.json()).message || 'Failed');
-              (window.showToast ? window.showToast('Collaborator removed.', 'success') : null);
-              loadCollaborators(tripId, trip);
-            } catch (err) {
-              (window.showToast ? window.showToast('Failed to remove: ' + err.message, 'error') : alert(err.message));
-            }
-          };
-        });
-      }
-
-      section.style.display = 'block';
-    }
-
-    async function refreshPendingInvites(tripId) {
-      const wrap = document.getElementById('collab-pending-wrap');
-      const listEl = document.getElementById('collab-pending-list');
-      try {
-        const res = await fetch(API_URL + '/trips/' + tripId + '/invites', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!res.ok) { wrap.style.display = 'none'; return; }
-        const data = await res.json();
-        const invites = data.invites || [];
-        if (invites.length === 0) { wrap.style.display = 'none'; return; }
-        listEl.innerHTML = invites.map(inv => `
-          <div class="collab-pending-item">
-            <span class="email">✉️ ${escapeHTML(inv.email || '')}</span>
-            <button data-invite="${inv.inviteId}">Revoke</button>
-          </div>
-        `).join('');
-        wrap.style.display = 'block';
-        listEl.querySelectorAll('button[data-invite]').forEach(btn => {
-          btn.onclick = async () => {
-            const inviteId = btn.getAttribute('data-invite');
-            try {
-              await fetch(API_URL + '/trips/' + tripId + '/invites/' + inviteId, {
-                method: 'DELETE',
-                headers: { 'Authorization': 'Bearer ' + token }
-              });
-              (window.showToast ? window.showToast('Invitation revoked.', 'info') : null);
-              refreshPendingInvites(tripId);
-            } catch (err) {
-              (window.showToast ? window.showToast('Failed to revoke.', 'error') : alert(err.message));
-            }
-          };
-        });
-      } catch (err) {
-        console.warn('Pending invites load failed:', err);
-      }
-    }
-
-    async function sendInvite(tripId) {
-      const input = document.getElementById('collab-invite-email');
-      const btn = document.getElementById('collab-invite-btn');
-      const email = (input.value || '').trim();
-      if (!email) return;
-      btn.disabled = true;
-      const originalText = btn.textContent;
-      btn.textContent = 'Sending…';
-      try {
-        const res = await fetch(API_URL + '/trips/' + tripId + '/invites', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Invite failed');
-        input.value = '';
-        const acceptLink = window.location.origin + '/accept-invite.html?token=' + encodeURIComponent(data.token);
-        // Copy to clipboard if available.
-        try { await navigator.clipboard.writeText(acceptLink); } catch (_) {}
-        (window.showToast
-          ? window.showToast('Invite sent to ' + email + '. Link copied to clipboard.', 'success', 3000)
-          : alert('Invite link: ' + acceptLink));
-        refreshPendingInvites(tripId);
-      } catch (err) {
-        (window.showToast ? window.showToast(err.message, 'error') : alert(err.message));
-      } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    }
-
-    function escapeHTML(s) {
-      return String(s || '').replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-    }
-
-    // Risk analysis loader
-    async function loadRiskAnalysis(trip) {
-      const section = document.getElementById('risk-section');
-      const card = document.getElementById('risk-card');
-      const badge = document.getElementById('risk-badge');
-      const fill = document.getElementById('risk-score-fill');
-      const factors = document.getElementById('risk-factors');
-      const recs = document.getElementById('risk-recs');
-      try {
-        const res = await fetch(API_URL + '/ai/risk-analysis', {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            terrain: trip.terrain,
-            season: trip.season,
-            duration: trip.duration,
-            experience: trip.experience || 'Intermediate'
-          })
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data || !data.overallRisk) return;
-
-        const level = String(data.overallRisk).toLowerCase();
-        card.classList.remove('level-low', 'level-medium', 'level-high');
-        card.classList.add('level-' + level);
-        badge.classList.remove('level-low', 'level-medium', 'level-high');
-        badge.classList.add('level-' + level);
-        badge.textContent = data.overallRisk + ' risk';
-
-        const score = Math.max(0, Math.min(100, Number(data.riskScore) || 0));
-        fill.style.width = score + '%';
-
-        factors.innerHTML = (data.riskFactors || [])
-          .map(f => `<span class="chip">${f}</span>`)
-          .join('') || '<span style="color:#6b7280;font-size:0.85rem;">No major hazards identified.</span>';
-
-        recs.innerHTML = (data.recommendations || [])
-          .map(r => `<li>${r}</li>`)
-          .join('');
-
-        section.style.display = 'block';
-      } catch (err) {
-        console.warn('Risk analysis load failed:', err);
-      }
-    }
-
-    // Provisions loader (food + water estimate)
-    async function loadProvisions(tripId) {
-      const section = document.getElementById('provisions-section');
-      try {
-        const res = await fetch(API_URL + '/trips/' + tripId + '/provisions', {
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!data || !data.water || !data.food) return;
-
-        document.getElementById('prov-water-total').textContent = data.water.totalLiters;
-        document.getElementById('prov-water-sub').textContent =
-          `${data.water.perPersonPerDay} L / person / day`;
-
-        document.getElementById('prov-food-grams').textContent = data.food.totalGrams;
-        document.getElementById('prov-food-sub').textContent =
-          `${data.food.caloriesPerPersonPerDay} kcal / person / day`;
-
-        const { duration, participants } = data.inputs || {};
-        document.getElementById('provisions-subtitle').textContent =
-          `${duration}-day trip · ${participants} ${participants === 1 ? 'person' : 'people'}`;
-
-        const reasonsEl = document.getElementById('prov-reasons');
-        reasonsEl.innerHTML = (data.reasons || [])
-          .map(r => `<span class="chip">${r.icon || ''} ${r.text}</span>`)
-          .join('');
-
-        document.getElementById('prov-disclaimer').textContent = data.disclaimer || '';
-        section.style.display = 'block';
-      } catch (err) {
-        console.warn('Provisions load failed:', err);
-      }
-    }
-
-    // Weather loader
-    async function loadWeather(location, startDate, endDate) {
-      const section = document.getElementById('weather-section');
-      const content = document.getElementById('weather-content');
-      const locEl = document.getElementById('weather-location');
-      section.style.display = 'block';
-      content.innerHTML = '<div style="padding:1rem;text-align:center;">Loading weather...</div>';
-      try {
-        let url = API_URL + '/weather?location=' + encodeURIComponent(location);
-        if (startDate && endDate) url += '&startDate=' + startDate + '&endDate=' + endDate;
-        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.message || 'Weather failed');
-
-        locEl.textContent = [data.location.name, data.location.region, data.location.country].filter(Boolean).join(', ');
-
-        const weatherIcons = { 0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'⛈️',71:'🌨️',73:'❄️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',85:'🌨️',86:'❄️',95:'⛈️',96:'⛈️',99:'⛈️' };
-        const codeDesc = { 0:'Clear',1:'Mainly Clear',2:'Partly Cloudy',3:'Cloudy',45:'Fog',48:'Freezing Fog',51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',61:'Light Rain',63:'Rain',65:'Heavy Rain',71:'Light Snow',73:'Snow',75:'Heavy Snow',80:'Showers',81:'Heavy Showers',82:'Violent Showers',95:'Thunderstorm',96:'Thunderstorm + Hail',99:'Severe Storm' };
-
-        let html = '';
-        if (data.current) {
-          const c = data.current;
-          html += '<div class="weather-current">' +
-            '<div style="font-size:3rem;">' + (weatherIcons[c.weather_code] || '🌡️') + '</div>' +
-            '<div class="weather-desc">' +
-              '<div class="weather-temp">' + Math.round(c.temperature_2m) + '°C</div>' +
-              '<div>' + (codeDesc[c.weather_code] || 'Current') + ' · 💨 ' + Math.round(c.wind_speed_10m) + ' km/h · 💧 ' + c.relative_humidity_2m + '%</div>' +
-            '</div></div>';
-        }
-
-        if (data.daily && data.daily.time) {
-          const days = data.daily.time.slice(0, 7);
-          html += '<div class="weather-forecast">';
-          days.forEach((dateStr, i) => {
-            const d = new Date(dateStr);
-            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-            const code = data.daily.weather_code[i];
-            const high = Math.round(data.daily.temperature_2m_max[i]);
-            const low = Math.round(data.daily.temperature_2m_min[i]);
-            const pp = data.daily.precipitation_probability_max?.[i] || 0;
-            html += '<div class="forecast-day">' +
-              '<div class="day-name">' + dayName + '</div>' +
-              '<div class="icon">' + (weatherIcons[code] || '🌡️') + '</div>' +
-              '<div class="temps">' + high + '° / ' + low + '°</div>' +
-              '<div class="precip">💧 ' + pp + '%</div>' +
-              '</div>';
-          });
-          html += '</div>';
-        }
-        content.innerHTML = html;
-
-        // Load suggestions
-        loadWeatherSuggestions(location, startDate, endDate);
-      } catch (err) {
-        console.error('Weather error:', err);
-        content.innerHTML = '<div class="weather-error">Could not load weather: ' + err.message + '</div>';
-      }
-    }
-
-    async function loadWeatherSuggestions(location, startDate, endDate) {
-      try {
-        let url = API_URL + '/weather/suggestions?location=' + encodeURIComponent(location);
-        if (startDate && endDate) url += '&startDate=' + startDate + '&endDate=' + endDate;
-        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        if (!res.ok || !data.suggestions) return;
-        const list = document.getElementById('suggestion-list');
-        const section = document.getElementById('weather-suggestions');
-        list.innerHTML = data.suggestions.map(s =>
-          '<span class="suggestion-chip ' + (s.priority === 'high' ? 'high' : '') + '">' + s.icon + ' ' + s.text + '</span>'
-        ).join('');
-        section.style.display = 'block';
-      } catch (err) {
-        console.error('Suggestions error:', err);
-      }
-    }
-
-    // Cancel Trip functionality
-    window.cancelTrip = async function() {
-      const confirmed = window.showConfirm
-        ? await window.showConfirm('This will permanently delete the trip and its checklist.', { title: 'Cancel this trip?', confirmText: 'Cancel Trip', cancelText: 'Keep Trip', danger: true })
-        : confirm('Are you sure you want to cancel this trip? This will delete the trip and all its data.');
-      if (!confirmed) return;
-      try {
-        const res = await fetch(API_URL + '/trips/' + tripId, {
-          method: 'DELETE',
-          headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (res.ok) {
-          (window.showToast ? window.showToast('Trip cancelled.', 'success') : null);
-          setTimeout(() => { window.location.href = 'index.html'; }, 700);
-        } else {
-          (window.showToast ? window.showToast('Failed to cancel trip.', 'error') : alert('Failed to cancel trip. Please try again.'));
-        }
-      } catch(e) {
-        console.error('Cancel trip failed:', e);
-        (window.showToast ? window.showToast('Failed to cancel trip.', 'error') : alert('Failed to cancel trip. Please try again.'));
-      }
-    };
-  });
-  </script>
-  <script>
-    // Theme toggle — mirrors index.html behavior (localStorage + prefers-color-scheme).
     (function () {
+      /* ---------- Theme (pre-paint to avoid flash) ---------- */
       const root = document.documentElement;
-      const KEY = 'tp-theme';
-      const apply = (t) => {
+      const THEME_KEY = 'tp-theme';
+      const applyTheme = (t) => {
         root.setAttribute('data-theme', t);
         const btn = document.getElementById('theme-toggle');
         if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
       };
-      const saved = localStorage.getItem(KEY);
+      const savedTheme = localStorage.getItem(THEME_KEY);
       const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      apply(saved || (prefersDark ? 'dark' : 'light'));
-      document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('theme-toggle');
-        if (!btn) return;
-        btn.addEventListener('click', () => {
-          const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-          localStorage.setItem(KEY, next);
-          apply(next);
+      applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+
+      /* ---------- Emoji maps ---------- */
+      const TERRAIN_EMOJI = {
+        mountain: '🏔️', mountains: '🏔️', alpine: '🏔️',
+        forest: '🌲', woods: '🌲',
+        desert: '🏜️',
+        beach: '🏖️', coast: '🏖️',
+        lake: '🏞️', river: '🏞️',
+        snow: '❄️', arctic: '🧊',
+        tropical: '🌴', jungle: '🌴',
+        hills: '⛰️', valley: '⛰️',
+      };
+      const TERRAIN_DEFAULT = '⛺';
+      const SEASON_EMOJI = {
+        summer: { icon: '☀️', bg: '#FEF9C3', color: '#92400E', border: '#FDE68A' },
+        winter: { icon: '❄️', bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
+        fall:   { icon: '🍂', bg: '#FFF7ED', color: '#92400E', border: '#FED7AA' },
+        autumn: { icon: '🍂', bg: '#FFF7ED', color: '#92400E', border: '#FED7AA' },
+        spring: { icon: '🌸', bg: '#FDF2F8', color: '#9D174D', border: '#FBCFE8' },
+      };
+
+      /* ---------- Helpers ---------- */
+      const escapeHtml = (s) => {
+        const d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+      };
+      const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
+
+      /* ---------- Auth + tripId ---------- */
+      const API_URL = (window.API_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const token = sessionStorage.getItem('authToken');
+      if (!token) { window.location.href = 'login.html'; return; }
+
+      const params = new URLSearchParams(window.location.search);
+      let tripId = params.get('tripId');
+      if (!tripId) {
+        const pending = sessionStorage.getItem('pendingTripId');
+        if (pending) {
+          tripId = pending;
+          sessionStorage.removeItem('pendingTripId');
+        } else {
+          window.location.href = 'index.html';
+          return;
+        }
+      }
+
+      /* ---------- API wrapper ---------- */
+      const api = async (path, options = {}) => {
+        const res = await fetch(API_URL + path, {
+          ...options,
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+          },
         });
+        if (res.status === 401) {
+          sessionStorage.removeItem('authToken');
+          window.location.href = 'login.html';
+          throw new Error('unauthorized');
+        }
+        if (res.status === 204) return null;
+        const text = await res.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch { /* non-JSON */ }
+        if (!res.ok) {
+          const msg = (data && data.message) || ('HTTP ' + res.status);
+          throw new Error(msg);
+        }
+        return data;
+      };
+
+      /* ---------- State ---------- */
+      let trip = null;
+      let items = [];
+
+      /* ---------- Renderers ---------- */
+      function renderHeader() {
+        const header = document.getElementById('trip-header');
+        header.hidden = false;
+
+        const terrain = (trip.terrain || '').toLowerCase();
+        document.getElementById('terrain-emoji').textContent =
+          TERRAIN_EMOJI[terrain] || TERRAIN_DEFAULT;
+
+        document.getElementById('trip-name').textContent = trip.name || 'Trip';
+
+        const created = trip.createdAt ? new Date(trip.createdAt).toLocaleDateString() : '';
+        document.getElementById('trip-created').textContent = created ? 'Created ' + created : '';
+
+        const badges = [];
+        if (trip.terrain) {
+          badges.push(`<span class="trip-badge">${escapeHtml(cap(trip.terrain))}</span>`);
+        }
+        if (trip.season) {
+          const s = SEASON_EMOJI[(trip.season || '').toLowerCase()];
+          const label = escapeHtml(cap(trip.season));
+          if (s) {
+            badges.push(`<span class="trip-badge season" style="background:${s.bg};color:${s.color};border-color:${s.border};">${s.icon} ${label}</span>`);
+          } else {
+            badges.push(`<span class="trip-badge">${label}</span>`);
+          }
+        }
+        if (trip.duration) {
+          badges.push(`<span class="trip-badge">${Number(trip.duration)} days</span>`);
+        }
+        document.getElementById('trip-badges').innerHTML = badges.join('');
+
+        updateProgress();
+      }
+
+      function updateProgress() {
+        const total = items.length;
+        const packed = items.filter(i => i.packed).length;
+        const pct = total ? Math.round(packed / total * 100) : 0;
+        document.getElementById('progress-fill').style.width = pct + '%';
+        document.getElementById('progress-text').textContent =
+          packed + ' of ' + total + ' items packed';
+        document.getElementById('progress-pct').textContent = pct + '%';
+        const startBtn = document.getElementById('start-trip-btn');
+        startBtn.disabled = !(total > 0 && packed === total);
+      }
+
+      function renderCategories() {
+        const container = document.getElementById('categories');
+        container.innerHTML = '';
+        const grouped = {};
+        items.forEach(it => {
+          const c = it.category || 'General';
+          (grouped[c] = grouped[c] || []).push(it);
+        });
+        const categoryNames = Object.keys(grouped).sort();
+        if (categoryNames.length === 0) categoryNames.push('General');
+        categoryNames.forEach(cat => {
+          container.appendChild(buildCategoryCard(cat, grouped[cat] || []));
+        });
+      }
+
+      function buildCategoryCard(category, catItems) {
+        const card = document.createElement('section');
+        card.className = 'category';
+        card.dataset.category = category;
+
+        const head = document.createElement('div');
+        head.className = 'category-head';
+        const title = document.createElement('h3');
+        title.className = 'category-title';
+        title.textContent = category;
+        const count = document.createElement('span');
+        count.className = 'category-count';
+        count.textContent = catItems.length + ' ' + (catItems.length === 1 ? 'item' : 'items');
+        head.append(title, count);
+        card.appendChild(head);
+
+        const hr = document.createElement('hr');
+        hr.className = 'category-divider';
+        card.appendChild(hr);
+
+        const list = document.createElement('div');
+        list.className = 'items-list';
+        catItems.forEach(it => list.appendChild(buildItemRow(it)));
+        card.appendChild(list);
+
+        // Add-item UI
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'add-item-btn';
+        addBtn.textContent = '+ Add item';
+
+        const form = document.createElement('form');
+        form.className = 'add-item-form';
+        form.setAttribute('novalidate', '');
+        form.innerHTML =
+          '<input type="text" placeholder="Item name" required autocomplete="off" maxlength="120">' +
+          '<button type="submit">Add</button>' +
+          '<button type="button" class="cancel">Cancel</button>';
+
+        addBtn.addEventListener('click', () => {
+          form.classList.add('open');
+          addBtn.style.display = 'none';
+          form.querySelector('input').focus();
+        });
+        form.querySelector('.cancel').addEventListener('click', () => {
+          form.classList.remove('open');
+          form.reset();
+          addBtn.style.display = '';
+        });
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const input = form.querySelector('input');
+          const name = input.value.trim();
+          if (!name) return;
+          const submitBtn = form.querySelector('button[type="submit"]');
+          submitBtn.disabled = true;
+          submitBtn.textContent = '…';
+          try {
+            const created = await api('/trips/' + tripId + '/items', {
+              method: 'POST',
+              body: JSON.stringify({ name, category }),
+            });
+            const newItem = (created && created.item) || created;
+            if (newItem && newItem.itemId) {
+              items.push(newItem);
+            } else {
+              // Defensive re-fetch if backend returned an unexpected shape
+              const fresh = await api('/trips/' + tripId + '/items');
+              items = Array.isArray(fresh) ? fresh : (fresh && fresh.items) || [];
+            }
+            renderCategories();
+            updateProgress();
+          } catch (err) {
+            alert('Could not add item: ' + err.message);
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Add';
+          }
+        });
+
+        card.append(addBtn, form);
+        return card;
+      }
+
+      function buildItemRow(item) {
+        const row = document.createElement('div');
+        row.className = 'item' + (item.packed ? ' packed' : '');
+        row.dataset.itemId = item.itemId;
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+        row.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
+        row.innerHTML =
+          '<span class="item-check" aria-hidden="true"></span>' +
+          '<span class="item-name"></span>';
+        row.querySelector('.item-name').textContent = item.name || '';
+        const toggle = () => togglePacked(item, row);
+        row.addEventListener('click', toggle);
+        row.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+        });
+        return row;
+      }
+
+      async function togglePacked(item, row) {
+        const next = !item.packed;
+        // optimistic UI
+        item.packed = next;
+        row.classList.toggle('packed', next);
+        row.setAttribute('aria-pressed', next ? 'true' : 'false');
+        updateProgress();
+        try {
+          await api('/trips/' + tripId + '/items/' + item.itemId, {
+            method: 'PATCH',
+            body: JSON.stringify({ packed: next }),
+          });
+        } catch (err) {
+          // revert
+          item.packed = !next;
+          row.classList.toggle('packed', item.packed);
+          row.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
+          updateProgress();
+          alert('Could not update item: ' + err.message);
+        }
+      }
+
+      async function startTrip() {
+        const btn = document.getElementById('start-trip-btn');
+        if (btn.disabled) return;
+        btn.disabled = true;
+        try {
+          await api('/trips/' + tripId, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'active' }),
+          });
+          window.location.href = 'index.html';
+        } catch (err) {
+          alert('Could not start trip: ' + err.message);
+          btn.disabled = false;
+        }
+      }
+
+      async function cancelTrip() {
+        if (!confirm('Cancel this trip? This cannot be undone.')) return;
+        const btn = document.getElementById('cancel-trip-btn');
+        btn.disabled = true;
+        try {
+          await api('/trips/' + tripId, { method: 'DELETE' });
+          window.location.href = 'index.html';
+        } catch (err) {
+          alert('Could not cancel trip: ' + err.message);
+          btn.disabled = false;
+        }
+      }
+
+      /* ---------- Boot ---------- */
+      document.addEventListener('DOMContentLoaded', async () => {
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+          const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          localStorage.setItem(THEME_KEY, next);
+          applyTheme(next);
+        });
+        document.getElementById('logout-btn').addEventListener('click', () => {
+          sessionStorage.removeItem('authToken');
+          sessionStorage.removeItem('currentUser');
+          window.location.href = 'login.html';
+        });
+        document.getElementById('start-trip-btn').addEventListener('click', startTrip);
+        document.getElementById('cancel-trip-btn').addEventListener('click', cancelTrip);
+
+        try {
+          const [tripData, itemsData] = await Promise.all([
+            api('/trips/' + tripId),
+            api('/trips/' + tripId + '/items'),
+          ]);
+          trip = (tripData && tripData.trip) || tripData || {};
+          items = Array.isArray(itemsData) ? itemsData : (itemsData && itemsData.items) || [];
+          renderHeader();
+          renderCategories();
+        } catch (err) {
+          document.getElementById('categories').innerHTML =
+            '<div class="empty"><strong>Could not load checklist</strong>' +
+            escapeHtml(err.message) + '</div>';
+        }
       });
     })();
   </script>
