@@ -655,6 +655,281 @@
     .tp-toast.success { background: var(--green); color: #fff; }
     .tp-toast.error   { background: var(--danger); color: #fff; }
 
+    /* ===========================================================
+       Inserted cards: Weather Hero / Calorie & Water / Smart Gear
+       Sit between the Start/Cancel actions and the category list.
+       =========================================================== */
+
+    /* ---- shared ---- */
+    .ins-card {
+      border-radius: 16px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .ins-card-white {
+      background: var(--surface);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      padding: 20px 22px;
+    }
+    .ins-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .ins-card-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--ink);
+    }
+    .ins-card-divider {
+      border: none;
+      border-bottom: 1.5px dashed #d4d1ca;
+      margin: 4px 0 14px;
+    }
+    html[data-theme="dark"] .ins-card-divider { border-bottom-color: var(--dashed); }
+
+    /* ========== Card 1: Weather ========== */
+    .wx-hero {
+      background: transparent;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .wx-gradient {
+      background: linear-gradient(160deg,#1a6b8a,#2d9bc4 60%,#3ab5e0);
+      padding: 20px 22px 22px;
+      color: #fff;
+    }
+    .wx-top {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; font-size: 0.9rem; flex-wrap: wrap;
+    }
+    .wx-top .wx-loc {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 600; opacity: 0.97;
+    }
+    .wx-top .wx-cond { opacity: 0.85; }
+    .wx-center {
+      display: flex; align-items: center; justify-content: center;
+      gap: 18px; margin: 14px 0 16px; flex-wrap: wrap;
+    }
+    .wx-center .wx-emoji { font-size: 3.2rem; line-height: 1; }
+    .wx-center .wx-temp {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 3.2rem; font-weight: 700; line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .wx-center .wx-feels {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem; font-weight: 500;
+      opacity: 0.9; margin-top: 4px;
+    }
+    .wx-tiles {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .wx-tile {
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+    .wx-tile .wx-tile-label {
+      font-size: 0.7rem; letter-spacing: 0.04em;
+      opacity: 0.85; margin-bottom: 2px;
+    }
+    .wx-tile .wx-tile-value {
+      font-size: 1rem; font-weight: 700;
+    }
+    .wx-forecast {
+      background: #fff;
+      border-radius: 0 0 16px 16px;
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+    html[data-theme="dark"] .wx-forecast { background: var(--surface); }
+    .wx-day {
+      text-align: center;
+      padding: 6px 2px;
+      border-radius: 10px;
+    }
+    .wx-day .wx-day-name {
+      font-size: 0.72rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+    .wx-day .wx-day-emoji { font-size: 1.3rem; line-height: 1; margin: 2px 0 4px; }
+    .wx-day .wx-day-hi { font-weight: 700; color: var(--ink); }
+    .wx-day .wx-day-lo { color: var(--muted); font-size: 0.85rem; }
+    @media (max-width: 540px) {
+      .wx-tiles { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ========== Card 2: Calorie & Water ========== */
+    .cw-head-meta { color: var(--muted); font-size: 0.85rem; font-weight: 500; }
+    .cw-tiles {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin-bottom: 14px;
+    }
+    .cw-tile {
+      background: #f9f8f5;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    html[data-theme="dark"] .cw-tile { background: var(--row); }
+    .cw-tile .cw-tile-top {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .cw-tile .cw-tile-big {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700; font-size: 1.5rem;
+      color: var(--ink); letter-spacing: -0.01em;
+    }
+    .cw-tile .cw-tile-sub {
+      font-size: 0.78rem; color: var(--muted); margin-top: 2px;
+    }
+    .cw-bars { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+    .cw-bar .cw-bar-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.85rem; margin-bottom: 4px;
+    }
+    .cw-bar .cw-bar-label { color: var(--ink); font-weight: 500; }
+    .cw-bar .cw-bar-stat  { color: var(--muted); font-weight: 600; }
+    .cw-bar-track {
+      height: 8px;
+      background: #eee6da;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    html[data-theme="dark"] .cw-bar-track { background: #24332B; }
+    .cw-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+    }
+    .cw-bar-fill.water    { background: #3ab5e0; }
+    .cw-bar-fill.calories { background: #f97316; }
+    .cw-bar-fill.protein  { background: #8b5cf6; }
+    .cw-pills {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .cw-pill {
+      background: #f9f8f5;
+      border-radius: 9999px;
+      padding: 8px 14px;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    html[data-theme="dark"] .cw-pill { background: var(--row); }
+    .cw-pill .cw-pill-label { color: var(--muted); font-weight: 500; margin-right: 4px; }
+    .cw-pill .cw-pill-val   { color: var(--ink); font-weight: 700; }
+
+    /* ========== Card 3: Smart Gear ========== */
+    .sg-title-wrap { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sg-ai-badge {
+      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      letter-spacing: 0.02em;
+    }
+    .sg-filters {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .sg-filter {
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: var(--ink);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .sg-filter:hover { background: var(--green-pale); }
+    .sg-filter.active {
+      background: #2D6A4F;
+      border-color: #2D6A4F;
+      color: #fff;
+    }
+    .sg-list {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 12px;
+    }
+    .sg-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #f9f8f5;
+      border-radius: 10px;
+      padding: 11px 14px;
+      border-left: 3px solid #9CA3AF;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    html[data-theme="dark"] .sg-item { background: var(--row); }
+    .sg-item:hover { background: var(--green-pale); }
+    .sg-item.essential    { border-left-color: #EF4444; }
+    .sg-item.recommended  { border-left-color: #F59E0B; }
+    .sg-item.optional     { border-left-color: #9CA3AF; }
+    .sg-item.packed .sg-name { text-decoration: line-through; color: var(--muted); }
+    .sg-check {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      border: 2px solid #2D6A4F;
+      background: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800;
+      color: transparent;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    html[data-theme="dark"] .sg-check { background: var(--surface); border-color: var(--green-light); }
+    .sg-item.packed .sg-check { background: #2D6A4F; color: #fff; }
+    .sg-item.packed .sg-check::before { content: '✓'; }
+    html[data-theme="dark"] .sg-item.packed .sg-check { background: var(--green-light); color: var(--green-dark); }
+    .sg-name { flex: 1; font-weight: 500; color: var(--ink); }
+    .sg-prio {
+      font-size: 0.7rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 9999px;
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .sg-prio.essential   { background: #FEE2E2; color: #991B1B; }
+    .sg-prio.recommended { background: #FEF3C7; color: #8A4C10; }
+    .sg-prio.optional    { background: #E5E7EB; color: #4B5563; }
+    .sg-legend {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap;
+      font-size: 0.82rem; color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+    .sg-legend-groups { display: flex; gap: 14px; flex-wrap: wrap; }
+    .sg-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .sg-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      display: inline-block;
+    }
+    .sg-dot.essential   { background: #EF4444; }
+    .sg-dot.recommended { background: #F59E0B; }
+    .sg-dot.optional    { background: #9CA3AF; }
+    .sg-legend-count { color: var(--ink); font-weight: 700; }
+
     /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
       .navbar { padding: 14px 18px; flex-wrap: wrap; gap: 10px; }
@@ -703,6 +978,106 @@
       <button class="btn-action btn-start" id="start-trip-btn" type="button" disabled>🚀 Start Trip</button>
       <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
     </div>
+
+    <!-- ======== Inserted Card 1: Weather ======== -->
+    <section class="ins-card wx-hero" id="wx-hero" aria-label="Weather forecast">
+      <div class="wx-gradient">
+        <div class="wx-top">
+          <span class="wx-loc">📍 <span id="wx-loc-text">—</span></span>
+          <span class="wx-cond" id="wx-cond-text">—</span>
+        </div>
+        <div class="wx-center">
+          <span class="wx-emoji" id="wx-emoji">🌤️</span>
+          <div>
+            <div class="wx-temp" id="wx-temp">—</div>
+            <span class="wx-feels" id="wx-feels">Feels like —</span>
+          </div>
+        </div>
+        <div class="wx-tiles">
+          <div class="wx-tile"><div class="wx-tile-label">💧 Humidity</div><div class="wx-tile-value" id="wx-humidity">—</div></div>
+          <div class="wx-tile"><div class="wx-tile-label">💨 Wind</div><div class="wx-tile-value" id="wx-wind">—</div></div>
+          <div class="wx-tile"><div class="wx-tile-label">🌡️ High</div><div class="wx-tile-value" id="wx-high">—</div></div>
+          <div class="wx-tile"><div class="wx-tile-label">🌡️ Low</div><div class="wx-tile-value" id="wx-low">—</div></div>
+        </div>
+      </div>
+      <div class="wx-forecast" id="wx-forecast">
+        <div class="wx-day"><div class="wx-day-name">—</div><div class="wx-day-emoji">🌤️</div><div class="wx-day-hi">—</div><div class="wx-day-lo">—</div></div>
+        <div class="wx-day"><div class="wx-day-name">—</div><div class="wx-day-emoji">🌤️</div><div class="wx-day-hi">—</div><div class="wx-day-lo">—</div></div>
+        <div class="wx-day"><div class="wx-day-name">—</div><div class="wx-day-emoji">🌤️</div><div class="wx-day-hi">—</div><div class="wx-day-lo">—</div></div>
+        <div class="wx-day"><div class="wx-day-name">—</div><div class="wx-day-emoji">🌤️</div><div class="wx-day-hi">—</div><div class="wx-day-lo">—</div></div>
+        <div class="wx-day"><div class="wx-day-name">—</div><div class="wx-day-emoji">🌤️</div><div class="wx-day-hi">—</div><div class="wx-day-lo">—</div></div>
+      </div>
+    </section>
+
+    <!-- ======== Inserted Card 2: Calorie & Water ======== -->
+    <section class="ins-card ins-card-white" id="cw-card" aria-label="Calorie and water estimator">
+      <div class="ins-card-head">
+        <h3 class="ins-card-title">🔥 Calorie &amp; Water Estimator</h3>
+        <span class="cw-head-meta" id="cw-meta">— people · — days</span>
+      </div>
+      <hr class="ins-card-divider">
+      <div class="cw-tiles">
+        <div class="cw-tile">
+          <div class="cw-tile-top">💧 Water</div>
+          <div class="cw-tile-big" id="cw-water-big">—</div>
+          <div class="cw-tile-sub" id="cw-water-sub">per person / day</div>
+        </div>
+        <div class="cw-tile">
+          <div class="cw-tile-top">🔥 Calories</div>
+          <div class="cw-tile-big" id="cw-cal-big">—</div>
+          <div class="cw-tile-sub" id="cw-cal-sub">per person / day</div>
+        </div>
+      </div>
+      <div class="cw-bars">
+        <div class="cw-bar">
+          <div class="cw-bar-row"><span class="cw-bar-label">💧 Water</span><span class="cw-bar-stat" id="cw-water-stat">— / —</span></div>
+          <div class="cw-bar-track"><div class="cw-bar-fill water" id="cw-water-fill" style="width:0%"></div></div>
+        </div>
+        <div class="cw-bar">
+          <div class="cw-bar-row"><span class="cw-bar-label">🔥 Calories</span><span class="cw-bar-stat" id="cw-cal-stat">— / —</span></div>
+          <div class="cw-bar-track"><div class="cw-bar-fill calories" id="cw-cal-fill" style="width:0%"></div></div>
+        </div>
+        <div class="cw-bar">
+          <div class="cw-bar-row"><span class="cw-bar-label">🥩 Protein</span><span class="cw-bar-stat" id="cw-pro-stat">— / —</span></div>
+          <div class="cw-bar-track"><div class="cw-bar-fill protein" id="cw-pro-fill" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="cw-pills">
+        <div class="cw-pill"><span class="cw-pill-label">Protein</span><span class="cw-pill-val" id="cw-pill-protein">— g</span></div>
+        <div class="cw-pill"><span class="cw-pill-label">Carbs</span><span class="cw-pill-val" id="cw-pill-carbs">— g</span></div>
+        <div class="cw-pill"><span class="cw-pill-label">Fats</span><span class="cw-pill-val" id="cw-pill-fats">— g</span></div>
+      </div>
+    </section>
+
+    <!-- ======== Inserted Card 3: Smart Gear ======== -->
+    <section class="ins-card ins-card-white" id="sg-card" aria-label="Smart gear list">
+      <div class="ins-card-head">
+        <span class="sg-title-wrap">
+          <h3 class="ins-card-title">🎒 Smart Gear List</h3>
+          <span class="sg-ai-badge">✨ AI Generated</span>
+        </span>
+      </div>
+      <hr class="ins-card-divider">
+      <div class="sg-filters" id="sg-filters" role="tablist">
+        <button type="button" class="sg-filter active" data-filter="all">All</button>
+        <button type="button" class="sg-filter" data-filter="shelter">🏕️ Shelter</button>
+        <button type="button" class="sg-filter" data-filter="clothing">👕 Clothing</button>
+        <button type="button" class="sg-filter" data-filter="food">🍽️ Food</button>
+        <button type="button" class="sg-filter" data-filter="tools">🔧 Tools</button>
+        <button type="button" class="sg-filter" data-filter="safety">🩺 Safety</button>
+      </div>
+      <div class="sg-list" id="sg-list">
+        <div class="muted-note">Loading gear…</div>
+      </div>
+      <div class="sg-legend">
+        <div class="sg-legend-groups">
+          <span class="sg-legend-item"><span class="sg-dot essential"></span>Essential <span class="sg-legend-count" id="sg-count-essential">0</span></span>
+          <span class="sg-legend-item"><span class="sg-dot recommended"></span>Recommended <span class="sg-legend-count" id="sg-count-recommended">0</span></span>
+          <span class="sg-legend-item"><span class="sg-dot optional"></span>Optional <span class="sg-legend-count" id="sg-count-optional">0</span></span>
+        </div>
+        <span><span class="sg-legend-count" id="sg-packed-count">0/0</span> packed</span>
+      </div>
+    </section>
 
     <div id="categories"><div class="loading">Loading your checklist…</div></div>
 
@@ -1296,6 +1671,280 @@
         }
       }
 
+      /* =========================================================
+         Loaders for the 3 inserted cards (weather / calorie-water /
+         smart gear). Reuse existing trip + items state; each loader
+         owns its own error handling and degrades softly.
+         ========================================================= */
+
+      // ---- Card 1: Weather hero ----
+      // Same Open-Meteo backend as the existing /weather info card below.
+      const WX_EMOJI = {
+        0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+        45: '🌫️', 48: '🌫️',
+        51: '🌦️', 53: '🌦️', 55: '🌧️',
+        61: '🌧️', 63: '🌧️', 65: '🌧️',
+        71: '🌨️', 73: '🌨️', 75: '❄️', 77: '🌨️',
+        80: '🌦️', 81: '🌧️', 82: '⛈️',
+        85: '🌨️', 86: '❄️',
+        95: '⛈️', 96: '⛈️', 99: '⛈️',
+      };
+      const WX_LABEL = {
+        0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+        45: 'Fog', 48: 'Rime fog',
+        51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+        61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+        71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+        80: 'Showers', 81: 'Heavy showers', 82: 'Violent showers',
+        85: 'Snow showers', 86: 'Heavy snow',
+        95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Severe storm',
+      };
+      function wxEmojiFor(code) { return WX_EMOJI[code] || '🌤️'; }
+      function wxLabelFor(code) { return WX_LABEL[code] || 'Conditions'; }
+      function wxFmt(v, u) {
+        if (v == null || Number.isNaN(Number(v))) return '—';
+        return Math.round(Number(v)) + (u ? u : '');
+      }
+      function wxHeroUnavailable() {
+        const el = (id) => document.getElementById(id);
+        el('wx-loc-text').textContent = (trip && trip.location) || 'Location unavailable';
+        el('wx-cond-text').textContent = 'Weather unavailable';
+        el('wx-temp').textContent = '—';
+        el('wx-feels').textContent = 'Feels like —';
+        el('wx-humidity').textContent = '—';
+        el('wx-wind').textContent = '—';
+        el('wx-high').textContent = '—';
+        el('wx-low').textContent = '—';
+      }
+      async function loadWeatherHero() {
+        if (!trip || !trip.location) { wxHeroUnavailable(); return; }
+        try {
+          const qs = new URLSearchParams({ location: trip.location });
+          if (trip.startDate) qs.set('startDate', trip.startDate);
+          if (trip.endDate)   qs.set('endDate', trip.endDate);
+          const data = await api('/weather?' + qs.toString());
+          if (!data) { wxHeroUnavailable(); return; }
+          const loc   = data.location || {};
+          const cur   = data.current  || {};
+          const daily = data.daily    || {};
+          const units = (data.units && data.units.current) || {};
+          const dUn   = (data.units && data.units.daily)   || {};
+
+          const code = cur.weather_code != null ? cur.weather_code
+            : (Array.isArray(daily.weather_code) ? daily.weather_code[0] : null);
+          const temp   = cur.temperature_2m;
+          const feels  = cur.apparent_temperature != null ? cur.apparent_temperature : temp;
+          const hum    = cur.relative_humidity_2m;
+          const wind   = cur.wind_speed_10m;
+          const hi     = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
+          const lo     = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
+          const tUnit  = units.temperature_2m || dUn.temperature_2m_max || '°';
+          const wUnit  = units.wind_speed_10m || 'km/h';
+          const hUnit  = units.relative_humidity_2m || '%';
+
+          const el = (id) => document.getElementById(id);
+          const locName = [loc.name, loc.region, loc.country].filter(Boolean).join(', ');
+          el('wx-loc-text').textContent = locName || trip.location;
+          el('wx-cond-text').textContent = wxLabelFor(code);
+          el('wx-emoji').textContent = wxEmojiFor(code);
+          el('wx-temp').textContent = (temp == null ? '—' : Math.round(temp) + tUnit);
+          el('wx-feels').textContent = 'Feels like ' + (feels == null ? '—' : Math.round(feels) + tUnit);
+          el('wx-humidity').textContent = wxFmt(hum, hUnit);
+          el('wx-wind').textContent     = wxFmt(wind, ' ' + wUnit);
+          el('wx-high').textContent     = wxFmt(hi, tUnit);
+          el('wx-low').textContent      = wxFmt(lo, tUnit);
+
+          // 5-day forecast (uses daily arrays)
+          const fc = el('wx-forecast');
+          if (Array.isArray(daily.time) && daily.time.length) {
+            const days = daily.time.slice(0, 5);
+            const maxArr = daily.temperature_2m_max || [];
+            const minArr = daily.temperature_2m_min || [];
+            const codeArr = daily.weather_code || [];
+            const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            fc.innerHTML = days.map((iso, i) => {
+              const d = new Date(iso);
+              const name = Number.isNaN(d.getTime()) ? '—' : DOW[d.getDay()];
+              return (
+                '<div class="wx-day">' +
+                  '<div class="wx-day-name">' + escapeHtml(name) + '</div>' +
+                  '<div class="wx-day-emoji">' + wxEmojiFor(codeArr[i]) + '</div>' +
+                  '<div class="wx-day-hi">' + wxFmt(maxArr[i], tUnit) + '</div>' +
+                  '<div class="wx-day-lo">' + wxFmt(minArr[i], tUnit) + '</div>' +
+                '</div>'
+              );
+            }).join('');
+          }
+        } catch (err) {
+          wxHeroUnavailable();
+        }
+      }
+
+      // ---- Card 2: Calorie & Water ----
+      // Reuses GET /trips/:id/provisions. Protein/Carbs/Fats aren't in the
+      // backend payload, so we derive them from total calories using common
+      // camping macro ratios (P 15% / C 55% / F 30%).
+      function cwUnavailable() {
+        document.getElementById('cw-meta').textContent = 'Estimate unavailable';
+      }
+      async function loadCalorieWater() {
+        try {
+          const p = await api('/trips/' + tripId + '/provisions');
+          if (!p || !p.water || !p.food || !p.inputs) { cwUnavailable(); return; }
+          const people = p.inputs.participants || 1;
+          const days   = p.inputs.duration     || 1;
+
+          document.getElementById('cw-meta').textContent =
+            people + ' ' + (people === 1 ? 'person' : 'people') + ' · ' +
+            days + ' ' + (days === 1 ? 'day' : 'days');
+
+          // Big tiles
+          document.getElementById('cw-water-big').textContent = p.water.perPersonPerDay + ' L';
+          document.getElementById('cw-water-sub').textContent =
+            'per person / day · ' + p.water.totalLiters + ' L total';
+          document.getElementById('cw-cal-big').textContent =
+            p.food.caloriesPerPersonPerDay.toLocaleString() + ' kcal';
+          document.getElementById('cw-cal-sub').textContent =
+            'per person / day · ' + (p.food.totalCalories || (p.food.caloriesPerPersonPerDay * people * days)).toLocaleString() + ' kcal total';
+
+          // Progress bars: "current / goal" — we have the goal; without an
+          // intake tracker, current defaults to 0 so the bar is empty.
+          const waterGoal = Math.round(p.water.totalLiters * 10) / 10;
+          const calGoal   = p.food.totalCalories || (p.food.caloriesPerPersonPerDay * people * days);
+          // Derive macros from per-day per-person calories (well-established
+          // ratios: 15% protein @ 4kcal/g, 55% carbs @ 4kcal/g, 30% fat @ 9kcal/g)
+          const calPP  = p.food.caloriesPerPersonPerDay;
+          const proteinG = Math.round(calPP * 0.15 / 4);
+          const carbsG   = Math.round(calPP * 0.55 / 4);
+          const fatsG    = Math.round(calPP * 0.30 / 9);
+          const proteinGoal = proteinG * people * days;
+
+          const setBar = (fillId, statId, cur, goal, unit) => {
+            const pct = goal ? Math.min(100, Math.max(0, Math.round((cur / goal) * 100))) : 0;
+            document.getElementById(fillId).style.width = pct + '%';
+            document.getElementById(statId).textContent = cur + ' / ' + goal + ' ' + unit;
+          };
+          setBar('cw-water-fill', 'cw-water-stat', 0, waterGoal, 'L');
+          setBar('cw-cal-fill',   'cw-cal-stat',   0, calGoal,   'kcal');
+          setBar('cw-pro-fill',   'cw-pro-stat',   0, proteinGoal, 'g');
+
+          document.getElementById('cw-pill-protein').textContent = proteinG + ' g';
+          document.getElementById('cw-pill-carbs').textContent   = carbsG + ' g';
+          document.getElementById('cw-pill-fats').textContent    = fatsG + ' g';
+        } catch (err) {
+          cwUnavailable();
+        }
+      }
+
+      // ---- Card 3: Smart Gear ----
+      // Reuses the already-loaded `items` array. Priority is taken from
+      // item.priority if present, otherwise inferred from category keywords.
+      const SG_FILTER_MATCH = {
+        shelter:  ['shelter', 'tent', 'sleep'],
+        clothing: ['cloth'],
+        food:     ['food', 'cook', 'kitchen', 'nutrition'],
+        tools:    ['tool', 'gear', 'equipment', 'electronic', 'navigation'],
+        safety:   ['safety', 'first aid', 'medical', 'emergency', 'hygien'],
+      };
+      function sgPriority(item) {
+        if (item && item.priority) {
+          const p = String(item.priority).toLowerCase();
+          if (p === 'essential' || p === 'recommended' || p === 'optional') return p;
+        }
+        const cat = (item && item.category || '').toLowerCase();
+        if (/essential|safety|first[ -]?aid|medical|emergency/.test(cat)) return 'essential';
+        if (/optional|extra|nice[- ]to/.test(cat)) return 'optional';
+        return 'recommended';
+      }
+      function sgMatchesFilter(item, filter) {
+        if (!filter || filter === 'all') return true;
+        const keys = SG_FILTER_MATCH[filter] || [];
+        const cat = (item.category || '').toLowerCase();
+        const name = (item.name || '').toLowerCase();
+        return keys.some(k => cat.includes(k) || name.includes(k));
+      }
+      let sgCurrentFilter = 'all';
+      function sgRender() {
+        const list = document.getElementById('sg-list');
+        if (!list) return;
+        const visible = items.filter(i => sgMatchesFilter(i, sgCurrentFilter));
+        if (!visible.length) {
+          list.innerHTML = '<div class="muted-note">No items match this filter.</div>';
+        } else {
+          list.innerHTML = visible.map(it => {
+            const prio = sgPriority(it);
+            const packed = it.packed ? ' packed' : '';
+            return (
+              '<div class="sg-item ' + prio + packed + '" data-sg-id="' + escapeHtml(it.itemId) + '" role="button" tabindex="0" aria-pressed="' + (it.packed ? 'true' : 'false') + '">' +
+                '<span class="sg-check" aria-hidden="true"></span>' +
+                '<span class="sg-name">' + escapeHtml(it.name || '') + '</span>' +
+                '<span class="sg-prio ' + prio + '">' + prio + '</span>' +
+              '</div>'
+            );
+          }).join('');
+        }
+        // Legend counts (over ALL items, not just filtered view)
+        const counts = { essential: 0, recommended: 0, optional: 0 };
+        items.forEach(it => { counts[sgPriority(it)]++; });
+        document.getElementById('sg-count-essential').textContent   = counts.essential;
+        document.getElementById('sg-count-recommended').textContent = counts.recommended;
+        document.getElementById('sg-count-optional').textContent    = counts.optional;
+        const packed = items.filter(i => i.packed).length;
+        document.getElementById('sg-packed-count').textContent = packed + '/' + items.length;
+
+        // Wire per-row clicks
+        list.querySelectorAll('.sg-item').forEach(row => {
+          const id = row.getAttribute('data-sg-id');
+          const item = items.find(x => String(x.itemId) === String(id));
+          if (!item) return;
+          const toggle = () => sgToggle(item);
+          row.addEventListener('click', toggle);
+          row.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+          });
+        });
+      }
+      async function sgToggle(item) {
+        const next = !item.packed;
+        item.packed = next;
+        // Reflect in the category row (if present) so both views stay in sync.
+        const catRow = document.querySelector('.item[data-item-id="' + CSS.escape(String(item.itemId)) + '"]');
+        if (catRow) {
+          catRow.classList.toggle('packed', next);
+          catRow.setAttribute('aria-pressed', next ? 'true' : 'false');
+        }
+        sgRender();
+        updateProgress();
+        try {
+          await api('/trips/' + tripId + '/items/' + item.itemId, {
+            method: 'PATCH',
+            body: JSON.stringify({ packed: next }),
+          });
+        } catch (err) {
+          // Revert
+          item.packed = !next;
+          if (catRow) {
+            catRow.classList.toggle('packed', item.packed);
+            catRow.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
+          }
+          sgRender();
+          updateProgress();
+          alert('Could not update item: ' + err.message);
+        }
+      }
+      function initSmartGearFilters() {
+        const bar = document.getElementById('sg-filters');
+        if (!bar) return;
+        bar.addEventListener('click', (e) => {
+          const btn = e.target.closest('.sg-filter');
+          if (!btn) return;
+          bar.querySelectorAll('.sg-filter').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          sgCurrentFilter = btn.dataset.filter || 'all';
+          sgRender();
+        });
+      }
+
       /* ---------- Boot ---------- */
       document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -1326,6 +1975,12 @@
           loadProvisions();
           loadRisk();
           loadCollaborators();
+          // Inserted cards (weather hero / calorie-water / smart gear).
+          // Also independent; smart gear reuses the items already fetched.
+          loadWeatherHero();
+          loadCalorieWater();
+          initSmartGearFilters();
+          sgRender();
         } catch (err) {
           document.getElementById('categories').innerHTML =
             '<div class="empty"><strong>Could not load checklist</strong>' +
