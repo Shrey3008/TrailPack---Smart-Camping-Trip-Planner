@@ -821,6 +821,11 @@
     .cw-bar-fill.water    { background: #3ab5e0; }
     .cw-bar-fill.calories { background: #f97316; }
     .cw-bar-fill.protein  { background: #8b5cf6; }
+    .cw-bar-note {
+      color: #9ca3af;
+      font-size: 0.72rem;
+      margin-top: 4px;
+    }
     .cw-pills {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
     }
@@ -1032,14 +1037,17 @@
         <div class="cw-bar">
           <div class="cw-bar-row"><span class="cw-bar-label">💧 Water</span><span class="cw-bar-stat" id="cw-water-stat">— / —</span></div>
           <div class="cw-bar-track"><div class="cw-bar-fill water" id="cw-water-fill" style="width:0%"></div></div>
+          <div class="cw-bar-note" id="cw-water-note" hidden>Tracking begins when trip starts</div>
         </div>
         <div class="cw-bar">
           <div class="cw-bar-row"><span class="cw-bar-label">🔥 Calories</span><span class="cw-bar-stat" id="cw-cal-stat">— / —</span></div>
           <div class="cw-bar-track"><div class="cw-bar-fill calories" id="cw-cal-fill" style="width:0%"></div></div>
+          <div class="cw-bar-note" id="cw-cal-note" hidden>Tracking begins when trip starts</div>
         </div>
         <div class="cw-bar">
           <div class="cw-bar-row"><span class="cw-bar-label">🥩 Protein</span><span class="cw-bar-stat" id="cw-pro-stat">— / —</span></div>
           <div class="cw-bar-track"><div class="cw-bar-fill protein" id="cw-pro-fill" style="width:0%"></div></div>
+          <div class="cw-bar-note" id="cw-pro-note" hidden>Tracking begins when trip starts</div>
         </div>
       </div>
       <div class="cw-pills">
@@ -1797,14 +1805,18 @@
           const fatsG    = Math.round(calPP * 0.30 / 9);
           const proteinGoal = proteinG * people * days;
 
-          const setBar = (fillId, statId, cur, goal, unit) => {
+          const setBar = (fillId, statId, noteId, cur, goal, unit) => {
             const pct = goal ? Math.min(100, Math.max(0, Math.round((cur / goal) * 100))) : 0;
             document.getElementById(fillId).style.width = pct + '%';
             document.getElementById(statId).textContent = cur + ' / ' + goal + ' ' + unit;
+            // Show the 'Tracking begins when trip starts' note whenever
+            // there's no tracked intake yet (null or 0).
+            const note = document.getElementById(noteId);
+            if (note) note.hidden = !(cur == null || cur === 0);
           };
-          setBar('cw-water-fill', 'cw-water-stat', 0, waterGoal, 'L');
-          setBar('cw-cal-fill',   'cw-cal-stat',   0, calGoal,   'kcal');
-          setBar('cw-pro-fill',   'cw-pro-stat',   0, proteinGoal, 'g');
+          setBar('cw-water-fill', 'cw-water-stat', 'cw-water-note', 0, waterGoal, 'L');
+          setBar('cw-cal-fill',   'cw-cal-stat',   'cw-cal-note',   0, calGoal,   'kcal');
+          setBar('cw-pro-fill',   'cw-pro-stat',   'cw-pro-note',   0, proteinGoal, 'g');
 
           document.getElementById('cw-pill-protein').textContent = proteinG + ' g';
           document.getElementById('cw-pill-carbs').textContent   = carbsG + ' g';
