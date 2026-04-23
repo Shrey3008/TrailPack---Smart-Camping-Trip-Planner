@@ -87,6 +87,8 @@ router.get('/', authenticate, async (req, res) => {
     }
     const cur = await curResp.json();
     const fc  = fcResp.ok ? await fcResp.json() : { list: [] };
+    const data = { current: cur, forecast: fc };
+    console.log('OWM raw response:', JSON.stringify(data));
 
     // Aggregate the 3-hour forecast slices into per-day buckets.
     const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -131,7 +133,7 @@ router.get('/', authenticate, async (req, res) => {
       ? Math.round(Math.min(...today.lows))
       : (cur.main && cur.main.temp_min != null ? Math.round(cur.main.temp_min) : null);
 
-    res.json({
+    const result = {
       location:   cur.name || location || '',
       temp:       cur.main && cur.main.temp != null ? Math.round(cur.main.temp) : null,
       feels_like: cur.main && cur.main.feels_like != null ? Math.round(cur.main.feels_like) : null,
@@ -144,7 +146,9 @@ router.get('/', authenticate, async (req, res) => {
       // UV index requires OWM One Call 3.0 (paid) — null on the free tier.
       uv_index: null,
       forecast,
-    });
+    };
+    console.log('Weather route returning:', JSON.stringify(result));
+    res.json(result);
   } catch (error) {
     console.error('[Weather] Error:', error);
     res.status(500).json({ message: 'Error fetching weather: ' + error.message });
