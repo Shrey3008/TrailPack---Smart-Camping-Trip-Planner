@@ -29,55 +29,121 @@ async function geocodeLocation(location) {
   return null;
 }
 
-// GET /weather?location=LocationName&startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
-// Uses Open-Meteo APIs (no API key required)
+// --- OpenWeatherMap icon → emoji ------------------------------------------
+// OWM returns icon codes like '01d', '10n' (suffix d/n for day/night).
+const OWM_EMOJI = {
+  '01d': '☀️',  '01n': '🌙',
+  '02d': '🌤️', '02n': '🌤️',
+  '03d': '⛅',  '03n': '⛅',
+  '04d': '☁️',  '04n': '☁️',
+  '09d': '🌧️', '09n': '🌧️',
+  '10d': '🌦️', '10n': '🌦️',
+  '11d': '⛈️', '11n': '⛈️',
+  '13d': '❄️',  '13n': '❄️',
+  '50d': '🌫️', '50n': '🌫️',
+};
+function iconToEmoji(icon) { return OWM_EMOJI[icon] || '🌤️'; }
+function titleCase(str) {
+  return (str || '').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// GET /weather
+//   - If ?lat & ?lon are provided    → OpenWeatherMap by coords
+//   - Else if ?location is provided  → OpenWeatherMap by city query (q=)
+// Returns a unified shape:
+//   { location, temp, feels_like, condition, humidity, wind_speed,
+//     high, low, uv_index, forecast: [{ day, emoji, high, low } x5] }
 router.get('/', authenticate, async (req, res) => {
   try {
-    const { location, startDate, endDate } = req.query;
-
-    if (!location) {
-      return res.status(400).json({ message: 'location is required' });
+    const apiKey = process.env.WEATHER_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        message: 'WEATHER_API_KEY is not configured on the server',
+      });
     }
 
-    // 1. Geocode the location name to lat/lon
-    const place = await geocodeLocation(location);
-    if (!place) {
-      return res.status(404).json({ message: `Location "${location}" not found` });
-    }
-    const { latitude, longitude, name, country, admin1 } = place;
-
-    // 2. Fetch forecast from Open-Meteo
-    let forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-      `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max` +
-      `&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m` +
-      `&timezone=auto&forecast_days=16`;
-
-    if (startDate && endDate) {
-      forecastUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
-        `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max` +
-        `&start_date=${startDate}&end_date=${endDate}&timezone=auto`;
+    const { lat, lon, location } = req.query;
+    let base;
+    if (lat && lon) {
+      base = `lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    } else if (location) {
+      base = `q=${encodeURIComponent(location)}`;
+    } else {
+      return res.status(400).json({ message: 'lat+lon or location is required' });
     }
 
-    const wxResp = await fetch(forecastUrl);
-    if (!wxResp.ok) {
-      return res.status(502).json({ message: 'Weather request failed' });
+    const currentUrl  = `https://api.openweathermap.org/data/2.5/weather?${base}&appid=${apiKey}&units=metric`;
+    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?${base}&appid=${apiKey}&units=metric`;
+
+    const [curResp, fcResp] = await Promise.all([fetch(currentUrl), fetch(forecastUrl)]);
+
+    if (!curResp.ok) {
+      const status = curResp.status === 404 ? 404 : 502;
+      const detail = await curResp.text().catch(() => '');
+      return res.status(status).json({
+        message: curResp.status === 404 ? 'Location not found' : 'Weather request failed',
+        detail: detail.slice(0, 200),
+      });
     }
-    const wxData = await wxResp.json();
+    const cur = await curResp.json();
+    const fc  = fcResp.ok ? await fcResp.json() : { list: [] };
+
+    // Aggregate the 3-hour forecast slices into per-day buckets.
+    const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const byDay = new Map(); // key: YYYY-MM-DD (local), val: { date, highs, lows, icons{}, noonIcon }
+    (fc.list || []).forEach((entry) => {
+      const d = new Date(entry.dt * 1000);
+      const key = d.toISOString().slice(0, 10);
+      if (!byDay.has(key)) {
+        byDay.set(key, { date: d, highs: [], lows: [], icons: {}, noonIcon: null });
+      }
+      const bucket = byDay.get(key);
+      if (entry.main && typeof entry.main.temp_max === 'number') bucket.highs.push(entry.main.temp_max);
+      if (entry.main && typeof entry.main.temp_min === 'number') bucket.lows.push(entry.main.temp_min);
+      const icon = entry.weather && entry.weather[0] && entry.weather[0].icon;
+      if (icon) {
+        bucket.icons[icon] = (bucket.icons[icon] || 0) + 1;
+        const hour = d.getUTCHours();
+        if (hour >= 11 && hour <= 14) bucket.noonIcon = icon;
+      }
+    });
+
+    const forecast = Array.from(byDay.values()).slice(0, 5).map((b) => {
+      // Prefer the icon nearest local noon; fall back to most frequent for the day.
+      const topIcon = b.noonIcon
+        || (Object.entries(b.icons).sort((a, c) => c[1] - a[1])[0] || [null])[0];
+      return {
+        day: DOW[b.date.getDay()],
+        emoji: iconToEmoji(topIcon),
+        high: b.highs.length ? Math.round(Math.max(...b.highs)) : null,
+        low:  b.lows.length  ? Math.round(Math.min(...b.lows))  : null,
+      };
+    });
+
+    // Today's high/low — prefer the forecast bucket for today, fall back to
+    // the current-weather response's main.temp_min/temp_max.
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const today = byDay.get(todayKey);
+    const high = today && today.highs.length
+      ? Math.round(Math.max(...today.highs))
+      : (cur.main && cur.main.temp_max != null ? Math.round(cur.main.temp_max) : null);
+    const low = today && today.lows.length
+      ? Math.round(Math.min(...today.lows))
+      : (cur.main && cur.main.temp_min != null ? Math.round(cur.main.temp_min) : null);
 
     res.json({
-      location: {
-        name,
-        country,
-        region: admin1,
-        latitude,
-        longitude
-      },
-      current: wxData.current || null,
-      daily: wxData.daily || null,
-      units: {
-        daily: wxData.daily_units,
-        current: wxData.current_units
-      }
+      location:   cur.name || location || '',
+      temp:       cur.main && cur.main.temp != null ? Math.round(cur.main.temp) : null,
+      feels_like: cur.main && cur.main.feels_like != null ? Math.round(cur.main.feels_like) : null,
+      condition:  titleCase((cur.weather && cur.weather[0] && cur.weather[0].description) || ''),
+      humidity:   cur.main && cur.main.humidity != null ? cur.main.humidity : null,
+      // OWM returns wind speed in m/s when units=metric; convert to km/h.
+      wind_speed: cur.wind && typeof cur.wind.speed === 'number' ? Math.round(cur.wind.speed * 3.6) : null,
+      high,
+      low,
+      // UV index requires OWM One Call 3.0 (paid) — null on the free tier.
+      uv_index: null,
+      forecast,
     });
   } catch (error) {
     console.error('[Weather] Error:', error);

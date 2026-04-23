@@ -1664,37 +1664,37 @@
          ========================================================= */
 
       // ---- Card 1: Weather hero ----
-      // Same Open-Meteo backend as the existing /weather info card below.
-      const WX_EMOJI = {
-        0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
-        45: '🌫️', 48: '🌫️',
-        51: '🌦️', 53: '🌦️', 55: '🌧️',
-        61: '🌧️', 63: '🌧️', 65: '🌧️',
-        71: '🌨️', 73: '🌨️', 75: '❄️', 77: '🌨️',
-        80: '🌦️', 81: '🌧️', 82: '⛈️',
-        85: '🌨️', 86: '❄️',
-        95: '⛈️', 96: '⛈️', 99: '⛈️',
-      };
-      const WX_LABEL = {
-        0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
-        45: 'Fog', 48: 'Rime fog',
-        51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
-        61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
-        71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
-        80: 'Showers', 81: 'Heavy showers', 82: 'Violent showers',
-        85: 'Snow showers', 86: 'Heavy snow',
-        95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Severe storm',
-      };
-      function wxEmojiFor(code) { return WX_EMOJI[code] || '🌤️'; }
-      function wxLabelFor(code) { return WX_LABEL[code] || 'Conditions'; }
-      function wxFmt(v, u) {
-        if (v == null || Number.isNaN(Number(v))) return '—';
-        return Math.round(Number(v)) + (u ? u : '');
+      // Backend: GET /weather (OpenWeatherMap via backend proxy).
+      //   - ?lat=&lon= on geolocation success
+      //   - ?location=<tripLocation> as fallback on denied / error
+      // Unified response shape:
+      //   { location, temp, feels_like, condition, humidity, wind_speed,
+      //     high, low, uv_index, forecast: [{ day, emoji, high, low } x5] }
+
+      // Map a free-form OWM condition string → an emoji for the hero.
+      function wxConditionEmoji(condition) {
+        const c = (condition || '').toLowerCase();
+        if (!c) return '🌡️';
+        if (/thunder/.test(c))               return '⛈️';
+        if (/(drizzle|light rain|shower)/.test(c)) return '🌦️';
+        if (/rain/.test(c))                  return '🌧️';
+        if (/snow|sleet|blizzard/.test(c))   return '❄️';
+        if (/(mist|fog|haze|smoke|dust|sand)/.test(c)) return '🌫️';
+        if (/overcast|broken/.test(c))       return '☁️';
+        if (/(scatter|partly)/.test(c))      return '⛅';
+        if (/(few clouds|cloud)/.test(c))    return '🌤️';
+        if (/clear/.test(c))                 return '☀️';
+        return '🌤️';
       }
-      function wxHeroUnavailable() {
+      function wxFmtNum(v, suffix) {
+        if (v == null || Number.isNaN(Number(v))) return '—';
+        return Math.round(Number(v)) + (suffix || '');
+      }
+      function wxHeroUnavailable(locLabel, condLabel) {
         const el = (id) => document.getElementById(id);
-        el('wx-loc-text').textContent = (trip && trip.location) || 'Location unavailable';
-        el('wx-cond-text').textContent = 'Weather unavailable';
+        el('wx-loc-text').textContent = locLabel || (trip && trip.location) || 'Location unavailable';
+        el('wx-cond-text').textContent = condLabel || 'Weather unavailable';
+        el('wx-emoji').textContent = '🌤️';
         el('wx-temp').textContent = '—';
         el('wx-feels').textContent = 'Feels like —';
         el('wx-humidity').textContent = '—';
@@ -1702,68 +1702,82 @@
         el('wx-high').textContent = '—';
         el('wx-low').textContent = '—';
       }
-      async function loadWeatherHero() {
-        if (!trip || !trip.location) { wxHeroUnavailable(); return; }
-        try {
-          const qs = new URLSearchParams({ location: trip.location });
-          if (trip.startDate) qs.set('startDate', trip.startDate);
-          if (trip.endDate)   qs.set('endDate', trip.endDate);
-          const data = await api('/weather?' + qs.toString());
-          if (!data) { wxHeroUnavailable(); return; }
-          const loc   = data.location || {};
-          const cur   = data.current  || {};
-          const daily = data.daily    || {};
-          const units = (data.units && data.units.current) || {};
-          const dUn   = (data.units && data.units.daily)   || {};
 
-          const code = cur.weather_code != null ? cur.weather_code
-            : (Array.isArray(daily.weather_code) ? daily.weather_code[0] : null);
-          const temp   = cur.temperature_2m;
-          const feels  = cur.apparent_temperature != null ? cur.apparent_temperature : temp;
-          const hum    = cur.relative_humidity_2m;
-          const wind   = cur.wind_speed_10m;
-          const hi     = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
-          const lo     = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
-          const tUnit  = units.temperature_2m || dUn.temperature_2m_max || '°';
-          const wUnit  = units.wind_speed_10m || 'km/h';
-          const hUnit  = units.relative_humidity_2m || '%';
+      // Resolve coordinates via the Geolocation API. Always resolves —
+      // null on deny / error / unsupported. A short timeout keeps the
+      // card responsive if the user never acts on the permission prompt.
+      function wxGetCoords() {
+        return new Promise((resolve) => {
+          if (!('geolocation' in navigator)) return resolve(null);
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+            }),
+            () => resolve(null),
+            { timeout: 8000, maximumAge: 5 * 60 * 1000 }
+          );
+        });
+      }
 
-          const el = (id) => document.getElementById(id);
-          const locName = [loc.name, loc.region, loc.country].filter(Boolean).join(', ');
-          el('wx-loc-text').textContent = locName || trip.location;
-          el('wx-cond-text').textContent = wxLabelFor(code);
-          el('wx-emoji').textContent = wxEmojiFor(code);
-          el('wx-temp').textContent = (temp == null ? '—' : Math.round(temp) + tUnit);
-          el('wx-feels').textContent = 'Feels like ' + (feels == null ? '—' : Math.round(feels) + tUnit);
-          el('wx-humidity').textContent = wxFmt(hum, hUnit);
-          el('wx-wind').textContent     = wxFmt(wind, ' ' + wUnit);
-          el('wx-high').textContent     = wxFmt(hi, tUnit);
-          el('wx-low').textContent      = wxFmt(lo, tUnit);
+      function wxRenderHero(data) {
+        if (!data) { wxHeroUnavailable(); return; }
+        const el = (id) => document.getElementById(id);
+        el('wx-loc-text').textContent = data.location || (trip && trip.location) || '—';
+        el('wx-cond-text').textContent = data.condition || '—';
+        el('wx-emoji').textContent = wxConditionEmoji(data.condition);
+        el('wx-temp').textContent  = wxFmtNum(data.temp, '°');
+        el('wx-feels').textContent = 'Feels like ' + wxFmtNum(data.feels_like, '°');
+        el('wx-humidity').textContent = wxFmtNum(data.humidity, '%');
+        el('wx-wind').textContent     = wxFmtNum(data.wind_speed, ' km/h');
+        el('wx-high').textContent     = wxFmtNum(data.high, '°');
+        el('wx-low').textContent      = wxFmtNum(data.low, '°');
 
-          // 5-day forecast (uses daily arrays)
-          const fc = el('wx-forecast');
-          if (Array.isArray(daily.time) && daily.time.length) {
-            const days = daily.time.slice(0, 5);
-            const maxArr = daily.temperature_2m_max || [];
-            const minArr = daily.temperature_2m_min || [];
-            const codeArr = daily.weather_code || [];
-            const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-            fc.innerHTML = days.map((iso, i) => {
-              const d = new Date(iso);
-              const name = Number.isNaN(d.getTime()) ? '—' : DOW[d.getDay()];
-              return (
-                '<div class="wx-day">' +
-                  '<div class="wx-day-name">' + escapeHtml(name) + '</div>' +
-                  '<div class="wx-day-emoji">' + wxEmojiFor(codeArr[i]) + '</div>' +
-                  '<div class="wx-day-hi">' + wxFmt(maxArr[i], tUnit) + '</div>' +
-                  '<div class="wx-day-lo">' + wxFmt(minArr[i], tUnit) + '</div>' +
-                '</div>'
-              );
-            }).join('');
-          }
-        } catch (err) {
-          wxHeroUnavailable();
+        // 5-day forecast strip.
+        const fc = el('wx-forecast');
+        const days = Array.isArray(data.forecast) ? data.forecast.slice(0, 5) : [];
+        if (days.length) {
+          fc.innerHTML = days.map((d) => (
+            '<div class="wx-day">' +
+              '<div class="wx-day-name">' + escapeHtml(d.day || '—') + '</div>' +
+              '<div class="wx-day-emoji">' + (d.emoji || '🌤️') + '</div>' +
+              '<div class="wx-day-hi">' + wxFmtNum(d.high, '°') + '</div>' +
+              '<div class="wx-day-lo">' + wxFmtNum(d.low, '°') + '</div>' +
+            '</div>'
+          )).join('');
         }
+      }
+
+      async function loadWeatherHero() {
+        // Subtle placeholder while the geolocation prompt is live.
+        const locEl = document.getElementById('wx-loc-text');
+        if (locEl) locEl.textContent = 'Detecting location…';
+
+        // 1) Try device GPS first.
+        const coords = await wxGetCoords();
+        if (coords) {
+          try {
+            const data = await api('/weather?lat=' + encodeURIComponent(coords.lat)
+              + '&lon=' + encodeURIComponent(coords.lon));
+            if (data) { wxRenderHero(data); return; }
+          } catch (err) {
+            // Fall through to trip.location fallback.
+          }
+        }
+
+        // 2) Fallback: trip.location (or trip.terrain as a last resort).
+        const fallbackQ = (trip && (trip.location || trip.terrain)) || '';
+        if (fallbackQ) {
+          try {
+            const data = await api('/weather?location=' + encodeURIComponent(fallbackQ));
+            if (data) { wxRenderHero(data); return; }
+          } catch (err) {
+            wxHeroUnavailable(fallbackQ, 'Weather unavailable');
+            return;
+          }
+        }
+
+        wxHeroUnavailable();
       }
 
       // ---- Card 2: Calorie & Water ----
