@@ -729,7 +729,7 @@
     }
     .wx-tiles {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 8px;
     }
     .wx-tile {
@@ -1003,6 +1003,7 @@
           <div class="wx-tile"><div class="wx-tile-label">💨 Wind</div><div class="wx-tile-value" id="wx-wind">—</div></div>
           <div class="wx-tile"><div class="wx-tile-label">🌡️ High</div><div class="wx-tile-value" id="wx-high">—</div></div>
           <div class="wx-tile"><div class="wx-tile-label">🌡️ Low</div><div class="wx-tile-value" id="wx-low">—</div></div>
+          <div class="wx-tile" id="wx-uv-tile"><div class="wx-tile-label" id="wx-uv-label">☀️ UV Index</div><div class="wx-tile-value" id="wx-uv-value">—</div></div>
         </div>
       </div>
       <div class="wx-forecast" id="wx-forecast">
@@ -1656,6 +1657,10 @@
         el('wx-wind').textContent = '—';
         el('wx-high').textContent = '—';
         el('wx-low').textContent = '—';
+        const uvLabel = el('wx-uv-label');
+        const uvValue = el('wx-uv-value');
+        if (uvLabel) uvLabel.textContent = '☀️ UV Index';
+        if (uvValue) uvValue.textContent = '—';
       }
 
       // Resolve coordinates via the Geolocation API. Always resolves —
@@ -1687,6 +1692,21 @@
         el('wx-wind').textContent     = wxFmtNum(data.wind_speed, ' km/h');
         el('wx-high').textContent     = wxFmtNum(data.high, '°');
         el('wx-low').textContent      = wxFmtNum(data.low, '°');
+
+        // UV tile: show UV Index when the API returns a number; otherwise
+        // swap the tile to '☁️ Condition' with the condition string
+        // (OWM free tier returns null for uv_index).
+        const uvLabel = el('wx-uv-label');
+        const uvValue = el('wx-uv-value');
+        if (uvLabel && uvValue) {
+          if (data.uv_index == null || Number.isNaN(Number(data.uv_index))) {
+            uvLabel.textContent = '☁️ Condition';
+            uvValue.textContent = data.condition || '—';
+          } else {
+            uvLabel.textContent = '☀️ UV Index';
+            uvValue.textContent = wxFmtNum(data.uv_index, '');
+          }
+        }
 
         // 5-day forecast strip.
         const fc = el('wx-forecast');
