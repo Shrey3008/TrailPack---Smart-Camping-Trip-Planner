@@ -407,6 +407,184 @@
     }
     .empty strong { color: var(--ink); display: block; margin-bottom: 4px; font-family: 'Playfair Display', serif; font-size: 1.05rem; }
 
+    /* ---------- Info cards (weather / provisions / risk / collab) ---------- */
+    .info-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-card);
+      padding: 20px 22px;
+      margin-bottom: 16px;
+    }
+    .info-card .card-body { font-size: 0.93rem; color: var(--ink); }
+    .info-card .muted-note { color: var(--muted); font-size: 0.85rem; }
+
+    /* Weather */
+    .weather-location {
+      display: flex; align-items: center; gap: 6px;
+      font-weight: 600; color: var(--ink);
+      margin-bottom: 10px;
+    }
+    .weather-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+    }
+    .weather-tile {
+      background: var(--row);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+    }
+    .weather-tile .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .weather-tile .value {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    /* Provisions */
+    .provisions-list {
+      list-style: none; padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .provisions-list li {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; padding: 12px 14px;
+      background: var(--row); border-radius: var(--radius-sm);
+    }
+    .provisions-list .label { color: var(--ink); }
+    .provisions-list .qty {
+      font-weight: 700;
+      color: var(--green);
+      white-space: nowrap;
+    }
+    html[data-theme="dark"] .provisions-list .qty { color: var(--green-light); }
+
+    /* Risk */
+    .risk-top {
+      display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap; margin-bottom: 12px;
+    }
+    .risk-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 0.78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      border: 1px solid transparent;
+    }
+    .risk-badge.low    { background: #D8F3DC; color: #1B4332; border-color: #52B788; }
+    .risk-badge.medium { background: #FEF3C7; color: #8A4C10; border-color: #F59E0B; }
+    .risk-badge.high   { background: #FDECEA; color: #8A1B12; border-color: #C0392B; }
+    .risk-score-note { color: var(--muted); font-size: 0.8rem; }
+    .risk-factors {
+      list-style: none; padding: 0; margin: 0;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .risk-factors li {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      display: flex; gap: 8px; align-items: flex-start;
+    }
+    .risk-factors li:last-child { border-bottom: none; }
+    .risk-factors li::before {
+      content: '•';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* Collaborators */
+    .collab-list {
+      display: flex; flex-direction: column; gap: 6px;
+      margin-bottom: 12px;
+    }
+    .collab-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: var(--row);
+      border-radius: var(--radius-sm);
+    }
+    .collab-row .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 700; flex-shrink: 0;
+    }
+    .collab-row .who { flex: 1; min-width: 0; }
+    .collab-row .name {
+      font-weight: 600; color: var(--ink);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .collab-row .email {
+      font-size: 0.78rem; color: var(--muted);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .collab-role {
+      background: var(--green-pale);
+      color: var(--green-dark);
+      font-size: 0.7rem; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 9999px;
+    }
+    html[data-theme="dark"] .collab-role { color: #C8E6C9; }
+    .collab-role.owner { background: var(--green); color: #fff; }
+    html[data-theme="dark"] .collab-role.owner { background: var(--green-light); color: var(--green-dark); }
+
+    .invite-form {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .invite-form input {
+      flex: 1; min-width: 200px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      font-size: 0.9rem; font-family: inherit;
+      background: var(--surface); color: var(--ink);
+    }
+    .invite-form input:focus {
+      outline: none;
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(82,183,136,0.22);
+    }
+    .invite-form button {
+      padding: 9px 18px;
+      border-radius: 9999px;
+      border: none;
+      background: var(--green); color: #fff;
+      font-weight: 600; cursor: pointer;
+      font-family: inherit; font-size: 0.88rem;
+      transition: background 0.15s;
+    }
+    .invite-form button:hover:not(:disabled) { background: var(--green-dark); }
+    .invite-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Toast */
+    .tp-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--ink);
+      color: var(--cream);
+      padding: 10px 18px;
+      border-radius: 9999px;
+      font-size: 0.88rem; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 100;
+    }
+    .tp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .tp-toast.success { background: var(--green); color: #fff; }
+    .tp-toast.error   { background: var(--danger); color: #fff; }
+
     /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
       .navbar { padding: 14px 18px; flex-wrap: wrap; gap: 10px; }
@@ -467,6 +645,52 @@
     </div>
 
     <div id="categories"><div class="loading">Loading your checklist…</div></div>
+
+    <!-- Weather -->
+    <section class="info-card" id="weather-card">
+      <div class="category-head">
+        <h3 class="category-title">🌤️ Weather Forecast</h3>
+      </div>
+      <hr class="category-divider">
+      <div class="card-body" id="weather-body">
+        <div class="muted-note">Loading weather…</div>
+      </div>
+    </section>
+
+    <!-- Provisions -->
+    <section class="info-card" id="provisions-card">
+      <div class="category-head">
+        <h3 class="category-title">🎒 Provisions Estimate</h3>
+      </div>
+      <hr class="category-divider">
+      <div class="card-body" id="provisions-body">
+        <div class="muted-note">Loading provisions…</div>
+      </div>
+    </section>
+
+    <!-- Risk -->
+    <section class="info-card" id="risk-card">
+      <div class="category-head">
+        <h3 class="category-title">⚠️ Risk Analysis</h3>
+      </div>
+      <hr class="category-divider">
+      <div class="card-body" id="risk-body">
+        <div class="muted-note">Loading risk analysis…</div>
+      </div>
+    </section>
+
+    <!-- Collaborators -->
+    <section class="info-card" id="collab-card">
+      <div class="category-head">
+        <h3 class="category-title">👥 Trip Collaborators</h3>
+      </div>
+      <hr class="category-divider">
+      <div class="card-body" id="collab-body">
+        <div class="muted-note">Loading collaborators…</div>
+      </div>
+    </section>
+
+    <div class="tp-toast" id="tp-toast" role="status" aria-live="polite"></div>
   </main>
 
   <script>
@@ -775,6 +999,237 @@
         }
       }
 
+      /* ---------- Toast ---------- */
+      let toastTimer = null;
+      function showToast(message, variant = 'default') {
+        const el = document.getElementById('tp-toast');
+        if (!el) return;
+        el.textContent = message;
+        el.classList.remove('success', 'error');
+        if (variant === 'success' || variant === 'error') el.classList.add(variant);
+        el.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+      }
+
+      /* ---------- Weather card ---------- */
+      // Backend lives at GET /weather?location=&startDate=&endDate= (Open-Meteo).
+      // Response: { location:{name,country,region}, current:{...}, daily:{...}, units }.
+      const WEATHER_CODE = {
+        0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+        45: 'Fog', 48: 'Depositing rime fog',
+        51: 'Light drizzle', 53: 'Drizzle', 55: 'Dense drizzle',
+        61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+        71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+        80: 'Rain showers', 81: 'Heavy rain showers', 82: 'Violent rain showers',
+        85: 'Snow showers', 86: 'Heavy snow showers',
+        95: 'Thunderstorm', 96: 'Thunderstorm w/ hail', 99: 'Severe thunderstorm',
+      };
+      function weatherUnavailable(msg) {
+        document.getElementById('weather-body').innerHTML =
+          '<div class="muted-note">' + escapeHtml(msg || 'Weather unavailable.') + '</div>';
+      }
+      async function loadWeather() {
+        const body = document.getElementById('weather-body');
+        if (!trip || !trip.location) {
+          weatherUnavailable('Weather unavailable — trip has no location.');
+          return;
+        }
+        try {
+          const qs = new URLSearchParams({ location: trip.location });
+          if (trip.startDate) qs.set('startDate', trip.startDate);
+          if (trip.endDate) qs.set('endDate', trip.endDate);
+          const data = await api('/weather?' + qs.toString());
+          if (!data) return weatherUnavailable();
+
+          const loc = data.location || {};
+          const cur = data.current || {};
+          const daily = data.daily || {};
+          const units = (data.units && data.units.current) || {};
+          const dailyUnits = (data.units && data.units.daily) || {};
+
+          const high = Array.isArray(daily.temperature_2m_max) ? daily.temperature_2m_max[0] : null;
+          const low  = Array.isArray(daily.temperature_2m_min) ? daily.temperature_2m_min[0] : null;
+          const code = cur.weather_code != null ? cur.weather_code : (Array.isArray(daily.weather_code) ? daily.weather_code[0] : null);
+          const condition = code != null ? (WEATHER_CODE[code] || 'Unknown conditions') : '—';
+          const humidity = cur.relative_humidity_2m;
+          const wind = cur.wind_speed_10m;
+          const tempUnit = units.temperature_2m || dailyUnits.temperature_2m_max || '°';
+          const windUnit = units.wind_speed_10m || 'km/h';
+          const humUnit  = units.relative_humidity_2m || '%';
+
+          const locName = [loc.name, loc.region, loc.country].filter(Boolean).join(', ');
+          const fmt = (v, u) => (v == null || Number.isNaN(Number(v))) ? '—' : (Math.round(Number(v) * 10) / 10) + ' ' + u;
+
+          body.innerHTML =
+            '<div class="weather-location">📍 ' + escapeHtml(locName || trip.location) + '</div>' +
+            '<div class="weather-grid">' +
+              '<div class="weather-tile"><div class="label">Condition</div><div class="value">' + escapeHtml(condition) + '</div></div>' +
+              '<div class="weather-tile"><div class="label">High / Low</div><div class="value">' + fmt(high, tempUnit) + ' / ' + fmt(low, tempUnit) + '</div></div>' +
+              '<div class="weather-tile"><div class="label">Humidity</div><div class="value">' + fmt(humidity, humUnit) + '</div></div>' +
+              '<div class="weather-tile"><div class="label">Wind</div><div class="value">' + fmt(wind, windUnit) + '</div></div>' +
+            '</div>';
+        } catch (err) {
+          weatherUnavailable('Weather unavailable — ' + err.message);
+        }
+      }
+
+      /* ---------- Provisions card ---------- */
+      // GET /trips/:id/provisions → { inputs, water, food, reasons, disclaimer }.
+      async function loadProvisions() {
+        const body = document.getElementById('provisions-body');
+        try {
+          const p = await api('/trips/' + tripId + '/provisions');
+          if (!p || !p.water || !p.food) {
+            body.innerHTML = '<div class="muted-note">Provisions estimate unavailable.</div>';
+            return;
+          }
+          const people = (p.inputs && p.inputs.participants) || 1;
+          const days = (p.inputs && p.inputs.duration) || 1;
+          const rows = [
+            { label: 'Water (per person, per day)', qty: p.water.perPersonPerDay + ' L' },
+            { label: 'Water (total for trip)',       qty: p.water.totalLiters + ' L' },
+            { label: 'Food (per person, per day)',   qty: p.food.gramsPerPersonPerDay + ' g / ' + p.food.caloriesPerPersonPerDay + ' kcal' },
+            { label: 'Food (total for trip)',        qty: p.food.totalGrams + ' g' },
+          ];
+          const list = rows.map(r =>
+            '<li><span class="label">' + escapeHtml(r.label) + '</span><span class="qty">' + escapeHtml(r.qty) + '</span></li>'
+          ).join('');
+          const groupNote = people > 1 || days > 1
+            ? '<div class="muted-note" style="margin-top:10px;">Estimate for ' + people + ' ' + (people === 1 ? 'person' : 'people') + ' over ' + days + ' ' + (days === 1 ? 'day' : 'days') + '.</div>'
+            : '';
+          const disclaimer = p.disclaimer
+            ? '<div class="muted-note" style="margin-top:6px;">' + escapeHtml(p.disclaimer) + '</div>'
+            : '';
+          body.innerHTML = '<ul class="provisions-list">' + list + '</ul>' + groupNote + disclaimer;
+        } catch (err) {
+          body.innerHTML = '<div class="muted-note">Could not load provisions: ' + escapeHtml(err.message) + '</div>';
+        }
+      }
+
+      /* ---------- Risk card ---------- */
+      // Backend lives at POST /ai/risk-analysis with { terrain, season, duration, experience }.
+      // Response: { riskLevel:'Low'|'Medium'|'High', riskScore, factors:[], recommendations:[] }.
+      async function loadRisk() {
+        const body = document.getElementById('risk-body');
+        try {
+          const payload = {
+            terrain: trip.terrain || '',
+            season: trip.season || '',
+            duration: Number(trip.duration) || 1,
+            experience: trip.experience || 'Intermediate',
+          };
+          const r = await api('/ai/risk-analysis', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+          if (!r || !r.riskLevel) {
+            body.innerHTML = '<div class="muted-note">Risk analysis unavailable.</div>';
+            return;
+          }
+          const levelRaw = String(r.riskLevel).toLowerCase();
+          const level = ['low', 'medium', 'high'].includes(levelRaw) ? levelRaw : 'low';
+          const badge = '<span class="risk-badge ' + level + '">' + escapeHtml(r.riskLevel) + ' risk</span>';
+          const score = (typeof r.riskScore === 'number')
+            ? '<span class="risk-score-note">score ' + r.riskScore + '/100</span>'
+            : '';
+          const factors = Array.isArray(r.factors) && r.factors.length
+            ? '<ul class="risk-factors">' +
+                r.factors.map(f => '<li>' + escapeHtml(f) + '</li>').join('') +
+              '</ul>'
+            : '<div class="muted-note">No significant risk factors identified.</div>';
+          body.innerHTML =
+            '<div class="risk-top">' + badge + score + '</div>' +
+            factors;
+        } catch (err) {
+          body.innerHTML = '<div class="muted-note">Could not load risk analysis: ' + escapeHtml(err.message) + '</div>';
+        }
+      }
+
+      /* ---------- Collaborators card ---------- */
+      // GET /trips/:id/participants → { participants: [{userId, name, email}] }.
+      // POST /trips/:id/invites     → body { email }.
+      function initial(s) { return (s || '?').trim().charAt(0).toUpperCase(); }
+      function collabRow(user, role) {
+        const name = user.name || user.email || 'Unknown';
+        const email = user.email || '';
+        const roleClass = role === 'owner' ? 'collab-role owner' : 'collab-role';
+        const roleText = role === 'owner' ? 'Owner' : 'Member';
+        return (
+          '<div class="collab-row">' +
+            '<div class="avatar">' + escapeHtml(initial(name)) + '</div>' +
+            '<div class="who">' +
+              '<div class="name">' + escapeHtml(name) + '</div>' +
+              (email ? '<div class="email">' + escapeHtml(email) + '</div>' : '') +
+            '</div>' +
+            '<span class="' + roleClass + '">' + roleText + '</span>' +
+          '</div>'
+        );
+      }
+      async function loadCollaborators() {
+        const body = document.getElementById('collab-body');
+        const currentUser = (() => {
+          try { return JSON.parse(sessionStorage.getItem('currentUser') || 'null') || {}; }
+          catch { return {}; }
+        })();
+        const isOwner = !!(currentUser.userId && trip && trip.userId && currentUser.userId === trip.userId);
+
+        // Owner entry from the trip itself (always first).
+        const ownerUser = isOwner
+          ? { userId: currentUser.userId, name: currentUser.name, email: currentUser.email }
+          : { userId: trip.userId, name: trip.ownerName || '', email: trip.ownerEmail || '' };
+
+        let members = [];
+        try {
+          const data = await api('/trips/' + tripId + '/participants');
+          members = Array.isArray(data && data.participants) ? data.participants : [];
+        } catch (err) {
+          body.innerHTML = '<div class="muted-note">Could not load collaborators: ' + escapeHtml(err.message) + '</div>';
+          return;
+        }
+
+        const rows = [collabRow(ownerUser, 'owner')]
+          .concat(members.map(m => collabRow(m, 'member')))
+          .join('');
+
+        const inviteForm = isOwner
+          ? '<form class="invite-form" id="invite-form" autocomplete="off">' +
+              '<input type="email" id="invite-email" placeholder="Invite by email…" required>' +
+              '<button type="submit" id="invite-btn">Send Invite</button>' +
+            '</form>'
+          : '<div class="muted-note">Only the trip owner can invite collaborators.</div>';
+
+        body.innerHTML =
+          '<div class="collab-list">' + rows + '</div>' +
+          inviteForm;
+
+        if (isOwner) {
+          const form = document.getElementById('invite-form');
+          form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('invite-email');
+            const btn = document.getElementById('invite-btn');
+            const email = (input.value || '').trim();
+            if (!email) return;
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            try {
+              await api('/trips/' + tripId + '/invites', {
+                method: 'POST',
+                body: JSON.stringify({ email }),
+              });
+              input.value = '';
+              showToast('Invitation sent to ' + email, 'success');
+            } catch (err) {
+              showToast('Invite failed: ' + err.message, 'error');
+            } finally {
+              btn.disabled = false;
+              btn.textContent = 'Send Invite';
+            }
+          });
+        }
+      }
+
       /* ---------- Boot ---------- */
       document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('theme-toggle').addEventListener('click', () => {
@@ -799,6 +1254,12 @@
           items = Array.isArray(itemsData) ? itemsData : (itemsData && itemsData.items) || [];
           renderHeader();
           renderCategories();
+          // Fire the 4 info cards in parallel — each handles its own
+          // loading / error state and should never block the main flow.
+          loadWeather();
+          loadProvisions();
+          loadRisk();
+          loadCollaborators();
         } catch (err) {
           document.getElementById('categories').innerHTML =
             '<div class="empty"><strong>Could not load checklist</strong>' +
