@@ -99,7 +99,7 @@ const generateChecklist = (terrain, season, duration) => {
 // POST /trips - Create a new trip with rule-based checklist
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, terrain, season, duration, location, startDate, endDate } = req.body;
+    const { name, terrain, season, duration, groupSize, location, startDate, endDate } = req.body;
 
     // Validation
     if (!name || !terrain || !season || !duration) {
@@ -109,6 +109,8 @@ router.post('/', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const tripId = uuidv4();
     const parsedDuration = parseInt(duration);
+    // Group size: clamp to [1, 50]; default to 1 when missing/invalid.
+    const parsedGroupSize = Math.min(50, Math.max(1, parseInt(groupSize, 10) || 1));
 
     // Save trip with PutCommand
     const tripItem = {
@@ -120,6 +122,7 @@ router.post('/', authenticate, async (req, res) => {
       terrain,
       season,
       duration: parsedDuration,
+      groupSize: parsedGroupSize,
       location: location || null,
       startDate: startDate || null,
       endDate: endDate || null,
@@ -264,7 +267,9 @@ router.get('/:id/provisions', authenticate, async (req, res) => {
       duration: trip.duration,
       terrain: trip.terrain,
       season: trip.season,
-      participants: trip.participants || 1,
+      // groupSize is the new field (POST /trips); keep participants as a
+      // legacy fallback for older rows, and finally default to 1.
+      participants: trip.groupSize || trip.participants || 1,
     });
 
     res.json(provisions);
@@ -304,7 +309,7 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    const { name, terrain, season, duration, status } = req.body;
+    const { name, terrain, season, duration, groupSize, status } = req.body;
     
     const updateExpressions = [];
     const expressionAttributeNames = {};
@@ -326,6 +331,10 @@ router.put('/:id', authenticate, async (req, res) => {
     if (duration) {
       updateExpressions.push('duration = :duration');
       expressionAttributeValues[':duration'] = parseInt(duration);
+    }
+    if (groupSize !== undefined && groupSize !== null && groupSize !== '') {
+      updateExpressions.push('groupSize = :groupSize');
+      expressionAttributeValues[':groupSize'] = Math.min(50, Math.max(1, parseInt(groupSize, 10) || 1));
     }
     if (status) {
       updateExpressions.push('#status = :status');

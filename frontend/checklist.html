@@ -1790,8 +1790,11 @@
         try {
           const p = await api('/trips/' + tripId + '/provisions');
           if (!p || !p.water || !p.food || !p.inputs) { cwUnavailable(); return; }
-          const people = p.inputs.participants || 1;
-          const days   = p.inputs.duration     || 1;
+          // Group size is authoritative from the trip object (new field
+          // set by the Plan-a-new-trip modal). Fall back to the value
+          // the provisions service echoed back, then to 1 for legacy rows.
+          const people = (trip && trip.groupSize) || p.inputs.participants || 1;
+          const days   = p.inputs.duration || 1;
 
           document.getElementById('cw-meta').textContent =
             people + ' ' + (people === 1 ? 'person' : 'people') + ' · ' +

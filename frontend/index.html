@@ -779,8 +779,8 @@
             <input id="tp-ct-duration" name="duration" type="number" min="1" max="60" value="3" required>
           </div>
           <div class="tp-field">
-            <label for="tp-ct-location">Location (optional)</label>
-            <input id="tp-ct-location" name="location" placeholder="Banff, AB">
+            <label for="tp-ct-group-size">Number of people</label>
+            <input id="tp-ct-group-size" name="groupSize" type="number" min="1" max="50" value="1" placeholder="e.g. 4" required>
           </div>
         </div>
 
@@ -793,6 +793,11 @@
             <label for="tp-ct-end">End date</label>
             <input id="tp-ct-end" name="endDate" type="date">
           </div>
+        </div>
+
+        <div class="tp-field">
+          <label for="tp-ct-location">Location (optional)</label>
+          <input id="tp-ct-location" name="location" placeholder="Banff, AB">
         </div>
 
         <div class="tp-ct-actions">
@@ -926,6 +931,7 @@
           terrain: document.getElementById('tp-ct-terrain').value,
           season: document.getElementById('tp-ct-season').value,
           duration: parseInt(document.getElementById('tp-ct-duration').value, 10) || 1,
+          groupSize: parseInt(document.getElementById('tp-ct-group-size').value, 10) || 1,
           location: document.getElementById('tp-ct-location').value.trim() || null,
           startDate: document.getElementById('tp-ct-start').value || null,
           endDate: document.getElementById('tp-ct-end').value || null,
