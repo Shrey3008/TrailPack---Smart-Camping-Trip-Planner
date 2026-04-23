@@ -5,113 +5,392 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <title>Checklist - TrailPack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
-    .checklist-hero {
-      background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)),
-                  url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200') center/cover;
-      padding: 4rem 2rem;
-      text-align: center;
-      color: white;
+    /* =========================================================
+       TrailPack checklist — design tokens (mirrors index.html)
+       ========================================================= */
+    :root {
+      --green: #2D6A4F;
+      --green-dark: #1B4332;
+      --green-light: #52B788;
+      --green-pale: #D8F3DC;
+      --cream: #F5F7F5;
+      --surface: #FFFFFF;
+      --ink: #1B2A22;
+      --muted: #6B7A72;
+      --line: #E4EBE5;
+      --danger: #C0392B;
+      --warn: #E67E22;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow-sm: 0 1px 2px rgba(27,67,50,0.06);
+      --shadow-md: 0 8px 24px rgba(27,67,50,0.12);
     }
-    .checklist-hero .brand { font-size: 1.2rem; font-weight: 600; letter-spacing: 1px; margin-bottom: 0.5rem; }
-    .checklist-hero h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem; }
-    .trip-badges { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
-    .trip-badges .badge { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; }
-    .progress-section { max-width: 900px; margin: 2rem auto; padding: 0 2rem; }
-    .progress-bar-container { background: #e5e7eb; border-radius: 9999px; height: 10px; margin: 0.75rem 0; }
-    .progress-bar-fill { background: #40916C; height: 10px; border-radius: 9999px; transition: width 0.4s ease; }
-    .progress-text { color: #6b7280; font-size: 0.9rem; }
-    .checklist-grid { display: flex; flex-direction: column; gap: 2rem; max-width: 700px; margin: 2rem auto; padding: 0 2rem 4rem; }
-    .category-col h3 { font-weight: 800; font-size: 1.2rem; margin-bottom: 1rem; color: #1B4332; }
-    .dotted-divider { border: none; border-top: 3px dotted #999; margin-bottom: 1.25rem; }
-    .checklist-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; padding: 0.35rem 0; font-size: 0.92rem; }
-    .checklist-item input[type="checkbox"] { width: 18px; height: 18px; margin-top: 2px; accent-color: #40916C; cursor: pointer; flex-shrink: 0; }
-    .checklist-item.packed span { text-decoration: line-through; color: #9ca3af; }
-    .navbar { background: #1B4332; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-    .navbar .brand { color: white; font-weight: 700; font-size: 1.2rem; text-decoration: none; }
-    .navbar a { color: rgba(255,255,255,0.8); text-decoration: none; margin-right: 1rem; font-size: 0.9rem; }
-    .navbar button { background: transparent; border: 1px solid rgba(255,255,255,0.4); color: white; padding: 0.35rem 0.85rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-    .loading { text-align: center; padding: 4rem; color: #6b7280; font-size: 1.1rem; }
-    .weather-section { max-width: 900px; margin: 2rem auto; padding: 0 2rem; }
-    .weather-card { background: linear-gradient(135deg, #40916C, #1B4332); color: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .weather-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
-    .weather-header h3 { font-size: 1.3rem; font-weight: 700; margin: 0; }
-    .weather-location { font-size: 0.9rem; opacity: 0.9; }
-    .weather-current { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 1rem; }
-    .weather-temp { font-size: 2.5rem; font-weight: 800; }
+    html[data-theme="dark"] {
+      --cream: #0F1A15;
+      --surface: #152219;
+      --ink: #E8F1EA;
+      --muted: #8FA397;
+      --line: #24332B;
+      --green-pale: #1F3C2C;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+      --shadow-md: 0 10px 28px rgba(0,0,0,0.45);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 { margin: 0; color: var(--ink); }
+
+    /* ---------- Navbar (mirrors index.html) ---------- */
+    .navbar {
+      background: var(--green-dark) !important;
+      padding: 18px 32px !important;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; }
+    .nav-brand .logo-mark {
+      display: inline-flex;
+      width: 34px; height: 34px;
+      border-radius: 10px;
+      background: rgba(82,183,136,0.15);
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-brand .brand-text {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.45rem;
+      color: #fff;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .nav-user .btn {
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.35);
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: inherit;
+    }
+    .nav-user .btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.6); }
+    .nav-user .btn-logout { border-color: rgba(231,76,60,0.55); color: #ffd2cc; }
+    .nav-user .btn-logout:hover { background: rgba(231,76,60,0.15); border-color: rgba(231,76,60,0.85); color: #fff; }
+    .nav-user .btn-theme { padding: 6px 10px; font-size: 1rem; }
+
+    /* ---------- Hero ---------- */
+    .checklist-hero {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 55%, var(--green-light) 135%);
+      padding: 52px 24px 44px;
+      text-align: center;
+      color: #fff;
+    }
+    .checklist-hero .brand { display: none; } /* nav already shows brand */
+    .checklist-hero h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 2.25rem;
+      margin-bottom: 14px;
+      letter-spacing: -0.015em;
+    }
+    .trip-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .trip-badges .badge {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.32);
+      color: #fff;
+      padding: 5px 14px;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    /* ---------- Shared card chrome ---------- */
+    .weather-section,
+    .provisions-section,
+    .risk-section,
+    .collab-section,
+    .progress-section {
+      max-width: 960px;
+      margin: 22px auto;
+      padding: 0 24px;
+    }
+    .provisions-card,
+    .risk-card,
+    .collab-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ---------- Progress bar ---------- */
+    .progress-bar-container {
+      background: var(--green-pale);
+      border-radius: 9999px;
+      height: 10px;
+      margin: 6px 0;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      background: linear-gradient(90deg, var(--green-light), var(--green));
+      height: 10px;
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+    }
+    .progress-text {
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin: 4px 0 0;
+    }
+
+    /* ---------- Checklist grid ---------- */
+    .checklist-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+      max-width: 960px;
+      margin: 16px auto 60px;
+      padding: 0 24px;
+    }
+    .category-col {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow-sm);
+    }
+    .category-col h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+    .dotted-divider {
+      border: none;
+      border-top: 2px dotted var(--line);
+      margin: 6px 0 14px;
+    }
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 0;
+      font-size: 0.95rem;
+      color: var(--ink);
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.15s;
+    }
+    .checklist-item:hover { border-bottom-color: var(--line); }
+    .checklist-item input[type="checkbox"] {
+      width: 20px; height: 20px;
+      margin-left: 8px;
+      accent-color: var(--green);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .checklist-item.packed span {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    /* ---------- Weather card (keeps its green gradient look) ---------- */
+    .weather-card {
+      background: linear-gradient(135deg, var(--green), var(--green-dark));
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow-md);
+    }
+    .weather-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .weather-header h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.2rem;
+      color: #fff;
+      margin: 0;
+    }
+    .weather-location { font-size: 0.88rem; opacity: 0.88; }
+    .weather-current { display: flex; align-items: center; gap: 14px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.22); margin-bottom: 14px; }
+    .weather-temp { font-size: 2.4rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
     .weather-desc { flex: 1; }
-    .weather-forecast { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem; }
-    .forecast-day { background: rgba(255,255,255,0.15); border-radius: 8px; padding: 0.75rem; text-align: center; font-size: 0.85rem; }
-    .forecast-day .day-name { font-weight: 600; margin-bottom: 0.25rem; }
-    .forecast-day .icon { font-size: 1.5rem; margin: 0.25rem 0; }
+    .weather-forecast { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; }
+    .forecast-day { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 10px; text-align: center; font-size: 0.85rem; }
+    .forecast-day .day-name { font-weight: 600; margin-bottom: 2px; }
+    .forecast-day .icon { font-size: 1.5rem; margin: 2px 0; }
     .forecast-day .temps { font-weight: 600; }
-    .forecast-day .precip { font-size: 0.75rem; opacity: 0.85; margin-top: 0.25rem; }
-    .weather-suggestions { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.25rem; margin-top: 1rem; }
-    .weather-suggestions h4 { color: #1B4332; margin: 0 0 0.75rem 0; font-size: 1.1rem; }
-    .suggestion-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .suggestion-chip { background: #E8F5E9; border: 1px solid #40916C; color: #1B4332; padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.85rem; display: flex; align-items: center; gap: 0.3rem; }
-    .suggestion-chip.high { background: #FFF3E0; border-color: #F57C00; color: #E65100; }
-    .weather-error { color: #fff; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 6px; font-size: 0.9rem; }
-    .provisions-section { max-width: 900px; margin: 1.5rem auto; padding: 0 2rem; }
-    .provisions-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .provisions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
-    .provisions-header h3 { color: #1B4332; margin: 0; font-size: 1.2rem; font-weight: 700; }
-    .provisions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .provisions-stat { background: #F1F8F4; border-radius: 8px; padding: 1rem; text-align: center; }
-    .provisions-stat .big { font-size: 1.6rem; font-weight: 700; color: #1B4332; line-height: 1.1; }
-    .provisions-stat .unit { font-size: 0.8rem; color: #40916C; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
-    .provisions-stat .sub { font-size: 0.8rem; color: #6b7280; margin-top: 0.35rem; }
-    .provisions-reasons { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
-    .provisions-reasons .chip { background: #E8F5E9; border: 1px solid #40916C; color: #1B4332; padding: 0.3rem 0.7rem; border-radius: 9999px; font-size: 0.8rem; }
-    .provisions-disclaimer { font-size: 0.75rem; color: #6b7280; font-style: italic; }
-    .risk-section { max-width: 900px; margin: 1.5rem auto; padding: 0 2rem; }
-    .risk-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .risk-card.level-medium { border-color: #F57C00; }
-    .risk-card.level-high { border-color: #dc2626; }
-    .risk-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
-    .risk-header h3 { color: #1B4332; margin: 0; font-size: 1.2rem; font-weight: 700; }
-    .risk-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.9rem; border-radius: 9999px; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; }
-    .risk-badge.level-low { background: #E8F5E9; color: #1B4332; border: 1px solid #40916C; }
-    .risk-badge.level-medium { background: #FFF3E0; color: #E65100; border: 1px solid #F57C00; }
-    .risk-badge.level-high { background: #FEE2E2; color: #991B1B; border: 1px solid #dc2626; }
-    .risk-score-track { height: 8px; background: #E5E7EB; border-radius: 9999px; overflow: hidden; margin-bottom: 1rem; }
-    .risk-score-fill { height: 100%; background: linear-gradient(90deg, #40916C, #F57C00, #dc2626); transition: width 0.4s; }
-    .risk-subtitle { font-size: 0.9rem; color: #374151; font-weight: 600; margin: 0.5rem 0 0.5rem; }
-    .risk-factors { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
-    .risk-factors .chip { background: #FEF3C7; border: 1px solid #F59E0B; color: #78350F; padding: 0.3rem 0.7rem; border-radius: 9999px; font-size: 0.8rem; }
+    .forecast-day .precip { font-size: 0.75rem; opacity: 0.85; margin-top: 2px; }
+    .weather-suggestions {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-top: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .weather-suggestions h4 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--ink);
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+    }
+    .suggestion-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .suggestion-chip {
+      background: var(--green-pale);
+      border: 1px solid var(--green-light);
+      color: var(--green-dark);
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .suggestion-chip.high { background: #FFF3E0; border-color: var(--warn); color: #8A4C10; }
+    .weather-error { color: #fff; background: rgba(0,0,0,0.25); padding: 10px; border-radius: 8px; font-size: 0.9rem; }
+
+    /* ---------- Provisions ---------- */
+    .provisions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .provisions-header h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--ink);
+      font-size: 1.15rem;
+    }
+    .provisions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+    .provisions-stat { background: var(--green-pale); border-radius: var(--radius-sm); padding: 16px; text-align: center; }
+    .provisions-stat .big { font-size: 1.7rem; font-weight: 700; color: var(--green-dark); line-height: 1.1; }
+    .provisions-stat .unit { font-size: 0.78rem; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    .provisions-stat .sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+    .provisions-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .provisions-reasons .chip { background: var(--green-pale); border: 1px solid var(--green-light); color: var(--green-dark); padding: 4px 10px; border-radius: 9999px; font-size: 0.78rem; }
+    .provisions-disclaimer { font-size: 0.75rem; color: var(--muted); font-style: italic; }
+
+    /* ---------- Risk ---------- */
+    .risk-card.level-medium { border-color: var(--warn); }
+    .risk-card.level-high { border-color: var(--danger); }
+    .risk-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .risk-header h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--ink);
+      font-size: 1.15rem;
+    }
+    .risk-badge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 9999px; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .risk-badge.level-low { background: var(--green-pale); color: var(--green-dark); border: 1px solid var(--green-light); }
+    .risk-badge.level-medium { background: #FFF3E0; color: #8A4C10; border: 1px solid var(--warn); }
+    .risk-badge.level-high { background: #FDECEA; color: #8A1B12; border: 1px solid var(--danger); }
+    .risk-score-track { height: 8px; background: var(--line); border-radius: 9999px; overflow: hidden; margin-bottom: 14px; }
+    .risk-score-fill { height: 100%; background: linear-gradient(90deg, var(--green-light), var(--warn), var(--danger)); transition: width 0.4s; }
+    .risk-subtitle { font-size: 0.88rem; color: var(--ink); font-weight: 600; margin: 8px 0 6px; }
+    .risk-factors { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .risk-factors .chip { background: #FEF3C7; border: 1px solid #F59E0B; color: #78350F; padding: 4px 10px; border-radius: 9999px; font-size: 0.78rem; }
     .risk-recs { list-style: none; padding: 0; margin: 0; }
-    .risk-recs li { padding: 0.5rem 0; border-bottom: 1px solid #F3F4F6; color: #1F2937; font-size: 0.9rem; display: flex; gap: 0.5rem; align-items: flex-start; }
+    .risk-recs li { padding: 8px 0; border-bottom: 1px solid var(--line); color: var(--ink); font-size: 0.9rem; display: flex; gap: 8px; align-items: flex-start; }
     .risk-recs li:last-child { border-bottom: none; }
-    .risk-recs li::before { content: '✓'; color: #40916C; font-weight: 700; flex-shrink: 0; }
-    .collab-section { max-width: 900px; margin: 1.5rem auto; padding: 0 2rem; }
-    .collab-card { background: #fff; border: 2px solid #40916C; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .collab-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-    .collab-header h3 { color: #1B4332; margin: 0; font-size: 1.2rem; font-weight: 700; }
-    .collab-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem; margin-bottom: 1rem; }
-    .collab-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.8rem; background: #F1F8F4; border-radius: 8px; font-size: 0.9rem; }
-    .collab-item .avatar { width: 32px; height: 32px; border-radius: 50%; background: #40916C; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .risk-recs li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+    /* ---------- Collaborators ---------- */
+    .collab-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .collab-header h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--ink);
+      font-size: 1.15rem;
+    }
+    .collab-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-bottom: 12px; }
+    .collab-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--green-pale); border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: 0.9rem; }
+    .collab-item .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
     .collab-item .info { flex: 1; min-width: 0; }
-    .collab-item .info .n { font-weight: 600; color: #1B4332; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .collab-item .info .e { font-size: 0.75rem; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .collab-item .role-tag { font-size: 0.7rem; background: #40916C; color: white; padding: 0.15rem 0.5rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.03em; }
-    .collab-item .remove-btn { background: transparent; border: none; color: #dc2626; cursor: pointer; font-size: 1.1rem; padding: 0 0.2rem; }
-    .collab-invite-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-    .collab-invite-form input { flex: 1; min-width: 200px; padding: 0.55rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
-    .collab-invite-form button { background: #40916C; color: white; border: none; padding: 0.55rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; }
+    .collab-item .info .n { font-weight: 600; color: var(--green-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .collab-item .info .e { font-size: 0.75rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .collab-item .role-tag { font-size: 0.7rem; background: var(--green); color: #fff; padding: 2px 8px; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .collab-item .remove-btn { background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+    .collab-invite-form { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+    .collab-invite-form input {
+      flex: 1; min-width: 200px;
+      padding: 9px 14px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      border-radius: 9999px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    .collab-invite-form input:focus {
+      outline: none;
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(82,183,136,0.18);
+    }
+    .collab-invite-form button {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 9999px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.88rem;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .collab-invite-form button:hover { background: var(--green-dark); }
     .collab-invite-form button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .collab-pending-title { font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin: 0.5rem 0 0.4rem; }
-    .collab-pending-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background: #FFF7ED; border: 1px dashed #F59E0B; border-radius: 6px; font-size: 0.85rem; margin-bottom: 0.4rem; }
+    .collab-pending-title { font-size: 0.78rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin: 8px 0 6px; }
+    .collab-pending-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #FFF7ED; border: 1px dashed #F59E0B; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 6px; }
     .collab-pending-item .email { flex: 1; color: #78350F; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .collab-pending-item button { background: transparent; border: 1px solid #F59E0B; color: #78350F; padding: 0.25rem 0.6rem; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
-    .collab-empty { color: #6b7280; font-size: 0.9rem; text-align: center; padding: 0.5rem 0; }
+    .collab-pending-item button { background: transparent; border: 1px solid #F59E0B; color: #78350F; padding: 4px 10px; border-radius: 9999px; cursor: pointer; font-size: 0.75rem; }
+    .collab-empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 8px 0; }
+
+    /* ---------- Export / action rows (inline styles still set colors; round corners) ---------- */
+    .export-buttons button,
+    .action-buttons button {
+      font-family: inherit !important;
+      font-weight: 600 !important;
+      border-radius: 9999px !important;
+      transition: transform 0.08s, filter 0.15s !important;
+    }
+    .export-buttons button:hover,
+    .action-buttons button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+
+    /* ---------- Loading state ---------- */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: var(--muted);
+      font-size: 1rem;
+    }
+
+    /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
+      .navbar { padding: 14px 18px !important; flex-wrap: wrap; gap: 10px; }
+      .nav-user { flex-wrap: wrap; justify-content: flex-end; }
+      .checklist-hero { padding: 36px 16px 32px; }
+      .checklist-hero h1 { font-size: 1.6rem; }
+      .progress-section, .weather-section, .provisions-section, .risk-section, .collab-section, .checklist-grid { padding-left: 16px; padding-right: 16px; }
       .provisions-grid { grid-template-columns: 1fr; }
-      .navbar { flex-direction: column; gap: 0.5rem; padding: 0.75rem 1rem; }
-      .navbar > div { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; }
-      .checklist-hero { padding: 2.5rem 1rem; }
-      .checklist-hero h1 { font-size: 1.75rem; }
-      .progress-section, .weather-section, .checklist-grid { padding-left: 1rem; padding-right: 1rem; }
       .export-buttons, .action-buttons { flex-wrap: wrap; }
       .action-buttons button { flex: 1 1 auto; min-width: 140px; }
       .weather-current { flex-wrap: wrap; }
@@ -121,10 +400,20 @@
 </head>
 <body>
   <nav class="navbar">
-    <span class="brand">⛺ TrailPack</span>
-    <div>
-      <a href="index.html">← Dashboard</a>
-      <button onclick="sessionStorage.removeItem('authToken'); window.location.href='login.html'">Logout</button>
+    <div class="nav-brand">
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+        </svg>
+      </span>
+      <h1 class="brand-text">TrailPack</h1>
+    </div>
+    <div class="nav-user">
+      <a href="index.html" class="btn">← Dashboard</a>
+      <a href="profile.html" class="btn">Profile</a>
+      <button id="theme-toggle" class="btn btn-theme" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+      <button class="btn btn-logout" onclick="sessionStorage.removeItem('authToken'); sessionStorage.removeItem('currentUser'); window.location.href='login.html'">Logout</button>
     </div>
   </nav>
   <div id="hero-section" class="checklist-hero">
@@ -749,6 +1038,30 @@
       }
     };
   });
+  </script>
+  <script>
+    // Theme toggle — mirrors index.html behavior (localStorage + prefers-color-scheme).
+    (function () {
+      const root = document.documentElement;
+      const KEY = 'tp-theme';
+      const apply = (t) => {
+        root.setAttribute('data-theme', t);
+        const btn = document.getElementById('theme-toggle');
+        if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
+      };
+      const saved = localStorage.getItem(KEY);
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      apply(saved || (prefersDark ? 'dark' : 'light'));
+      document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('theme-toggle');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+          localStorage.setItem(KEY, next);
+          apply(next);
+        });
+      });
+    })();
   </script>
 </body>
 </html>
