@@ -310,7 +310,7 @@ Trip:
 - Duration: ${trip.duration || 1} day(s)
 - Group size: ${trip.groupSize || trip.participants || 1}`;
 
-      const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
       const result = await model.generateContent(prompt);
       const text = result && result.response && typeof result.response.text === 'function'
         ? result.response.text()
