@@ -1806,6 +1806,24 @@
           document.getElementById('wx-cond-text').textContent = data.condition || '';
           document.getElementById('wx-uv-value').textContent = data.uv_index != null ? Math.round(data.uv_index) : '--';
 
+          // 5-day forecast strip: backend returns an array of
+          // { day, emoji, high, low } — log once so we can verify the
+          // shape, then populate the first 5 .wx-day cells in order.
+          console.log('forecast:', data.forecast);
+          const forecastEls = document.querySelectorAll('#wx-forecast .wx-day');
+          const fcArr = Array.isArray(data.forecast) ? data.forecast : [];
+          forecastEls.forEach((cell, i) => {
+            const f = fcArr[i];
+            const nameEl  = cell.querySelector('.wx-day-name');
+            const emojiEl = cell.querySelector('.wx-day-emoji');
+            const hiEl    = cell.querySelector('.wx-day-hi');
+            const loEl    = cell.querySelector('.wx-day-lo');
+            if (nameEl)  nameEl.textContent  = f && f.day   ? f.day   : '—';
+            if (emojiEl) emojiEl.textContent = f && f.emoji ? f.emoji : '🌤️';
+            if (hiEl)    hiEl.textContent    = f && f.high != null ? `${f.high}°` : '—';
+            if (loEl)    loEl.textContent    = f && f.low  != null ? `${f.low}°`  : '—';
+          });
+
           // Remove "Weather unavailable" text if showing
           const unavail = document.getElementById('wx-unavailable');
           if (unavail) unavail.style.display = 'none';
