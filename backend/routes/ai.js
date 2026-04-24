@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
+const aiService = require('../services/aiService');
 
 // All AI routes require authentication
 router.use(authenticate);
@@ -151,27 +152,37 @@ router.post('/insights/route/:tripId', async (req, res) => {
   }
 });
 
-// POST /ai/risk-analysis - Comprehensive trip risk analysis
+// POST /ai/risk-analysis - Hybrid trip risk analysis.
+//
+// Scoring + factor detection is pure rule-based (deterministic,
+// covered by tests in __tests__/risk.test.js). The recommendations
+// array is AI-enhanced: we ask Groq (llama-3.1-8b-instant, JSON mode)
+// for trip-specific safety tips, and fall back to a static rule-based
+// list if Groq is unavailable (no key, network error, quota, empty
+// response). The response shape deliberately exposes BOTH the legacy
+// field names the tests assert on (overallRisk, riskFactors) and the
+// new names the frontend reads (riskLevel, factors) so the fix is
+// backwards-compatible.
 router.post('/risk-analysis', async (req, res) => {
   try {
     const { terrain, season, duration, experience } = req.body;
-    
+
     const riskFactors = [];
     let overallRisk = 'Low';
     let riskScore = 0;
-    
+
     // Terrain risk
     const terrainRisks = {
       'Mountain': { level: 'High', score: 30, factors: ['Altitude sickness', 'Steep terrain', 'Rockfall risk'] },
       'Forest': { level: 'Low', score: 10, factors: ['Wildlife encounters', 'Getting lost'] },
       'Desert': { level: 'High', score: 35, factors: ['Heat exhaustion', 'Dehydration', 'Limited shade'] }
     };
-    
+
     if (terrainRisks[terrain]) {
       riskScore += terrainRisks[terrain].score;
       riskFactors.push(...terrainRisks[terrain].factors);
     }
-    
+
     // Season risk
     const seasonRisks = {
       'Winter': { level: 'High', score: 30, factors: ['Hypothermia', 'Avalanche', 'Ice/snow hazards'] },
@@ -179,12 +190,12 @@ router.post('/risk-analysis', async (req, res) => {
       'Spring': { level: 'Medium', score: 15, factors: ['Unpredictable weather', 'Muddy trails'] },
       'Fall': { level: 'Low', score: 10, factors: ['Early darkness', 'Temperature drops'] }
     };
-    
+
     if (seasonRisks[season]) {
       riskScore += seasonRisks[season].score;
       riskFactors.push(...seasonRisks[season].factors);
     }
-    
+
     // Duration risk
     if (duration > 5) {
       riskScore += 15;
@@ -194,7 +205,7 @@ router.post('/risk-analysis', async (req, res) => {
       riskScore += 10;
       riskFactors.push('Multi-day supply management');
     }
-    
+
     // Experience modifier
     const expModifier = {
       'Beginner': 20,
@@ -203,31 +214,63 @@ router.post('/risk-analysis', async (req, res) => {
       'Expert': -5
     };
     riskScore += expModifier[experience] || 10;
-    
+
     // Determine overall risk
     if (riskScore >= 60) overallRisk = 'High';
     else if (riskScore >= 35) overallRisk = 'Medium';
-    
-    // Generate recommendations
-    const recommendations = [];
+
+    // Static fallback recommendations (used when Groq is unavailable
+    // or the tests run without a GROQ_API_KEY in the environment).
+    const fallbackRecs = [];
     if (overallRisk === 'High') {
-      recommendations.push('Consider a guided tour', 'File a trip plan with authorities', 'Carry emergency beacon');
+      fallbackRecs.push('Consider a guided tour', 'File a trip plan with authorities', 'Carry emergency beacon');
     } else if (overallRisk === 'Medium') {
-      recommendations.push('Hike with a partner', 'Check weather forecasts', 'Bring extra supplies');
+      fallbackRecs.push('Hike with a partner', 'Check weather forecasts', 'Bring extra supplies');
     } else {
-      recommendations.push('Standard preparations adequate', 'Enjoy your trip!');
+      fallbackRecs.push('Standard preparations adequate', 'Enjoy your trip!');
     }
-    
-    // Add specific recommendations
-    if (terrain === 'Mountain') recommendations.push('Acclimatize gradually', 'Carry altitude medication');
-    if (terrain === 'Desert') recommendations.push('Carry 1 gallon water per person per day', 'Hike during cooler hours');
-    if (season === 'Winter') recommendations.push('Check avalanche forecasts', 'Carry avalanche safety gear');
-    
+    if (terrain === 'Mountain') fallbackRecs.push('Acclimatize gradually', 'Carry altitude medication');
+    if (terrain === 'Desert') fallbackRecs.push('Carry 1 gallon water per person per day', 'Hike during cooler hours');
+    if (season === 'Winter') fallbackRecs.push('Check avalanche forecasts', 'Carry avalanche safety gear');
+
+    const factors = [...new Set(riskFactors)];
+    const dedupedFallback = [...new Set(fallbackRecs)];
+
+    // AI-enhanced recommendations. aiService.generateRiskRecommendations()
+    // returns [] on any failure (no key, Groq error, bad JSON), which
+    // is exactly our signal to use the static fallback.
+    let recommendations = dedupedFallback;
+    try {
+      const aiRecs = await aiService.generateRiskRecommendations({
+        terrain,
+        season,
+        duration,
+        experience,
+        riskLevel: overallRisk,
+        factors,
+      });
+      if (Array.isArray(aiRecs) && aiRecs.length > 0) {
+        recommendations = [...new Set(aiRecs)];
+      }
+    } catch (aiErr) {
+      // Defensive: aiService already swallows errors, but if anything
+      // slips through we still want the card to render.
+      console.error('Risk recommendations AI call failed:', aiErr);
+    }
+
+    const cappedScore = Math.min(riskScore, 100);
+
     res.json({
+      // New field names read by the frontend checklist card.
+      riskLevel: overallRisk,
+      riskScore: cappedScore,
+      factors,
+      // Legacy field names asserted on by backend/__tests__/risk.test.js.
+      // Kept for backwards compatibility; safe to remove once all
+      // consumers migrate.
       overallRisk,
-      riskScore: Math.min(riskScore, 100),
-      riskFactors: [...new Set(riskFactors)],
-      recommendations: [...new Set(recommendations)],
+      riskFactors: factors,
+      recommendations,
       emergencyContacts: ['Local Rangers: 911', 'Search & Rescue: Contact local authority'],
       lastUpdated: new Date().toISOString()
     });

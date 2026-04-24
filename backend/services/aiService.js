@@ -343,6 +343,52 @@ Trip:
     }
   }
 
+  // Generate AI-enhanced risk recommendations for a specific trip.
+  // The rule-based /ai/risk-analysis route still owns scoring + factor
+  // detection (deterministic, tested); this method supplies the
+  // recommendations[] array only. Returns a sanitized array of short
+  // string tips. On any failure (no key, Groq error, bad JSON, empty
+  // list) returns [] so the caller can fall through to its static
+  // fallback recommendations and the card still renders.
+  async generateRiskRecommendations(trip) {
+    if (!this.groq) return [];
+    try {
+      const prompt =
+`You are a wilderness safety advisor. Based on the trip context below, produce 4-6 specific, actionable safety recommendations tailored to these exact conditions. Avoid generic platitudes like "stay safe" or "be prepared"; each recommendation should reference the terrain, season, duration, or experience level.
+
+Respond with ONLY a valid JSON object of this exact shape:
+{ "recommendations": [ "<short actionable tip>", "<short actionable tip>" ] }
+
+Trip context:
+- Terrain: ${trip.terrain || 'Not specified'}
+- Season: ${trip.season || 'Not specified'}
+- Duration: ${trip.duration || 1} day(s)
+- Experience level: ${trip.experience || 'Intermediate'}
+- Risk level (computed): ${trip.riskLevel || 'Low'}
+- Key hazards already identified: ${(trip.factors || []).join(', ') || 'none'}`;
+
+      const response = await this.groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+      });
+      const text = response && response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content;
+      if (!text) return [];
+
+      let parsed;
+      try { parsed = JSON.parse(text); } catch (_) { return []; }
+      const arr = Array.isArray(parsed && parsed.recommendations) ? parsed.recommendations : [];
+
+      return arr
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .filter(Boolean)
+        .slice(0, 8);
+    } catch (error) {
+      console.error('AI risk recommendations error:', error);
+      return [];
+    }
+  }
+
   // Generate trip summary and highlights
   async generateTripSummary(tripData, checklistItems, activities) {
     try {
