@@ -1753,7 +1753,7 @@
 
           // Fetch the trip to get location
           const token = localStorage.getItem('token');
-          const tripRes = await fetch(`/trips/${tripId}`, {
+          const tripRes = await fetch(`http://localhost:3000/trips/${tripId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const trip = await tripRes.json();
@@ -1767,7 +1767,7 @@
 
           let weatherUrl;
           if (loc && !isGeneric) {
-            weatherUrl = `/weather?location=${encodeURIComponent(loc)}`;
+            weatherUrl = `http://localhost:3000/weather?location=${encodeURIComponent(loc)}`;
           } else {
             weatherUrl = null; // will try GPS
           }
@@ -1783,7 +1783,7 @@
               navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000})
             );
             const {latitude: lat, longitude: lon} = pos.coords;
-            const res = await fetch(`/weather?lat=${lat}&lon=${lon}`);
+            const res = await fetch(`http://localhost:3000/weather?lat=${lat}&lon=${lon}`);
             data = await res.json();
           }
 
