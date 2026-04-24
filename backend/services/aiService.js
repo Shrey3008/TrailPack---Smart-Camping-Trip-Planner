@@ -1,5 +1,6 @@
 const axios = require('axios');
 const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 class AIService {
   constructor() {
@@ -7,9 +8,16 @@ class AIService {
     // var is missing/empty, which previously crashed every module that
     // required this service on import. Instantiate only when a key is
     // present, and fall through to graceful-failure paths elsewhere
-    // when `this.openai` is null.
-    const apiKey = process.env.OPENAI_API_KEY;
-    this.openai = apiKey ? new OpenAI({ apiKey }) : null;
+    // when `this.openai` is null. (OpenAI is retained for the other,
+    // currently unused, methods in this class.)
+    const openaiKey = process.env.OPENAI_API_KEY;
+    this.openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
+
+    // Gemini is the active backend for generateGearSuggestions().
+    this.gemini = process.env.GEMINI_API_KEY
+      ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+      : null;
+
     this.weatherAPIKey = process.env.WEATHER_API_KEY;
     this.mapboxToken = process.env.MAPBOX_TOKEN;
   }
@@ -284,15 +292,15 @@ class AIService {
   // bad JSON, missing fields) returns an empty array so the caller
   // can fall through gracefully — never throws.
   async generateGearSuggestions(trip) {
-    // No API key configured → behave exactly like an AI error: empty
-    // array so the caller inserts nothing.
-    if (!this.openai) return [];
+    // No Gemini key configured → behave exactly like an AI error:
+    // empty array so the caller inserts nothing.
+    if (!this.gemini) return [];
     try {
       const prompt =
-`Suggest 5-8 specific, non-obvious gear items for a camping trip based on the details below. Avoid generic staples (backpack, water bottle, tent, first aid kit, sleeping bag) — the base checklist already covers those. Focus on trip-specific items that a less-experienced camper might forget.
+`You are a camping gear expert. Suggest 5-8 specific, non-obvious gear items for a camping trip based on the details below. Avoid generic staples (backpack, water bottle, tent, first aid kit, sleeping bag) — the base checklist already covers those. Focus on trip-specific items that a less-experienced camper might forget.
 
-Respond ONLY with a JSON object of the form:
-{ "items": [ { "name": "<short item name>", "category": "<Shelter|Clothing|Food & Water|Safety|Tools>", "priority": "<essential|recommended|optional>" }, ... ] }
+Respond with ONLY a valid JSON object (no prose, no markdown fences) of this exact shape:
+{ "items": [ { "name": "<short item name>", "category": "<Shelter|Clothing|Food & Water|Safety|Tools>", "priority": "<essential|recommended|optional>" } ] }
 
 Trip:
 - Name: ${trip.name || 'Camping trip'}
@@ -302,21 +310,28 @@ Trip:
 - Duration: ${trip.duration || 1} day(s)
 - Group size: ${trip.groupSize || trip.participants || 1}`;
 
-      const completion = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: 'You are a camping gear expert. Respond only in valid JSON matching the schema in the user message.' },
-          { role: 'user', content: prompt },
-        ],
-        response_format: { type: 'json_object' },
-        max_tokens: 600,
-        temperature: 0.6,
-      });
+      const model = this.gemini.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const result = await model.generateContent(prompt);
+      const text = result && result.response && typeof result.response.text === 'function'
+        ? result.response.text()
+        : '';
+      if (!text) return [];
 
-      const raw = completion.choices && completion.choices[0] && completion.choices[0].message && completion.choices[0].message.content;
-      if (!raw) return [];
+      // Gemini frequently wraps JSON in ```json ... ``` fences even when
+      // told not to. Strip any leading/trailing fence before parsing.
+      let cleaned = String(text).trim();
+      const fenced = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+      if (fenced) cleaned = fenced[1].trim();
+      // If the model prefixed prose then emitted an object, slice from
+      // the first '{' to the last '}' as a defensive fallback.
+      if (cleaned[0] !== '{') {
+        const first = cleaned.indexOf('{');
+        const last  = cleaned.lastIndexOf('}');
+        if (first !== -1 && last > first) cleaned = cleaned.slice(first, last + 1);
+      }
+
       let parsed;
-      try { parsed = JSON.parse(raw); } catch (_) { return []; }
+      try { parsed = JSON.parse(cleaned); } catch (_) { return []; }
       const arr = Array.isArray(parsed && parsed.items) ? parsed.items : [];
 
       const ALLOWED_CATS  = new Set(['Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
