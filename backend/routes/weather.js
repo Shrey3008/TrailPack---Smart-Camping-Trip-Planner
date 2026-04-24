@@ -180,12 +180,24 @@ router.get('/', authenticate, async (req, res) => {
       } catch (_) { /* leave uvIndex null */ }
     }
 
-    // Aggregate the 3-hour forecast slices into per-day buckets.
+    // Aggregate the 3-hour forecast slices into per-day buckets, keyed
+    // by the *local* date at the forecast location (not UTC). OWM
+    // returns the location's offset-from-UTC in seconds on the current-
+    // weather response as `timezone`; shifting every entry.dt by that
+    // amount before slicing the ISO string makes each calendar day at
+    // the location a distinct bucket, so a 5-day strip shows 5 unique
+    // weekdays instead of two UTC-Friday blobs.
     const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const tzOffset = typeof cur.timezone === 'number' ? cur.timezone : 0;
+    const localKey = (unixSeconds) =>
+      new Date((unixSeconds + tzOffset) * 1000).toISOString().slice(0, 10);
+    const localDate = (unixSeconds) =>
+      new Date((unixSeconds + tzOffset) * 1000);
+
     const byDay = new Map(); // key: YYYY-MM-DD (local), val: { date, highs, lows, icons{}, noonIcon }
     (fc.list || []).forEach((entry) => {
-      const d = new Date(entry.dt * 1000);
-      const key = d.toISOString().slice(0, 10);
+      const key = localKey(entry.dt);
+      const d   = localDate(entry.dt);
       if (!byDay.has(key)) {
         byDay.set(key, { date: d, highs: [], lows: [], icons: {}, noonIcon: null });
       }
@@ -195,17 +207,30 @@ router.get('/', authenticate, async (req, res) => {
       const icon = entry.weather && entry.weather[0] && entry.weather[0].icon;
       if (icon) {
         bucket.icons[icon] = (bucket.icons[icon] || 0) + 1;
+        // Local hour at the location (getUTCHours on a tz-shifted Date
+        // gives the wall-clock hour there).
         const hour = d.getUTCHours();
         if (hour >= 11 && hour <= 14) bucket.noonIcon = icon;
       }
     });
 
-    const forecast = Array.from(byDay.values()).slice(0, 5).map((b) => {
+    // Today's *local* key (now + tzOffset). If there are already 5
+    // future days in the bucket map, skip today so the strip shows
+    // tomorrow..tomorrow+4 instead of today..today+4.
+    const todayKey = localKey(Math.floor(Date.now() / 1000));
+    const allKeysSorted = Array.from(byDay.keys()).sort();
+    const futureKeys = allKeysSorted.filter((k) => k > todayKey);
+    const stripKeys = futureKeys.length >= 5
+      ? futureKeys.slice(0, 5)
+      : allKeysSorted.slice(0, 5);
+
+    const forecast = stripKeys.map((k) => {
+      const b = byDay.get(k);
       // Prefer the icon nearest local noon; fall back to most frequent for the day.
       const topIcon = b.noonIcon
         || (Object.entries(b.icons).sort((a, c) => c[1] - a[1])[0] || [null])[0];
       return {
-        day: DOW[b.date.getDay()],
+        day: DOW[b.date.getUTCDay()],
         emoji: iconToEmoji(topIcon),
         high: b.highs.length ? Math.round(Math.max(...b.highs)) : null,
         low:  b.lows.length  ? Math.round(Math.min(...b.lows))  : null,
@@ -214,7 +239,6 @@ router.get('/', authenticate, async (req, res) => {
 
     // Today's high/low — prefer the forecast bucket for today, fall back to
     // the current-weather response's main.temp_min/temp_max.
-    const todayKey = new Date().toISOString().slice(0, 10);
     const today = byDay.get(todayKey);
     const high = today && today.highs.length
       ? Math.round(Math.max(...today.highs))
