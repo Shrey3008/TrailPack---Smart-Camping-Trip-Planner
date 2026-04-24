@@ -851,6 +851,28 @@
       border-radius: 9999px;
       letter-spacing: 0.02em;
     }
+    .sg-generate-btn {
+      background: linear-gradient(135deg, #8b5cf6, #a855f7);
+      color: #fff;
+      border: none;
+      border-radius: 9999px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+      box-shadow: 0 2px 8px rgba(139, 92, 246, 0.25);
+      white-space: nowrap;
+    }
+    .sg-generate-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+    }
+    .sg-generate-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
     .sg-filters {
       display: flex; gap: 6px; flex-wrap: wrap;
       margin-bottom: 12px;
@@ -1065,6 +1087,9 @@
           <h3 class="ins-card-title">🎒 Smart Gear List</h3>
           <span class="sg-ai-badge">✨ AI Generated</span>
         </span>
+        <button type="button" class="sg-generate-btn" id="sg-generate-btn">
+          <span class="sg-generate-label">✨ Generate suggestions</span>
+        </button>
       </div>
       <hr class="ins-card-divider">
       <div class="sg-filters" id="sg-filters" role="tablist">
@@ -2006,6 +2031,52 @@
           alert('Could not update item: ' + err.message);
         }
       }
+      // Wire the "✨ Generate suggestions" button on the Smart Gear
+      // card to POST /trips/:id/ai-items. On success we re-fetch the
+      // items list so both views (regular checklist + Smart Gear)
+      // re-render from a single source of truth, then toast a short
+      // summary of the inserted/skipped counts returned by the server.
+      function initSmartGearGenerate() {
+        const btn = document.getElementById('sg-generate-btn');
+        if (!btn) return;
+        const label = btn.querySelector('.sg-generate-label');
+        const origText = label ? label.textContent : '✨ Generate suggestions';
+
+        btn.addEventListener('click', async () => {
+          btn.disabled = true;
+          if (label) label.textContent = 'Generating…';
+          try {
+            const res = await api('/trips/' + tripId + '/ai-items', { method: 'POST' });
+            const counts = (res && res.counts) || {};
+            const inserted = counts.inserted || 0;
+            const skipped  = counts.skipped  || 0;
+
+            if (inserted > 0) {
+              // Refresh the items array from the server so both views
+              // pick up the new source='ai' rows.
+              const fresh = await api('/trips/' + tripId + '/items');
+              items = Array.isArray(fresh) ? fresh : (fresh && fresh.items) || [];
+              renderCategories();
+              sgRender();
+              updateProgress();
+              const skipMsg = skipped > 0 ? ' (' + skipped + ' already on your list)' : '';
+              showToast('Added ' + inserted + ' AI suggestion' + (inserted === 1 ? '' : 's') + skipMsg, 'success');
+            } else if (skipped > 0) {
+              showToast('All suggestions were already on your list.', 'success');
+            } else {
+              // Empty result → either the key is missing on the backend
+              // or Gemini returned nothing parseable. Not an error per se.
+              showToast('No new suggestions right now — try again later.');
+            }
+          } catch (err) {
+            showToast('Could not generate suggestions: ' + err.message, 'error');
+          } finally {
+            btn.disabled = false;
+            if (label) label.textContent = origText;
+          }
+        });
+      }
+
       function initSmartGearFilters() {
         const bar = document.getElementById('sg-filters');
         if (!bar) return;
@@ -2055,6 +2126,7 @@
           loadWeatherHero();
           loadCalorieWater();
           initSmartGearFilters();
+          initSmartGearGenerate();
           sgRender();
         } catch (err) {
           document.getElementById('categories').innerHTML =
