@@ -128,10 +128,27 @@ router.get('/', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'lat+lon or location is required' });
     }
 
-    const currentUrl  = `https://api.openweathermap.org/data/2.5/weather?${base}&appid=${apiKey}&units=metric`;
-    const forecastUrl = `https://api.openweathermap.org/data/2.5/forecast?${base}&appid=${apiKey}&units=metric`;
+    // Fetch OWM current + 5-day forecast for a given `base` query string
+    // (either 'lat=..&lon=..' or 'q=..'). Returns [curResp, fcResp].
+    const owmFetch = (baseQuery) => Promise.all([
+      fetch(`https://api.openweathermap.org/data/2.5/weather?${baseQuery}&appid=${apiKey}&units=metric`),
+      fetch(`https://api.openweathermap.org/data/2.5/forecast?${baseQuery}&appid=${apiKey}&units=metric`),
+    ]);
 
-    const [curResp, fcResp] = await Promise.all([fetch(currentUrl), fetch(forecastUrl)]);
+    let [curResp, fcResp] = await owmFetch(base);
+
+    // If the user typed 'City, XX' where XX is an ambiguous/wrong country
+    // code (e.g. the trip was saved as 'Colombo, SL' — SL is Sierra Leone,
+    // not Sri Lanka), OWM returns 404 'city not found'. Retry once with
+    // just the city portion before giving up.
+    if (!curResp.ok && curResp.status === 404 && location && location.includes(',')) {
+      const cityOnly = location.split(',')[0].trim();
+      if (cityOnly) {
+        const retryBase = `q=${encodeURIComponent(cityOnly)}`;
+        console.log(`[weather] OWM 404 for '${location}', retrying with '${cityOnly}'`);
+        [curResp, fcResp] = await owmFetch(retryBase);
+      }
+    }
 
     if (!curResp.ok) {
       const status = curResp.status === 404 ? 404 : 502;
