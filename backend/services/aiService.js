@@ -3,9 +3,13 @@ const OpenAI = require('openai');
 
 class AIService {
   constructor() {
-    this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    // Lazy-tolerant: the OpenAI client constructor throws when the env
+    // var is missing/empty, which previously crashed every module that
+    // required this service on import. Instantiate only when a key is
+    // present, and fall through to graceful-failure paths elsewhere
+    // when `this.openai` is null.
+    const apiKey = process.env.OPENAI_API_KEY;
+    this.openai = apiKey ? new OpenAI({ apiKey }) : null;
     this.weatherAPIKey = process.env.WEATHER_API_KEY;
     this.mapboxToken = process.env.MAPBOX_TOKEN;
   }
@@ -271,6 +275,63 @@ class AIService {
         recommendations: "Personalized recommendations temporarily unavailable",
         generatedAt: new Date().toISOString()
       };
+    }
+  }
+
+  // Generate AI-suggested gear items for a specific trip. Returns a
+  // sanitized array of { name, category, priority } objects parsed
+  // from the model's JSON response. On any failure (OpenAI error,
+  // bad JSON, missing fields) returns an empty array so the caller
+  // can fall through gracefully — never throws.
+  async generateGearSuggestions(trip) {
+    // No API key configured → behave exactly like an AI error: empty
+    // array so the caller inserts nothing.
+    if (!this.openai) return [];
+    try {
+      const prompt =
+`Suggest 5-8 specific, non-obvious gear items for a camping trip based on the details below. Avoid generic staples (backpack, water bottle, tent, first aid kit, sleeping bag) — the base checklist already covers those. Focus on trip-specific items that a less-experienced camper might forget.
+
+Respond ONLY with a JSON object of the form:
+{ "items": [ { "name": "<short item name>", "category": "<Shelter|Clothing|Food & Water|Safety|Tools>", "priority": "<essential|recommended|optional>" }, ... ] }
+
+Trip:
+- Name: ${trip.name || 'Camping trip'}
+- Location: ${trip.location || 'Not specified'}
+- Terrain: ${trip.terrain || 'Not specified'}
+- Season: ${trip.season || 'Not specified'}
+- Duration: ${trip.duration || 1} day(s)
+- Group size: ${trip.groupSize || trip.participants || 1}`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: 'You are a camping gear expert. Respond only in valid JSON matching the schema in the user message.' },
+          { role: 'user', content: prompt },
+        ],
+        response_format: { type: 'json_object' },
+        max_tokens: 600,
+        temperature: 0.6,
+      });
+
+      const raw = completion.choices && completion.choices[0] && completion.choices[0].message && completion.choices[0].message.content;
+      if (!raw) return [];
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { return []; }
+      const arr = Array.isArray(parsed && parsed.items) ? parsed.items : [];
+
+      const ALLOWED_CATS  = new Set(['Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
+      const ALLOWED_PRIOS = new Set(['essential', 'recommended', 'optional']);
+
+      return arr
+        .filter(it => it && typeof it.name === 'string' && it.name.trim())
+        .map(it => ({
+          name: String(it.name).trim(),
+          category: ALLOWED_CATS.has(it.category) ? it.category : 'Tools',
+          priority: ALLOWED_PRIOS.has(String(it.priority).toLowerCase()) ? String(it.priority).toLowerCase() : 'recommended',
+        }));
+    } catch (error) {
+      console.error('AI gear suggestions error:', error);
+      return [];
     }
   }
 

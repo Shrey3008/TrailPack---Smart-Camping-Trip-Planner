@@ -1262,7 +1262,10 @@
         const container = document.getElementById('categories');
         container.innerHTML = '';
         const grouped = {};
-        items.forEach(it => {
+        // Regular/default checklist: skip AI-sourced items. Items with
+        // no `source` field (legacy rows + the base generator) fall
+        // through to the categorized view as before.
+        items.filter(it => it && it.source !== 'ai').forEach(it => {
           const c = it.category || 'General';
           (grouped[c] = grouped[c] || []).push(it);
         });
@@ -1936,7 +1939,9 @@
       function sgRender() {
         const list = document.getElementById('sg-list');
         if (!list) return;
-        const visible = items.filter(i => sgMatchesFilter(i, sgCurrentFilter));
+        // Smart Gear List is the AI section: only items with source==='ai'.
+        const aiItems = items.filter(i => i && i.source === 'ai');
+        const visible = aiItems.filter(i => sgMatchesFilter(i, sgCurrentFilter));
         if (!visible.length) {
           list.innerHTML = '<div class="muted-note">No items match this filter.</div>';
         } else {
@@ -1952,19 +1957,19 @@
             );
           }).join('');
         }
-        // Legend counts (over ALL items, not just filtered view)
+        // Legend counts (over ALL AI items, not just the filtered view).
         const counts = { essential: 0, recommended: 0, optional: 0 };
-        items.forEach(it => { counts[sgPriority(it)]++; });
+        aiItems.forEach(it => { counts[sgPriority(it)]++; });
         document.getElementById('sg-count-essential').textContent   = counts.essential;
         document.getElementById('sg-count-recommended').textContent = counts.recommended;
         document.getElementById('sg-count-optional').textContent    = counts.optional;
-        const packed = items.filter(i => i.packed).length;
-        document.getElementById('sg-packed-count').textContent = packed + '/' + items.length;
+        const packed = aiItems.filter(i => i.packed).length;
+        document.getElementById('sg-packed-count').textContent = packed + '/' + aiItems.length;
 
         // Wire per-row clicks
         list.querySelectorAll('.sg-item').forEach(row => {
           const id = row.getAttribute('data-sg-id');
-          const item = items.find(x => String(x.itemId) === String(id));
+          const item = aiItems.find(x => String(x.itemId) === String(id));
           if (!item) return;
           const toggle = () => sgToggle(item);
           row.addEventListener('click', toggle);
