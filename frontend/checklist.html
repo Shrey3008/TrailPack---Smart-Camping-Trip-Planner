@@ -1804,6 +1804,7 @@
           document.getElementById('wx-high').textContent = data.high != null ? `${data.high}°C` : '--';
           document.getElementById('wx-low').textContent = data.low != null ? `${data.low}°C` : '--';
           document.getElementById('wx-cond-text').textContent = data.condition || '';
+          document.getElementById('wx-uv-value').textContent = data.uv_index != null ? Math.round(data.uv_index) : '--';
 
           // Remove "Weather unavailable" text if showing
           const unavail = document.getElementById('wx-unavailable');

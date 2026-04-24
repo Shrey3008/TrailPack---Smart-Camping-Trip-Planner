@@ -163,6 +163,23 @@ router.get('/', authenticate, async (req, res) => {
     const data = { current: cur, forecast: fc };
     console.log('OWM raw response:', JSON.stringify(data));
 
+    // OWM's free tier doesn't expose UV index, but Open-Meteo does —
+    // do a best-effort side lookup using the coords OWM just gave us.
+    // Never blocks the main response: any error is swallowed and
+    // uv_index simply comes back null.
+    let uvIndex = null;
+    if (cur.coord && cur.coord.lat != null && cur.coord.lon != null) {
+      try {
+        const uvRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${cur.coord.lat}&longitude=${cur.coord.lon}&current=uv_index`
+        );
+        const uvData = await uvRes.json();
+        uvIndex = (uvData && uvData.current && uvData.current.uv_index != null)
+          ? uvData.current.uv_index
+          : null;
+      } catch (_) { /* leave uvIndex null */ }
+    }
+
     // Aggregate the 3-hour forecast slices into per-day buckets.
     const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const byDay = new Map(); // key: YYYY-MM-DD (local), val: { date, highs, lows, icons{}, noonIcon }
@@ -220,8 +237,10 @@ router.get('/', authenticate, async (req, res) => {
       wind_speed: cur.wind && typeof cur.wind.speed === 'number' ? Math.round(cur.wind.speed * 3.6) : null,
       high,
       low,
-      // UV index requires OWM One Call 3.0 (paid) — null on the free tier.
-      uv_index: null,
+      // UV index: OWM's free tier doesn't expose it, so we side-fetch
+      // Open-Meteo above using OWM's returned coords. Null if that lookup
+      // failed or the provider didn't return a value.
+      uv_index: uvIndex,
       forecast,
     };
     console.log('Weather route returning:', JSON.stringify(result));
