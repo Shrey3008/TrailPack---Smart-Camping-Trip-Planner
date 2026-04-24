@@ -1790,17 +1790,17 @@
           console.log('weather data:', data);
 
           // Populate the card
-          document.getElementById('w-location').textContent = data.location || loc;
-          document.getElementById('w-temp').textContent = data.temp != null ? `${data.temp}°C` : '--';
-          document.getElementById('w-feels').textContent = data.feels_like != null ? `Feels like ${data.feels_like}°C` : '';
-          document.getElementById('w-humidity').textContent = data.humidity != null ? `${data.humidity}%` : '--';
-          document.getElementById('w-wind').textContent = data.wind_speed != null ? `${data.wind_speed} km/h` : '--';
-          document.getElementById('w-high').textContent = data.high != null ? `${data.high}°C` : '--';
-          document.getElementById('w-low').textContent = data.low != null ? `${data.low}°C` : '--';
-          document.getElementById('w-condition').textContent = data.condition || '';
+          document.getElementById('wx-loc-text').textContent = data.location || loc;
+          document.getElementById('wx-temp').textContent = data.temp != null ? `${data.temp}°C` : '--';
+          document.getElementById('wx-feels').textContent = data.feels_like != null ? `Feels like ${data.feels_like}°C` : '';
+          document.getElementById('wx-humidity').textContent = data.humidity != null ? `${data.humidity}%` : '--';
+          document.getElementById('wx-wind').textContent = data.wind_speed != null ? `${data.wind_speed} km/h` : '--';
+          document.getElementById('wx-high').textContent = data.high != null ? `${data.high}°C` : '--';
+          document.getElementById('wx-low').textContent = data.low != null ? `${data.low}°C` : '--';
+          document.getElementById('wx-cond-text').textContent = data.condition || '';
 
           // Remove "Weather unavailable" text if showing
-          const unavail = document.getElementById('w-unavailable');
+          const unavail = document.getElementById('wx-unavailable');
           if (unavail) unavail.style.display = 'none';
 
         } catch (err) {
