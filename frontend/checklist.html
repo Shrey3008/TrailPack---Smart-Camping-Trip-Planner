@@ -1751,10 +1751,13 @@
           const tripId = new URLSearchParams(window.location.search).get('tripId');
           console.log('tripId:', tripId);
 
-          // Fetch the trip to get location
-          const token = localStorage.getItem('token');
+          // Fetch the trip to get location. This app stores the JWT in
+          // sessionStorage under 'authToken' (set by login.html), not
+          // localStorage/'token'.
+          const token = sessionStorage.getItem('authToken');
+          const authHeaders = { 'Authorization': `Bearer ${token}` };
           const tripRes = await fetch(`http://localhost:3000/trips/${tripId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: authHeaders
           });
           const trip = await tripRes.json();
           console.log('trip:', trip);
@@ -1775,7 +1778,8 @@
           let data;
           if (weatherUrl) {
             console.log('fetching weather from:', weatherUrl);
-            const res = await fetch(weatherUrl);
+            // /weather is behind authenticate middleware too — send the JWT.
+            const res = await fetch(weatherUrl, { headers: authHeaders });
             data = await res.json();
           } else {
             // GPS fallback
@@ -1783,7 +1787,9 @@
               navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000})
             );
             const {latitude: lat, longitude: lon} = pos.coords;
-            const res = await fetch(`http://localhost:3000/weather?lat=${lat}&lon=${lon}`);
+            const res = await fetch(`http://localhost:3000/weather?lat=${lat}&lon=${lon}`, {
+              headers: authHeaders,
+            });
             data = await res.json();
           }
 
