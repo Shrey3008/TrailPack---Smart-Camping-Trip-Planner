@@ -1,6 +1,6 @@
 const axios = require('axios');
 const OpenAI = require('openai');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 
 class AIService {
   constructor() {
@@ -13,9 +13,12 @@ class AIService {
     const openaiKey = process.env.OPENAI_API_KEY;
     this.openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
-    // Gemini is the active backend for generateGearSuggestions().
-    this.gemini = process.env.GEMINI_API_KEY
-      ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    // Groq is the active backend for generateGearSuggestions(). Used
+    // instead of Gemini because the latter's free tier was blocked at
+    // the account level (limit: 0). Groq offers an OpenAI-compatible
+    // chat/completions API with a workable free tier.
+    this.groq = process.env.GROQ_API_KEY
+      ? new Groq({ apiKey: process.env.GROQ_API_KEY })
       : null;
 
     this.weatherAPIKey = process.env.WEATHER_API_KEY;
@@ -292,14 +295,14 @@ class AIService {
   // bad JSON, missing fields) returns an empty array so the caller
   // can fall through gracefully — never throws.
   async generateGearSuggestions(trip) {
-    // No Gemini key configured → behave exactly like an AI error:
+    // No Groq key configured → behave exactly like an AI error:
     // empty array so the caller inserts nothing.
-    if (!this.gemini) return [];
+    if (!this.groq) return [];
     try {
       const prompt =
 `You are a camping gear expert. Suggest 5-8 specific, non-obvious gear items for a camping trip based on the details below. Avoid generic staples (backpack, water bottle, tent, first aid kit, sleeping bag) — the base checklist already covers those. Focus on trip-specific items that a less-experienced camper might forget.
 
-Respond with ONLY a valid JSON object (no prose, no markdown fences) of this exact shape:
+Respond with ONLY a valid JSON object of this exact shape:
 { "items": [ { "name": "<short item name>", "category": "<Shelter|Clothing|Food & Water|Safety|Tools>", "priority": "<essential|recommended|optional>" } ] }
 
 Trip:
@@ -310,28 +313,18 @@ Trip:
 - Duration: ${trip.duration || 1} day(s)
 - Group size: ${trip.groupSize || trip.participants || 1}`;
 
-      const model = this.gemini.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const result = await model.generateContent(prompt);
-      const text = result && result.response && typeof result.response.text === 'function'
-        ? result.response.text()
-        : '';
+      const response = await this.groq.chat.completions.create({
+        model: 'llama3-8b-8192',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+      });
+      const text = response && response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content;
       if (!text) return [];
 
-      // Gemini frequently wraps JSON in ```json ... ``` fences even when
-      // told not to. Strip any leading/trailing fence before parsing.
-      let cleaned = String(text).trim();
-      const fenced = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
-      if (fenced) cleaned = fenced[1].trim();
-      // If the model prefixed prose then emitted an object, slice from
-      // the first '{' to the last '}' as a defensive fallback.
-      if (cleaned[0] !== '{') {
-        const first = cleaned.indexOf('{');
-        const last  = cleaned.lastIndexOf('}');
-        if (first !== -1 && last > first) cleaned = cleaned.slice(first, last + 1);
-      }
-
+      // Groq's JSON mode returns clean JSON — no markdown fences, no
+      // prose wrapper — so parse the response text directly.
       let parsed;
-      try { parsed = JSON.parse(cleaned); } catch (_) { return []; }
+      try { parsed = JSON.parse(text); } catch (_) { return []; }
       const arr = Array.isArray(parsed && parsed.items) ? parsed.items : [];
 
       const ALLOWED_CATS  = new Set(['Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
