@@ -1744,39 +1744,68 @@
       }
 
       async function loadWeatherHero() {
-        const locEl = document.getElementById('wx-loc-text');
+        try {
+          console.log('loadWeatherHero: starting');
 
-        // 1) Prefer the named place on the trip (never prompts for GPS).
-        const namedPlace = wxIsRealPlace(trip && trip.location)
-          ? trip.location
-          : (wxIsRealPlace(trip && trip.terrain) ? trip.terrain : null);
+          // Get tripId from URL
+          const tripId = new URLSearchParams(window.location.search).get('tripId');
+          console.log('tripId:', tripId);
 
-        if (namedPlace) {
-          try {
-            const data = await api('/weather?location=' + encodeURIComponent(namedPlace));
-            if (data) { wxRenderHero(data); return; }
-          } catch (err) {
-            wxHeroUnavailable(namedPlace, 'Weather unavailable');
-            return;
+          // Fetch the trip to get location
+          const token = localStorage.getItem('token');
+          const tripRes = await fetch(`/trips/${tripId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const trip = await tripRes.json();
+          console.log('trip:', trip);
+
+          // Determine location string
+          const GENERIC = ['mountain','lake','forest','trail','valley','beach','desert','jungle'];
+          const loc = trip.location || trip.terrain || '';
+          const isGeneric = GENERIC.some(w => loc.toLowerCase().includes(w));
+          console.log('location:', loc, '| isGeneric:', isGeneric);
+
+          let weatherUrl;
+          if (loc && !isGeneric) {
+            weatherUrl = `/weather?location=${encodeURIComponent(loc)}`;
+          } else {
+            weatherUrl = null; // will try GPS
           }
-        }
 
-        // 2) No real place on the trip (empty or a generic terrain like
-        //    'mountain' / 'lake' / 'forest') → fall back to device GPS.
-        if (locEl) locEl.textContent = 'Detecting location…';
-        const coords = await wxGetCoords();
-        if (coords) {
-          try {
-            const data = await api('/weather?lat=' + encodeURIComponent(coords.lat)
-              + '&lon=' + encodeURIComponent(coords.lon));
-            if (data) { wxRenderHero(data); return; }
-          } catch (err) {
-            // Fall through to the unavailable state below.
+          let data;
+          if (weatherUrl) {
+            console.log('fetching weather from:', weatherUrl);
+            const res = await fetch(weatherUrl);
+            data = await res.json();
+          } else {
+            // GPS fallback
+            const pos = await new Promise((resolve, reject) =>
+              navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000})
+            );
+            const {latitude: lat, longitude: lon} = pos.coords;
+            const res = await fetch(`/weather?lat=${lat}&lon=${lon}`);
+            data = await res.json();
           }
-        }
 
-        // 3) No named place and GPS unavailable / denied.
-        wxHeroUnavailable();
+          console.log('weather data:', data);
+
+          // Populate the card
+          document.getElementById('w-location').textContent = data.location || loc;
+          document.getElementById('w-temp').textContent = data.temp != null ? `${data.temp}°C` : '--';
+          document.getElementById('w-feels').textContent = data.feels_like != null ? `Feels like ${data.feels_like}°C` : '';
+          document.getElementById('w-humidity').textContent = data.humidity != null ? `${data.humidity}%` : '--';
+          document.getElementById('w-wind').textContent = data.wind_speed != null ? `${data.wind_speed} km/h` : '--';
+          document.getElementById('w-high').textContent = data.high != null ? `${data.high}°C` : '--';
+          document.getElementById('w-low').textContent = data.low != null ? `${data.low}°C` : '--';
+          document.getElementById('w-condition').textContent = data.condition || '';
+
+          // Remove "Weather unavailable" text if showing
+          const unavail = document.getElementById('w-unavailable');
+          if (unavail) unavail.style.display = 'none';
+
+        } catch (err) {
+          console.error('loadWeatherHero FAILED:', err);
+        }
       }
 
       // ---- Card 2: Calorie & Water ----
