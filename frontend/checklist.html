@@ -9,9 +9,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="config.js"></script>
-  <!-- html2pdf.js — used by exportChecklist('print') to render the
-       checklist into a screen-faithful PDF. CDN-only, no npm dep. -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     /* =========================================================
        TrailPack checklist — matches dashboard design system
@@ -1004,6 +1001,35 @@
       .btn-action { width: 100%; }
       .category { padding: 16px 18px; }
     }
+
+    /* ---------- Print ----------
+       window.print() (Cmd+P) hides chrome so only the checklist
+       categories print. Selector list mirrors the user's spec
+       (nav, .export-buttons, .trip-actions, #btn-* IDs, .sidebar,
+       .smart-gear-card) AND adds the class names actually used in
+       this codebase (.navbar, .export-row, .actions, .checklist-hero,
+       .ins-card) so the rule is effective today and forward-compat
+       with any future refactor that introduces those names. */
+    @media print {
+      nav, .navbar,
+      .export-buttons, .export-row,
+      .trip-actions, .actions,
+      #btn-print-pdf, #btn-export-csv, #btn-export-json,
+      .sidebar, .smart-gear-card,
+      .checklist-hero, .ins-card,
+      #theme-toggle, #logout-btn {
+        display: none !important;
+      }
+      html, body { background: #fff !important; color: #000 !important; }
+      .container { max-width: none !important; margin: 0 !important; padding: 0 !important; }
+      .category {
+        box-shadow: none !important;
+        border: 1pt solid #888 !important;
+        page-break-inside: avoid;
+        background: #fff !important;
+        color: #000 !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1486,88 +1512,11 @@
           .replace(/^_+|_+$/g, '') || 'trip';
 
         if (format === 'print') {
-          // Render the checklist as a screen-faithful PDF via html2pdf.js
-          // (loaded from CDN in <head>). We pick the first available
-          // container in this preference order: .checklist-main → main
-          // → #categories — current markup uses <main class="container">
-          // so the second selector wins, but the first/third are kept
-          // for forward-compat if the layout is restructured.
-          const element = document.querySelector('.checklist-main')
-            || document.querySelector('main')
-            || document.getElementById('categories');
-          if (!element) {
-            (window.showToast ? window.showToast('Could not find checklist content to export.', 'error') : alert('Could not find checklist content to export.'));
-            return;
-          }
-          if (typeof html2pdf === 'undefined') {
-            (window.showToast ? window.showToast('PDF library failed to load. Check your connection and retry.', 'error') : alert('PDF library failed to load. Check your connection and retry.'));
-            return;
-          }
-          const opt = {
-            margin: 0.5,
-            filename: ((window.currentTrip && window.currentTrip.name) || exportTrip.name || 'trip') + '_checklist.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-          };
-          // Hide UI affordances that shouldn't appear in the printable
-          // PDF — the export button row and the Start/Cancel trip
-          // actions. Uses visibility: 'hidden' (not display: 'none')
-          // so the layout doesn't reflow mid-snapshot, which would
-          // otherwise shift everything below up by ~80px in the PDF.
-          // Selectors include both class hooks AND any inline onclick
-          // handlers as a forward-compat safety net.
-          const hideEls = document.querySelectorAll(
-            '.export-row, .actions, .export-buttons, .trip-actions, ' +
-            '[onclick*="exportChecklist"], [onclick*="startTrip"], [onclick*="cancelTrip"]'
-          );
-          const restoreHidden = () => hideEls.forEach((el) => { el.style.visibility = ''; });
-          hideEls.forEach((el) => { el.style.visibility = 'hidden'; });
-
-          // Generate the PDF as a Blob and open it in a new tab so the
-          // browser shows its native PDF viewer with a built-in print
-          // preview / save flow.
-          html2pdf()
-            .set(opt)
-            .from(element)
-            .outputPdf('blob')
-            .then((blob) => {
-              // Restore the hidden UI as soon as the canvas snapshot
-              // is done so the user sees the page back to normal even
-              // if the new tab takes a moment to open.
-              restoreHidden();
-              const url = URL.createObjectURL(blob);
-              const win = window.open(url, '_blank');
-              if (!win) {
-                // Pop-up blocked — fall back to a download so the user
-                // still gets the file.
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = opt.filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                (window.showToast ? window.showToast('Pop-up blocked — PDF downloaded instead.', 'info') : null);
-                setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
-                return;
-              }
-              // Auto-trigger the native print dialog once the PDF
-              // viewer in the new tab finishes loading. Some browsers
-              // don't fire load events on cross-origin blob frames —
-              // wrap in try/catch and revoke the blob URL on a
-              // generous timeout as a fallback.
-              win.onload = () => {
-                try { win.print(); } catch (_) { /* viewer may block */ }
-                URL.revokeObjectURL(url);
-              };
-              setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
-            })
-            .catch((err) => {
-              // Make sure the UI comes back even if html2pdf blew up.
-              restoreHidden();
-              console.error('html2pdf failed:', err);
-              (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : alert('PDF generation failed.'));
-            });
+          // Native browser print preview — the @media print stylesheet
+          // in <head> hides nav, hero, supplementary cards, and the
+          // export / trip-action buttons so the printout shows only
+          // the checklist content.
+          window.print();
           return;
         }
 
