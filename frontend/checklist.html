@@ -306,6 +306,37 @@
     .btn-start  { background: var(--green); }
     .btn-cancel { background: var(--danger); }
 
+    /* ---------- Export row (Print / CSV / JSON) ---------- */
+    .export-row {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      margin: 0 0 16px;
+    }
+    .btn-export {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      transition: background 0.15s, border-color 0.15s, transform 0.08s;
+    }
+    .btn-export:hover {
+      background: var(--green-pale);
+      border-color: var(--green);
+      color: var(--green-dark);
+      transform: translateY(-1px);
+    }
+    html[data-theme="dark"] .btn-export:hover { color: var(--green-light); }
+
     /* ---------- Category cards ---------- */
     .category {
       background: var(--surface);
@@ -971,6 +1002,76 @@
       .category { padding: 16px 18px; }
     }
   </style>
+
+  <!-- ---------- Print stylesheet ----------
+       Hides chrome (nav, hero, supplementary cards, action/export
+       buttons) so the printed page shows only the trip name + the
+       categorised checklist. Forces light-on-white regardless of the
+       app's current theme. -->
+  <style media="print">
+    @page { margin: 14mm; }
+    html, body {
+      background: #fff !important;
+      color: #000 !important;
+    }
+    /* Hide all the app chrome */
+    .navbar,
+    .checklist-hero,
+    .actions,
+    .export-row,
+    .ins-card,
+    #theme-toggle,
+    #logout-btn {
+      display: none !important;
+    }
+    /* Compact the main container for paper */
+    .container {
+      max-width: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    /* Print the trip name as the document title */
+    .container::before {
+      content: attr(data-print-title);
+      display: block;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 22pt;
+      font-weight: 700;
+      margin: 0 0 12pt;
+      padding-bottom: 6pt;
+      border-bottom: 1pt solid #000;
+    }
+    /* Category cards become flat sections that flow across pages */
+    .category {
+      box-shadow: none !important;
+      border: 1pt solid #888 !important;
+      border-radius: 4pt !important;
+      page-break-inside: avoid;
+      margin-bottom: 10pt !important;
+      padding: 10pt 12pt !important;
+      background: #fff !important;
+      color: #000 !important;
+    }
+    .category-title { color: #000 !important; }
+    .category-count { background: #eee !important; color: #000 !important; }
+    .items-list { gap: 2pt !important; }
+    .item {
+      color: #000 !important;
+      background: transparent !important;
+      border: none !important;
+      padding: 3pt 0 !important;
+    }
+    /* Show packed state textually as well, so b/w printers don't lose it */
+    .item.packed .item-name::before { content: "[x] "; font-family: monospace; }
+    .item:not(.packed) .item-name::before { content: "[ ] "; font-family: monospace; }
+    /* Hide interactive affordances inside items */
+    .item input[type="checkbox"],
+    .item .item-actions,
+    .item button {
+      display: none !important;
+    }
+    a { color: #000 !important; text-decoration: none !important; }
+  </style>
 </head>
 <body>
   <section class="checklist-hero" id="checklist-hero" aria-label="Trip hero">
@@ -1001,6 +1102,12 @@
   </nav>
 
   <main class="container">
+    <div class="export-row" id="export-row">
+      <button type="button" class="btn-export" onclick="exportChecklist('print')" title="Print this checklist">🖨️ Print</button>
+      <button type="button" class="btn-export" onclick="exportChecklist('csv')" title="Download as CSV">📥 Export CSV</button>
+      <button type="button" class="btn-export" onclick="exportChecklist('json')" title="Download as JSON">📥 Export JSON</button>
+    </div>
+
     <div class="actions">
       <button class="btn-action btn-start" id="start-trip-btn" type="button" disabled>🚀 Start Trip</button>
       <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
@@ -1252,7 +1359,12 @@
         hero.style.backgroundImage =
           "linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.5)), url('" + url + "')";
 
-        document.getElementById('hero-trip-name').textContent = (trip && trip.name) || 'Trip';
+        const tripDisplayName = (trip && trip.name) || 'Trip';
+        document.getElementById('hero-trip-name').textContent = tripDisplayName;
+        // Mirror onto .container so the print stylesheet's ::before can
+        // render the trip name as a header on the printed page.
+        const containerEl = document.querySelector('main.container');
+        if (containerEl) containerEl.setAttribute('data-print-title', tripDisplayName + ' — Checklist');
 
         const badges = [];
         if (trip.terrain) {
@@ -1424,6 +1536,76 @@
           updateProgress();
           alert('Could not update item: ' + err.message);
         }
+      }
+
+      // ---------- Export / Print ----------
+      // Restored from pre-redesign with CSV added. Prefers
+      // window.currentTrip / window.currentItems if present (set by other
+      // scripts) and falls back to the IIFE-scoped trip / items so the
+      // function works regardless of which loader populated the page.
+      window.exportChecklist = function(format) {
+        const exportTrip  = window.currentTrip  || trip  || {};
+        const exportItems = window.currentItems || items || [];
+        const baseName = (exportTrip.name || 'trip')
+          .toString()
+          .trim()
+          .replace(/[^A-Za-z0-9_\-]+/g, '_')
+          .replace(/^_+|_+$/g, '') || 'trip';
+
+        if (format === 'print') {
+          window.print();
+          return;
+        }
+
+        if (format === 'json') {
+          const data = {
+            trip: exportTrip,
+            items: exportItems,
+            exportedAt: new Date().toISOString()
+          };
+          downloadBlob(
+            JSON.stringify(data, null, 2),
+            'application/json',
+            baseName + '_checklist.json'
+          );
+          return;
+        }
+
+        if (format === 'csv') {
+          // RFC 4180-ish: quote fields containing comma/quote/newline,
+          // double-up embedded quotes. Always quote everything for safety.
+          const esc = (v) => {
+            const s = (v === null || v === undefined) ? '' : String(v);
+            return '"' + s.replace(/"/g, '""') + '"';
+          };
+          const header = ['Category', 'Item Name', 'Priority', 'Packed', 'Source'];
+          const rows = exportItems.map(it => [
+            it.category || '',
+            it.name || '',
+            it.priority || '',
+            it.packed ? 'Yes' : 'No',
+            it.source || 'standard'
+          ]);
+          const csv = [header, ...rows]
+            .map(r => r.map(esc).join(','))
+            .join('\r\n');
+          // Prepend UTF-8 BOM so Excel renders accents/emoji correctly.
+          downloadBlob('\uFEFF' + csv, 'text/csv;charset=utf-8', baseName + '_checklist.csv');
+          return;
+        }
+      };
+
+      function downloadBlob(content, mime, filename) {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        // Revoke on next tick so the browser has time to start the download.
+        setTimeout(() => URL.revokeObjectURL(url), 0);
       }
 
       async function startTrip() {
