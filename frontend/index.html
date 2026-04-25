@@ -626,6 +626,16 @@
     }
     .tp-ac-hint.is-confirmed { color: var(--green); font-weight: 500; }
 
+    /* ---------- Date ↔ duration sync hint ---------- */
+    .tp-date-hint {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 500;
+      margin: -4px 0 4px 2px;
+      letter-spacing: 0.005em;
+    }
+    html[data-theme="dark"] .tp-date-hint { color: var(--green-light); }
+
     /* ---------- Style ui.js confirm modal + toast to match the design ---------- */
     .tp-modal-overlay {
       background: rgba(15, 36, 28, 0.45) !important;
@@ -851,6 +861,7 @@
             <input id="tp-ct-end" name="endDate" type="date">
           </div>
         </div>
+        <p class="tp-date-hint" id="tp-date-hint" hidden></p>
 
         <div class="tp-field">
           <label for="tp-ct-location">Destination</label>
@@ -902,6 +913,7 @@
 
       wireCreateTripModal();
       wireDestinationAutocomplete();
+      wireDateDurationSync();
       wireTripCardEnhancer();
       wireFilterTabs();
       wireThemeToggle();
@@ -961,6 +973,111 @@
         const match = terrain === filter || terrain.startsWith(filter);
         card.classList.toggle('is-hidden-by-filter', !match);
       });
+    }
+
+    /* ============================================================
+       Date ↔ duration auto-sync for the Plan-a-new-trip modal
+       Keeps startDate, endDate and duration consistent without
+       ever showing a validation error. Re-entrancy is gated by
+       a `syncing` flag so programmatic .value writes don't
+       re-fire the cascading change listeners.
+       Convention: duration is the number of *nights*, so
+       endDate = startDate + duration days.
+       ============================================================ */
+    function wireDateDurationSync() {
+      const startEl = document.getElementById('tp-ct-start');
+      const endEl   = document.getElementById('tp-ct-end');
+      const durEl   = document.getElementById('tp-ct-duration');
+      const hint    = document.getElementById('tp-date-hint');
+      if (!startEl || !endEl || !durEl) return;
+
+      const DAY_MS = 86400000;
+      let syncing = false;
+
+      // Parse a YYYY-MM-DD <input type="date"> value as a UTC midnight
+      // Date so day-arithmetic is unaffected by the user's timezone.
+      function parseISO(s) {
+        if (!s) return null;
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return null;
+        const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+        return isNaN(d.getTime()) ? null : d;
+      }
+      function toISO(d) {
+        const y = d.getUTCFullYear();
+        const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        return `${y}-${mo}-${dd}`;
+      }
+      function diffNights(a, b) { return Math.round((b - a) / DAY_MS); }
+      function fmt(d) {
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      }
+      function clampDur(n) { return Math.min(60, Math.max(1, n | 0)); }
+      function setSilently(el, v) { syncing = true; el.value = v; syncing = false; }
+
+      function refreshHint() {
+        const start = parseISO(startEl.value);
+        const end   = parseISO(endEl.value);
+        const dur   = parseInt(durEl.value, 10);
+        if (start && end && end > start) {
+          const n = diffNights(start, end);
+          hint.textContent = `\uD83D\uDCC5 ${n} ${n === 1 ? 'night' : 'nights'} \u00B7 ${fmt(start)} \u2013 ${fmt(end)}`;
+          hint.hidden = false;
+        } else if (start && dur > 0) {
+          const projEnd = new Date(start.getTime() + dur * DAY_MS);
+          hint.textContent = `\uD83D\uDCC5 ${dur} ${dur === 1 ? 'night' : 'nights'} \u00B7 ${fmt(start)} \u2013 ${fmt(projEnd)}`;
+          hint.hidden = false;
+        } else {
+          hint.hidden = true;
+          hint.textContent = '';
+        }
+      }
+
+      startEl.addEventListener('change', () => {
+        if (syncing) return;
+        const start = parseISO(startEl.value);
+        const end   = parseISO(endEl.value);
+        const dur   = clampDur(parseInt(durEl.value, 10) || 1);
+        if (start) {
+          // If end is missing or now <= start, project a fresh end from
+          // the current duration. Otherwise keep end and re-sync duration.
+          if (!end || end <= start) {
+            setSilently(endEl, toISO(new Date(start.getTime() + dur * DAY_MS)));
+          } else {
+            const n = clampDur(diffNights(start, end));
+            setSilently(durEl, String(n));
+          }
+        }
+        refreshHint();
+      });
+
+      endEl.addEventListener('change', () => {
+        if (syncing) return;
+        const start = parseISO(startEl.value);
+        const end   = parseISO(endEl.value);
+        if (start && end && end > start) {
+          setSilently(durEl, String(clampDur(diffNights(start, end))));
+        } else if (end && !start) {
+          // No start yet: back-fill start from current duration so the
+          // three fields stay consistent.
+          const dur = clampDur(parseInt(durEl.value, 10) || 1);
+          setSilently(startEl, toISO(new Date(end.getTime() - dur * DAY_MS)));
+        }
+        refreshHint();
+      });
+
+      durEl.addEventListener('input', () => {
+        if (syncing) return;
+        const dur   = parseInt(durEl.value, 10);
+        const start = parseISO(startEl.value);
+        if (dur > 0 && start) {
+          setSilently(endEl, toISO(new Date(start.getTime() + dur * DAY_MS)));
+        }
+        refreshHint();
+      });
+
+      refreshHint();
     }
 
     /* ============================================================
