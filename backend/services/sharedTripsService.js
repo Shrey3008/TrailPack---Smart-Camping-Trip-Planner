@@ -81,6 +81,30 @@ async function getTrip(tripId) {
  * @throws { status, message } style errors
  */
 async function assertTripAccess(tripId, userId) {
+  // Fast-path / backwards-compat: try the requester's own
+  // USER#{userId} / TRIP#{tripId} key directly. This handles trips
+  // created before the TRIPPTR pointer feature shipped (which would
+  // otherwise 404 in the pointer lookup below) and saves one round
+  // trip in the common case where the caller is the owner.
+  const ownerDirect = await docClient.send(new GetCommand({
+    TableName: TABLE_NAME,
+    Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` },
+  }));
+  if (ownerDirect.Item) {
+    // Lazy-backfill the pointer so future pointer-based lookups
+    // (collaborators querying this trip, dashboard shared-trip lists,
+    // etc.) work without further intervention. Best-effort: if the
+    // write fails we still return successfully for the owner.
+    try {
+      const ptr = await getTripPointer(tripId);
+      if (!ptr) await putTripPointer(tripId, userId);
+    } catch (_) { /* non-fatal */ }
+    return { trip: ownerDirect.Item, ownerId: userId, role: 'owner' };
+  }
+
+  // Pointer-based lookup for the non-owner case (collaborators, or
+  // owner queries that somehow missed the direct key — shouldn't
+  // happen but kept defensively).
   const found = await getTrip(tripId);
   if (!found) {
     const err = new Error('Trip not found');
