@@ -1558,7 +1558,7 @@
               // Restore the UI as soon as the snapshot is done.
               restoreHidden();
               const blobUrl = URL.createObjectURL(blob);
-              const printWin = window.open(blobUrl);
+              const printWin = window.open(blobUrl, '_blank');
               if (!printWin) {
                 // Pop-up blocked — fall back to a download so the
                 // user still gets the file.
@@ -1569,15 +1569,9 @@
                 a.click();
                 document.body.removeChild(a);
                 (window.showToast ? window.showToast('Pop-up blocked — PDF downloaded instead.', 'info') : null);
-                setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
-                return;
               }
-              printWin.addEventListener('load', () => {
-                printWin.print();
-              }, { once: true });
-              // Revoke after a generous delay so the new window has
-              // time to fully render the PDF before the URL goes
-              // away.
+              // Revoke after a generous delay so the new tab has time
+              // to fully render the PDF before the URL goes away.
               setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
             })
             .catch((err) => {
