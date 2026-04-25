@@ -1510,18 +1510,36 @@
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
           };
+          // Hide UI affordances that shouldn't appear in the printable
+          // PDF — the export button row and the Start/Cancel trip
+          // actions. Uses visibility: 'hidden' (not display: 'none')
+          // so the layout doesn't reflow mid-snapshot, which would
+          // otherwise shift everything below up by ~80px in the PDF.
+          // Selectors include both class hooks AND any inline onclick
+          // handlers as a forward-compat safety net.
+          const hideEls = document.querySelectorAll(
+            '.export-row, .actions, .export-buttons, .trip-actions, ' +
+            '[onclick*="exportChecklist"], [onclick*="startTrip"], [onclick*="cancelTrip"]'
+          );
+          const restoreHidden = () => hideEls.forEach((el) => { el.style.visibility = ''; });
+          hideEls.forEach((el) => { el.style.visibility = 'hidden'; });
+
           // Generate the PDF as a Blob and open it in a new tab so the
           // browser shows its native PDF viewer with a built-in print
-          // preview / save flow, instead of forcing a direct download.
+          // preview / save flow.
           html2pdf()
             .set(opt)
             .from(element)
             .outputPdf('blob')
             .then((blob) => {
+              // Restore the hidden UI as soon as the canvas snapshot
+              // is done so the user sees the page back to normal even
+              // if the new tab takes a moment to open.
+              restoreHidden();
               const url = URL.createObjectURL(blob);
               const win = window.open(url, '_blank');
               if (!win) {
-                // Popup blocked — fall back to a download so the user
+                // Pop-up blocked — fall back to a download so the user
                 // still gets the file.
                 const a = document.createElement('a');
                 a.href = url;
@@ -1530,12 +1548,23 @@
                 a.click();
                 document.body.removeChild(a);
                 (window.showToast ? window.showToast('Pop-up blocked — PDF downloaded instead.', 'info') : null);
+                setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+                return;
               }
-              // Revoke after a delay so the new tab has time to load
-              // the blob URL before it's invalidated.
+              // Auto-trigger the native print dialog once the PDF
+              // viewer in the new tab finishes loading. Some browsers
+              // don't fire load events on cross-origin blob frames —
+              // wrap in try/catch and revoke the blob URL on a
+              // generous timeout as a fallback.
+              win.onload = () => {
+                try { win.print(); } catch (_) { /* viewer may block */ }
+                URL.revokeObjectURL(url);
+              };
               setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
             })
             .catch((err) => {
+              // Make sure the UI comes back even if html2pdf blew up.
+              restoreHidden();
               console.error('html2pdf failed:', err);
               (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : alert('PDF generation failed.'));
             });
