@@ -1553,42 +1553,32 @@
           html2pdf()
             .set(opt)
             .from(element)
-            .outputPdf('datauristring')
-            .then((dataUri) => {
+            .outputPdf('blob')
+            .then((blob) => {
               // Restore the UI as soon as the snapshot is done.
               restoreHidden();
-              const iframe = document.createElement('iframe');
-              iframe.style.position = 'fixed';
-              iframe.style.right = '0';
-              iframe.style.bottom = '0';
-              iframe.style.width = '0';
-              iframe.style.height = '0';
-              iframe.style.border = '0';
-              iframe.style.display = 'none';
-              iframe.src = dataUri;
-              document.body.appendChild(iframe);
-              iframe.onload = () => {
-                try {
-                  iframe.contentWindow.focus();
-                  iframe.contentWindow.print();
-                } catch (e) {
-                  // Some viewers (Safari, mobile) refuse .print() on
-                  // PDF data URIs — fall back to a download link.
-                  console.error('iframe print blocked:', e);
-                  const a = document.createElement('a');
-                  a.href = dataUri;
-                  a.download = opt.filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  (window.showToast ? window.showToast('Print blocked — PDF downloaded instead.', 'info') : null);
-                }
-                // Give the print dialog time to grab the PDF before
-                // we tear the iframe down.
-                setTimeout(() => {
-                  if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-                }, 1000);
-              };
+              const blobUrl = URL.createObjectURL(blob);
+              const printWin = window.open(blobUrl);
+              if (!printWin) {
+                // Pop-up blocked — fall back to a download so the
+                // user still gets the file.
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = opt.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                (window.showToast ? window.showToast('Pop-up blocked — PDF downloaded instead.', 'info') : null);
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
+                return;
+              }
+              printWin.addEventListener('load', () => {
+                printWin.print();
+              }, { once: true });
+              // Revoke after a generous delay so the new window has
+              // time to fully render the PDF before the URL goes
+              // away.
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
             })
             .catch((err) => {
               restoreHidden();
