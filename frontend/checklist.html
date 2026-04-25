@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="config.js"></script>
+  <!-- html2pdf.js — used by exportChecklist('print') to render the
+       checklist into a PDF that's printed via a hidden iframe so the
+       browser's print dialog opens with the full styled layout. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     /* =========================================================
        TrailPack checklist — matches dashboard design system
@@ -1512,11 +1516,85 @@
           .replace(/^_+|_+$/g, '') || 'trip';
 
         if (format === 'print') {
-          // Native browser print preview — the @media print stylesheet
-          // in <head> hides nav, hero, supplementary cards, and the
-          // export / trip-action buttons so the printout shows only
-          // the checklist content.
-          window.print();
+          // Render the checklist as a PDF via html2pdf, then embed
+          // the PDF in a hidden iframe and call .print() on it. This
+          // shows the browser's native print dialog with the full
+          // styled layout (no @media print transformation needed) and
+          // — critically — no new tab opens.
+          const element = document.querySelector('.checklist-main')
+            || document.querySelector('main')
+            || document.getElementById('categories');
+          if (!element) {
+            (window.showToast ? window.showToast('Could not find checklist content to export.', 'error') : alert('Could not find checklist content to export.'));
+            return;
+          }
+          if (typeof html2pdf === 'undefined') {
+            (window.showToast ? window.showToast('PDF library failed to load. Check your connection and retry.', 'error') : alert('PDF library failed to load. Check your connection and retry.'));
+            return;
+          }
+          const opt = {
+            margin: 0.5,
+            filename: baseName + '_checklist.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+          };
+
+          // Hide the export pills + Start/Cancel actions before the
+          // canvas snapshot so they don't appear in the PDF. Use
+          // visibility (not display) to avoid mid-snapshot reflow.
+          const hideEls = document.querySelectorAll(
+            '.export-row, .actions, .export-buttons, .trip-actions, ' +
+            '[onclick*="exportChecklist"], [onclick*="startTrip"], [onclick*="cancelTrip"]'
+          );
+          const restoreHidden = () => hideEls.forEach((el) => { el.style.visibility = ''; });
+          hideEls.forEach((el) => { el.style.visibility = 'hidden'; });
+
+          html2pdf()
+            .set(opt)
+            .from(element)
+            .outputPdf('datauristring')
+            .then((dataUri) => {
+              // Restore the UI as soon as the snapshot is done.
+              restoreHidden();
+              const iframe = document.createElement('iframe');
+              iframe.style.position = 'fixed';
+              iframe.style.right = '0';
+              iframe.style.bottom = '0';
+              iframe.style.width = '0';
+              iframe.style.height = '0';
+              iframe.style.border = '0';
+              iframe.style.display = 'none';
+              iframe.src = dataUri;
+              document.body.appendChild(iframe);
+              iframe.onload = () => {
+                try {
+                  iframe.contentWindow.focus();
+                  iframe.contentWindow.print();
+                } catch (e) {
+                  // Some viewers (Safari, mobile) refuse .print() on
+                  // PDF data URIs — fall back to a download link.
+                  console.error('iframe print blocked:', e);
+                  const a = document.createElement('a');
+                  a.href = dataUri;
+                  a.download = opt.filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  (window.showToast ? window.showToast('Print blocked — PDF downloaded instead.', 'info') : null);
+                }
+                // Give the print dialog time to grab the PDF before
+                // we tear the iframe down.
+                setTimeout(() => {
+                  if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+                }, 1000);
+              };
+            })
+            .catch((err) => {
+              restoreHidden();
+              console.error('html2pdf failed:', err);
+              (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : alert('PDF generation failed.'));
+            });
           return;
         }
 
