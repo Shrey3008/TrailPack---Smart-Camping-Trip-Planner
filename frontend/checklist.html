@@ -1510,7 +1510,35 @@
             html2canvas: { scale: 2, useCORS: true },
             jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
           };
-          html2pdf().set(opt).from(element).save();
+          // Generate the PDF as a Blob and open it in a new tab so the
+          // browser shows its native PDF viewer with a built-in print
+          // preview / save flow, instead of forcing a direct download.
+          html2pdf()
+            .set(opt)
+            .from(element)
+            .outputPdf('blob')
+            .then((blob) => {
+              const url = URL.createObjectURL(blob);
+              const win = window.open(url, '_blank');
+              if (!win) {
+                // Popup blocked — fall back to a download so the user
+                // still gets the file.
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = opt.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                (window.showToast ? window.showToast('Pop-up blocked — PDF downloaded instead.', 'info') : null);
+              }
+              // Revoke after a delay so the new tab has time to load
+              // the blob URL before it's invalidated.
+              setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+            })
+            .catch((err) => {
+              console.error('html2pdf failed:', err);
+              (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : alert('PDF generation failed.'));
+            });
           return;
         }
 
