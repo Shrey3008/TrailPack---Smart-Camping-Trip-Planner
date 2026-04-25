@@ -9,6 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="config.js"></script>
+  <!-- html2pdf.js — used by exportChecklist('print') to render the
+       checklist into a screen-faithful PDF. CDN-only, no npm dep. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     /* =========================================================
        TrailPack checklist — matches dashboard design system
@@ -1002,76 +1005,6 @@
       .category { padding: 16px 18px; }
     }
   </style>
-
-  <!-- ---------- Print stylesheet ----------
-       Hides chrome (nav, hero, supplementary cards, action/export
-       buttons) so the printed page shows only the trip name + the
-       categorised checklist. Forces light-on-white regardless of the
-       app's current theme. -->
-  <style media="print">
-    @page { margin: 14mm; }
-    html, body {
-      background: #fff !important;
-      color: #000 !important;
-    }
-    /* Hide all the app chrome */
-    .navbar,
-    .checklist-hero,
-    .actions,
-    .export-row,
-    .ins-card,
-    #theme-toggle,
-    #logout-btn {
-      display: none !important;
-    }
-    /* Compact the main container for paper */
-    .container {
-      max-width: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
-    /* Print the trip name as the document title */
-    .container::before {
-      content: attr(data-print-title);
-      display: block;
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 22pt;
-      font-weight: 700;
-      margin: 0 0 12pt;
-      padding-bottom: 6pt;
-      border-bottom: 1pt solid #000;
-    }
-    /* Category cards become flat sections that flow across pages */
-    .category {
-      box-shadow: none !important;
-      border: 1pt solid #888 !important;
-      border-radius: 4pt !important;
-      page-break-inside: avoid;
-      margin-bottom: 10pt !important;
-      padding: 10pt 12pt !important;
-      background: #fff !important;
-      color: #000 !important;
-    }
-    .category-title { color: #000 !important; }
-    .category-count { background: #eee !important; color: #000 !important; }
-    .items-list { gap: 2pt !important; }
-    .item {
-      color: #000 !important;
-      background: transparent !important;
-      border: none !important;
-      padding: 3pt 0 !important;
-    }
-    /* Show packed state textually as well, so b/w printers don't lose it */
-    .item.packed .item-name::before { content: "[x] "; font-family: monospace; }
-    .item:not(.packed) .item-name::before { content: "[ ] "; font-family: monospace; }
-    /* Hide interactive affordances inside items */
-    .item input[type="checkbox"],
-    .item .item-actions,
-    .item button {
-      display: none !important;
-    }
-    a { color: #000 !important; text-decoration: none !important; }
-  </style>
 </head>
 <body>
   <section class="checklist-hero" id="checklist-hero" aria-label="Trip hero">
@@ -1553,7 +1486,31 @@
           .replace(/^_+|_+$/g, '') || 'trip';
 
         if (format === 'print') {
-          window.print();
+          // Render the checklist as a screen-faithful PDF via html2pdf.js
+          // (loaded from CDN in <head>). We pick the first available
+          // container in this preference order: .checklist-main → main
+          // → #categories — current markup uses <main class="container">
+          // so the second selector wins, but the first/third are kept
+          // for forward-compat if the layout is restructured.
+          const element = document.querySelector('.checklist-main')
+            || document.querySelector('main')
+            || document.getElementById('categories');
+          if (!element) {
+            (window.showToast ? window.showToast('Could not find checklist content to export.', 'error') : alert('Could not find checklist content to export.'));
+            return;
+          }
+          if (typeof html2pdf === 'undefined') {
+            (window.showToast ? window.showToast('PDF library failed to load. Check your connection and retry.', 'error') : alert('PDF library failed to load. Check your connection and retry.'));
+            return;
+          }
+          const opt = {
+            margin: 0.5,
+            filename: ((window.currentTrip && window.currentTrip.name) || exportTrip.name || 'trip') + '_checklist.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+          };
+          html2pdf().set(opt).from(element).save();
           return;
         }
 
