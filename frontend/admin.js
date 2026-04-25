@@ -119,9 +119,10 @@ async function loadAdminDashboard() {
     document.getElementById('total-trips').textContent = data.trips.total;
     document.getElementById('total-items').textContent = data.items.total;
     
-    // Hide new users/trips for now (not implemented in backend yet)
-    document.getElementById('new-users').textContent = 'N/A';
-    document.getElementById('new-trips').textContent = 'N/A';
+    // Backend doesn't track "new this month" yet — show an em-dash so the
+    // card reads as intentionally absent rather than failed.
+    document.getElementById('new-users').textContent = '—';
+    document.getElementById('new-trips').textContent = '—';
     
   } catch (error) {
     console.error('Error loading admin dashboard:', error);
@@ -276,7 +277,7 @@ async function loadUsers(page = 1) {
         <td><span class="role-badge role-${user.role}">${user.role}</span></td>
         <td><span class="status-${user.isActive ? 'active' : 'inactive'}">${user.isActive ? 'Active' : 'Inactive'}</span></td>
         <td>${new Date(user.createdAt).toLocaleDateString()}</td>
-        <td>N/A</td>
+        <td>—</td>
         <td>
           <button class="btn btn-small btn-edit" onclick="openRoleModal('${user.userId}', '${escapeHtml(user.name)}', '${user.role}')">Change Role</button>
           <button class="btn btn-small ${user.isActive ? 'btn-danger' : 'btn-primary'}" onclick="toggleUserStatus('${user.userId}', ${!user.isActive})">

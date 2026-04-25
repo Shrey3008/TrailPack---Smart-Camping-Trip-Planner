@@ -4,10 +4,550 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>Admin Dashboard - TrailPack</title>
+  <title>Admin Dashboard · TrailPack</title>
+
+  <!-- Existing app stylesheets stay loaded so admin.js's pre-existing
+       class hooks (e.g. .modal, .form-select) keep working. The inline
+       <style> block below is loaded last so it wins. -->
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="dashboard.css">
   <link rel="stylesheet" href="auth.css">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --beige:        #F5F0E8;
+      --surface:      #FFFFFF;
+      --ink:          #1B2422;
+      --ink-soft:     #5A6560;
+      --muted:        #8A938E;
+      --line:         #E3DDD0;
+      --line-soft:    #EDE7DA;
+      --row-alt:      #FAFAFA;
+      --row-hover:    #F5F0E8;
+
+      --sage:         #7A9E7E;
+      --sage-dark:    #5C8A6E;
+      --terracotta:   #C4704F;
+      --dusty-blue:   #6B8FA6;
+      --golden:       #C4A84F;
+      --plum:         #9A6F8F;
+
+      --green:        #2D6A4F;
+      --green-dark:   #1B4332;
+      --green-pale:   #D8F3DC;
+
+      --danger:       #C0392B;
+      --danger-soft:  #F9E2DE;
+
+      --shadow-sm:    0 1px 2px rgba(15,36,28,0.04), 0 2px 8px rgba(15,36,28,0.06);
+      --shadow-md:    0 6px 20px rgba(15,36,28,0.10);
+      --shadow-lg:    0 12px 32px rgba(15,36,28,0.14);
+
+      --radius:       12px;
+      --radius-sm:    8px;
+    }
+
+    /* ---- HARD RESETS so external stylesheets can't fight us ---- */
+    html, body { background: var(--beige) !important; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+      color: var(--ink);
+      font-size: 14.5px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ---------- Navbar ---------- */
+    .navbar {
+      background: var(--green-dark) !important;
+      color: #fff;
+      padding: 18px 32px !important;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 14px; }
+    .nav-brand h1 {
+      margin: 0;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 22px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.02em;
+      color: #fff !important;
+    }
+    .nav-brand .tagline {
+      font-size: 12.5px;
+      color: rgba(255,255,255,0.72);
+      padding: 3px 10px;
+      border: 1px solid rgba(255,255,255,0.20);
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .nav-links { display: flex; align-items: center; gap: 10px; }
+    .user-greeting {
+      font-size: 13.5px;
+      color: rgba(255,255,255,0.78);
+      margin-right: 6px;
+    }
+    .nav-links .btn,
+    .nav-links a.nav-link,
+    .nav-links button {
+      background: transparent !important;
+      color: #fff !important;
+      border: 1px solid rgba(255,255,255,0.18) !important;
+      padding: 7px 14px !important;
+      border-radius: 999px !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      cursor: pointer;
+      transition: background-color .15s ease, border-color .15s ease;
+      text-decoration: none !important;
+      font-family: inherit !important;
+      box-shadow: none !important;
+    }
+    .nav-links .btn:hover,
+    .nav-links a.nav-link:hover,
+    .nav-links button:hover {
+      background: rgba(255,255,255,0.10) !important;
+      border-color: rgba(255,255,255,0.32) !important;
+    }
+    .nav-links #logout-btn {
+      background: rgba(255,255,255,0.92) !important;
+      color: var(--green-dark) !important;
+      border-color: transparent !important;
+      font-weight: 600 !important;
+    }
+    .nav-links #logout-btn:hover { background: #fff !important; }
+
+    /* ---------- Page container ---------- */
+    .container.admin-dashboard {
+      max-width: 1280px !important;
+      margin: 0 auto !important;
+      padding: 28px 28px 60px !important;
+      background: transparent !important;
+    }
+
+    /* ---------- Header ---------- */
+    .admin-header {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius) !important;
+      padding: 26px 28px !important;
+      margin-bottom: 22px !important;
+      box-shadow: var(--shadow-sm) !important;
+      display: flex !important;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .admin-header > * { margin: 0 !important; }
+    .admin-header h2 {
+      font-family: 'Playfair Display', serif !important;
+      font-size: 26px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      flex: 1;
+      min-width: 220px;
+    }
+    .admin-header p {
+      color: var(--ink-soft);
+      font-size: 14px;
+      flex-basis: 100%;
+      order: 1;
+    }
+    .admin-header #promote-admin-btn {
+      order: 2;
+      background: var(--green) !important;
+      color: #fff !important;
+      border: none !important;
+      padding: 10px 18px !important;
+      border-radius: 999px !important;
+      font-size: 13.5px !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      transition: background-color .15s ease;
+      box-shadow: 0 4px 12px rgba(45,106,79,0.20) !important;
+      font-family: inherit !important;
+    }
+    .admin-header #promote-admin-btn:hover { background: var(--green-dark) !important; }
+
+    /* ---------- Stat cards ---------- */
+    .admin-grid {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 18px !important;
+      margin-bottom: 24px !important;
+    }
+    .admin-grid .admin-card {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-left: 5px solid var(--sage) !important;
+      border-radius: var(--radius) !important;
+      padding: 22px 22px 20px !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform .18s ease, box-shadow .18s ease !important;
+      position: relative;
+    }
+    .admin-grid .admin-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md) !important;
+    }
+    /* Per-card accent colors keyed by source order. */
+    .admin-grid .admin-card:nth-child(1) { border-left-color: var(--sage); }
+    .admin-grid .admin-card:nth-child(2) { border-left-color: var(--terracotta); }
+    .admin-grid .admin-card:nth-child(3) { border-left-color: var(--dusty-blue); }
+    .admin-grid .admin-card:nth-child(4) { border-left-color: var(--golden); }
+
+    .admin-grid .admin-card h3 {
+      font-size: 12.5px !important;
+      font-weight: 600 !important;
+      color: var(--ink-soft) !important;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin: 0 0 14px 0 !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    .admin-grid .admin-stat-large {
+      font-family: 'Playfair Display', serif !important;
+      font-size: 3rem !important;
+      font-weight: 700 !important;
+      color: var(--ink);
+      line-height: 1 !important;
+      margin: 0 !important;
+    }
+    .admin-grid .admin-stat-label {
+      font-size: 12px !important;
+      color: var(--muted) !important;
+      margin-top: 6px !important;
+      text-transform: lowercase;
+    }
+    /* The 4th card holds two side-by-side stats — tighten font sizes
+       so they fit cleanly without the inline override that admin.js
+       used to set. */
+    .admin-grid .admin-card:nth-child(4) .admin-stat-large {
+      font-size: 1.9rem !important;
+    }
+
+    /* ---------- Section headers ---------- */
+    .section-header {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 14px !important;
+    }
+    .section-header h2 {
+      font-family: 'Playfair Display', serif !important;
+      font-size: 22px !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.01em;
+      color: var(--ink) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    /* ---------- Analytics cards (charts) ---------- */
+    .analytics-section { margin-bottom: 26px; }
+    .analytics-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 18px !important;
+    }
+    .analytics-card {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius) !important;
+      padding: 22px !important;
+      box-shadow: var(--shadow-sm) !important;
+    }
+    .analytics-card h3 {
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      color: var(--ink-soft) !important;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin: 0 0 16px 0 !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 240px;
+      width: 100%;
+    }
+    .chart-empty {
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* ---------- Tables / sections ---------- */
+    .trips-section { margin-bottom: 24px; }
+    .trips-section .admin-card {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius) !important;
+      padding: 0 !important;
+      box-shadow: var(--shadow-sm) !important;
+      overflow: hidden;
+    }
+
+    .users-table {
+      width: 100%;
+      border-collapse: collapse !important;
+      font-size: 13.5px;
+    }
+    .users-table thead th {
+      background: var(--row-alt) !important;
+      color: var(--ink-soft) !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-align: left !important;
+      padding: 12px 16px !important;
+      border-bottom: 1px solid var(--line) !important;
+      white-space: nowrap;
+    }
+    .users-table tbody td {
+      padding: 11px 16px !important;
+      border-bottom: 1px solid var(--line-soft) !important;
+      color: var(--ink) !important;
+      vertical-align: middle !important;
+    }
+    .users-table tbody tr:nth-child(even) { background: var(--row-alt); }
+    .users-table tbody tr:hover { background: var(--row-hover) !important; }
+    .users-table tbody tr:last-child td { border-bottom: none !important; }
+    .users-table td:first-child { font-weight: 500; }
+
+    /* Avatar circle injected before user names by JS below. */
+    .users-table .avatar-cell {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .avatar-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      flex-shrink: 0;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    /* ---------- Role + status badges (override styles.css) ---------- */
+    .role-badge {
+      display: inline-block !important;
+      padding: 3px 11px !important;
+      border-radius: 999px !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      text-transform: capitalize !important;
+      letter-spacing: 0.02em !important;
+      line-height: 1.5 !important;
+      border: 1px solid transparent !important;
+    }
+    .role-badge.role-admin {
+      background: var(--green-dark) !important;
+      color: #fff !important;
+    }
+    .role-badge.role-organizer {
+      background: rgba(154, 111, 143, 0.14) !important;
+      color: var(--plum) !important;
+      border-color: rgba(154,111,143,0.30) !important;
+    }
+    .role-badge.role-user {
+      background: #ECEEEC !important;
+      color: var(--ink-soft) !important;
+      border-color: var(--line) !important;
+    }
+    .status-active,
+    .status-inactive {
+      display: inline-block !important;
+      padding: 3px 11px !important;
+      border-radius: 999px !important;
+      font-size: 11.5px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.02em !important;
+      line-height: 1.5 !important;
+    }
+    .status-active {
+      background: var(--green-pale) !important;
+      color: var(--green-dark) !important;
+    }
+    .status-inactive {
+      background: var(--danger-soft) !important;
+      color: var(--danger) !important;
+    }
+
+    /* ---------- Action buttons (in user table) ---------- */
+    .users-table .btn,
+    .users-table .btn-small {
+      display: inline-block !important;
+      background: transparent !important;
+      color: var(--ink) !important;
+      border: 1px solid var(--line) !important;
+      padding: 5px 12px !important;
+      border-radius: 999px !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      cursor: pointer;
+      margin-right: 6px !important;
+      transition: background-color .12s ease, border-color .12s ease, color .12s ease;
+      font-family: inherit !important;
+      line-height: 1.4 !important;
+      box-shadow: none !important;
+    }
+    .users-table .btn:hover {
+      background: var(--row-hover) !important;
+      border-color: var(--ink-soft) !important;
+    }
+    .users-table .btn-edit {
+      color: var(--green-dark) !important;
+      border-color: rgba(45,106,79,0.30) !important;
+    }
+    .users-table .btn-edit:hover {
+      background: var(--green-pale) !important;
+      border-color: var(--green) !important;
+    }
+    .users-table .btn-danger {
+      color: var(--danger) !important;
+      border-color: rgba(192,57,43,0.30) !important;
+    }
+    .users-table .btn-danger:hover {
+      background: var(--danger-soft) !important;
+      border-color: var(--danger) !important;
+    }
+    .users-table .btn-primary {
+      color: var(--green-dark) !important;
+      border-color: rgba(45,106,79,0.30) !important;
+    }
+    .users-table .btn-primary:hover {
+      background: var(--green-pale) !important;
+      border-color: var(--green) !important;
+    }
+
+    /* ---------- Filters / search row ---------- */
+    .filters-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters-row .form-select,
+    .filters-row .search-input {
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: 999px !important;
+      padding: 8px 14px !important;
+      font-size: 13px !important;
+      color: var(--ink) !important;
+      font-family: inherit !important;
+      transition: border-color .12s ease, box-shadow .12s ease;
+      box-shadow: none !important;
+    }
+    .filters-row .form-select { min-width: 140px; }
+    .filters-row .search-input {
+      min-width: 240px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") !important;
+      background-repeat: no-repeat;
+      background-position: 12px center;
+      padding-left: 34px !important;
+    }
+    .filters-row .form-select:focus,
+    .filters-row .search-input:focus {
+      outline: none !important;
+      border-color: var(--green) !important;
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.14) !important;
+    }
+
+    /* ---------- Empty / loading rows ---------- */
+    .users-table .empty-row td {
+      text-align: center !important;
+      padding: 28px !important;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    /* ---------- Modal (style.css overrides) ---------- */
+    #role-modal.modal {
+      background: rgba(15, 36, 28, 0.45) !important;
+      backdrop-filter: blur(4px);
+    }
+    #role-modal .modal-content {
+      background: var(--surface) !important;
+      border-radius: var(--radius) !important;
+      box-shadow: var(--shadow-lg) !important;
+      padding: 26px !important;
+      max-width: 420px !important;
+      border: 1px solid var(--line) !important;
+    }
+    #role-modal h3 {
+      font-family: 'Playfair Display', serif !important;
+      font-size: 20px !important;
+      margin: 0 0 8px 0 !important;
+    }
+    #role-modal .form-select {
+      width: 100%;
+      background: var(--surface) !important;
+      border: 1px solid var(--line) !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      font-size: 14px !important;
+    }
+    #role-modal .btn-primary {
+      background: var(--green) !important;
+      color: #fff !important;
+      border: none !important;
+      padding: 10px 18px !important;
+      border-radius: 999px !important;
+      font-size: 13.5px !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+    }
+    #role-modal .btn-primary:hover { background: var(--green-dark) !important; }
+    #role-modal .close { font-size: 22px !important; cursor: pointer; }
+
+    /* ---------- Pagination ---------- */
+    .pagination { padding: 12px 16px; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1024px) {
+      .admin-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      .analytics-grid { grid-template-columns: 1fr !important; }
+    }
+    @media (max-width: 640px) {
+      .container.admin-dashboard { padding: 18px 14px 50px !important; }
+      .admin-grid { grid-template-columns: 1fr !important; }
+      .navbar { padding: 14px 16px !important; }
+      .nav-brand .tagline { display: none; }
+      .user-greeting { display: none; }
+      .filters-row .search-input { min-width: 0; flex: 1; }
+      .users-table thead th,
+      .users-table tbody td { padding: 10px 12px !important; font-size: 12.5px; }
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
@@ -26,7 +566,7 @@
     <header class="admin-header">
       <h2>📊 Admin Dashboard</h2>
       <p>Manage users, view system statistics, and monitor activity</p>
-      <button id="promote-admin-btn" class="btn btn-primary" onclick="promoteToAdmin()" style="margin-top: 10px;">Promote Current User to Admin</button>
+      <button id="promote-admin-btn" class="btn btn-primary" onclick="promoteToAdmin()">Promote Current User to Admin</button>
     </header>
 
     <!-- Overview Stats -->
@@ -48,37 +588,40 @@
       </div>
       <div class="admin-card">
         <h3>📈 New This Month</h3>
-        <div style="display: flex; gap: 20px; margin-top: 15px;">
+        <div style="display: flex; gap: 24px; margin-top: 8px;">
           <div>
-            <div class="admin-stat-large" style="font-size: 1.8rem;" id="new-users">0</div>
+            <div class="admin-stat-large" id="new-users">0</div>
             <div class="admin-stat-label">new users</div>
           </div>
           <div>
-            <div class="admin-stat-large" style="font-size: 1.8rem;" id="new-trips">0</div>
+            <div class="admin-stat-large" id="new-trips">0</div>
             <div class="admin-stat-label">new trips</div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Role Distribution -->
+    <!-- Charts -->
     <section class="analytics-section">
       <div class="analytics-grid">
         <div class="analytics-card">
           <h3>👤 User Role Distribution</h3>
-          <div id="role-stats" class="stats-bars"></div>
+          <div class="chart-wrap"><canvas id="role-chart"></canvas></div>
+          <!-- Legacy id kept so existing admin.js calls don't 404 if ever invoked -->
+          <div id="role-stats" style="display:none;"></div>
         </div>
         <div class="analytics-card">
-          <h3>🎯 Trip Status Distribution</h3>
-          <div id="status-stats" class="stats-bars"></div>
+          <h3>🟢 User Status (Active vs Inactive)</h3>
+          <div class="chart-wrap"><canvas id="status-chart"></canvas></div>
+          <div id="status-stats" style="display:none;"></div>
         </div>
       </div>
     </section>
 
-    <!-- Top Users -->
+    <!-- Recent Signups (replaces Top Active Users — backend doesn't track activity yet) -->
     <section class="trips-section">
       <div class="section-header">
-        <h2>🏆 Top Active Users</h2>
+        <h2>🆕 Recent Signups</h2>
       </div>
       <div class="admin-card" style="overflow-x: auto;">
         <table class="users-table" id="top-users-table">
@@ -87,12 +630,12 @@
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Total Trips</th>
-              <th>Items Packed</th>
+              <th>Status</th>
+              <th>Joined</th>
             </tr>
           </thead>
           <tbody>
-            <!-- Top users will be loaded here -->
+            <tr class="empty-row"><td colspan="5">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -102,7 +645,8 @@
     <section class="trips-section">
       <div class="section-header">
         <h2>👥 User Management</h2>
-        <div style="display: flex; gap: 10px;">
+        <div class="filters-row">
+          <input type="search" id="user-search" class="search-input" placeholder="Search by name or email…" autocomplete="off">
           <select id="role-filter" class="form-select">
             <option value="">All Roles</option>
             <option value="admin">Admin</option>
@@ -130,7 +674,7 @@
             </tr>
           </thead>
           <tbody>
-            <!-- Users will be loaded here -->
+            <!-- Users will be loaded here by admin.js's loadUsers() -->
           </tbody>
         </table>
         <div id="users-pagination" class="pagination"></div>
@@ -138,7 +682,7 @@
     </section>
   </main>
 
-  <!-- Role Edit Modal -->
+  <!-- Role Edit Modal (unchanged structure — admin.js's openRoleModal/saveUserRole still work) -->
   <div id="role-modal" class="modal" style="display: none;">
     <div class="modal-content">
       <span class="close" onclick="closeRoleModal()">&times;</span>
@@ -149,24 +693,269 @@
         <option value="organizer">Organizer</option>
         <option value="admin">Admin</option>
       </select>
-      <button class="btn btn-primary" onclick="saveUserRole()" style="margin-top: 15px;">Save Changes</button>
+      <button class="btn btn-primary" onclick="saveUserRole()" style="margin-top: 18px;">Save Changes</button>
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>
   <script src="ui.js"></script>
   <script src="admin.js"></script>
   <script>
+    /* =====================================================================
+       Admin panel enhancements (additive — no admin.js logic touched).
+         1. Doughnut charts powered by data we already have
+            (/admin/users for role mix; /admin/stats for active/inactive).
+         2. Recent Signups table populated from /admin/users.
+         3. Live name/email search filter for the User Management table.
+         4. Avatar-circle injection into the Name column of both tables
+            after admin.js renders rows (MutationObserver-driven so
+            re-renders from filter changes also get decorated).
+       ===================================================================== */
+
+    // ---------- Avatar helper ----------
+    const AVATAR_PALETTE = [
+      '#7A9E7E', '#C4704F', '#6B8FA6', '#C4A84F',
+      '#9A6F8F', '#5C8A6E', '#B8755A', '#7390A3',
+    ];
+    function avatarColor(seed) {
+      const s = String(seed || '?');
+      let hash = 0;
+      for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) | 0;
+      return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+    }
+    function initialsOf(name, email) {
+      const src = (name || email || '').trim();
+      if (!src) return '?';
+      const parts = src.split(/[\s@.]+/).filter(Boolean);
+      const first = parts[0]?.[0] || '';
+      const second = parts[1]?.[0] || '';
+      return (first + second).toUpperCase() || src[0].toUpperCase();
+    }
+
+    // ---------- MutationObserver: decorate the Name column with an avatar ----------
+    function decorateRow(tr) {
+      const td = tr.querySelector('td:first-child');
+      if (!td || td.querySelector('.avatar-circle')) return;
+      const rawName = td.textContent.trim();
+      if (!rawName || rawName === '—') return;
+      // Look for the email column (2nd <td>) to seed initials reliably.
+      const emailTd = tr.querySelector('td:nth-child(2)');
+      const email = emailTd ? emailTd.textContent.trim() : '';
+      const seed  = (rawName + '|' + email);
+      const color = avatarColor(seed);
+      const initials = initialsOf(rawName, email);
+      td.innerHTML = `
+        <span class="avatar-cell">
+          <span class="avatar-circle" style="background:${color};">${initials}</span>
+          <span>${escapeText(rawName)}</span>
+        </span>`;
+    }
+    function decorateTbody(tbody) {
+      if (!tbody) return;
+      tbody.querySelectorAll('tr').forEach(tr => {
+        if (!tr.classList.contains('empty-row')) decorateRow(tr);
+      });
+    }
+    function escapeText(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // Watch both tables for re-renders from admin.js / our recent-signups loader.
+    function watchTable(tableId) {
+      const tbody = document.querySelector(`#${tableId} tbody`);
+      if (!tbody) return;
+      decorateTbody(tbody);
+      const obs = new MutationObserver(() => decorateTbody(tbody));
+      obs.observe(tbody, { childList: true });
+    }
+
+    // ---------- Live search for the User Management table ----------
+    function wireUserSearch() {
+      const input = document.getElementById('user-search');
+      const tbody = document.querySelector('#users-table tbody');
+      if (!input || !tbody) return;
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        tbody.querySelectorAll('tr').forEach(tr => {
+          if (tr.classList.contains('empty-row')) return;
+          const cells = tr.querySelectorAll('td');
+          if (cells.length < 2) return;
+          const name  = cells[0].textContent.toLowerCase();
+          const email = cells[1].textContent.toLowerCase();
+          tr.style.display = (!q || name.includes(q) || email.includes(q)) ? '' : 'none';
+        });
+      });
+    }
+
+    // ---------- Charts ----------
+    let roleChart = null;
+    let statusChart = null;
+
+    function makeDoughnut(ctx, labels, values, colors) {
+      return new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data: values,
+            backgroundColor: colors,
+            borderColor: '#fff',
+            borderWidth: 2,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                font: { family: 'Inter, sans-serif', size: 12, weight: '500' },
+                color: '#5A6560',
+                padding: 12,
+                boxWidth: 10,
+                boxHeight: 10,
+                usePointStyle: true,
+                pointStyle: 'circle',
+              },
+            },
+            tooltip: {
+              backgroundColor: '#1B4332',
+              padding: 10,
+              titleFont: { family: 'Inter, sans-serif', size: 12, weight: '600' },
+              bodyFont:  { family: 'Inter, sans-serif', size: 12 },
+              callbacks: {
+                label: (ctx) => {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0) || 1;
+                  const pct = Math.round((ctx.parsed / total) * 100);
+                  return ` ${ctx.label}: ${ctx.parsed} (${pct}%)`;
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderEmptyChart(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const wrap = canvas.parentElement;
+      wrap.innerHTML = '<div class="chart-empty">No data yet</div>';
+    }
+
+    async function loadCharts() {
+      try {
+        // Role distribution — derived from /admin/users (already an admin endpoint).
+        const usersData = await apiCallWithAuth('/admin/users');
+        const users = (usersData && usersData.users) || [];
+
+        // Role mix
+        const roleCounts = users.reduce((acc, u) => {
+          const r = u.role || 'user';
+          acc[r] = (acc[r] || 0) + 1;
+          return acc;
+        }, {});
+        const roleOrder = ['admin', 'organizer', 'user'];
+        const roleLabels = roleOrder.filter(r => roleCounts[r]);
+        const roleValues = roleLabels.map(r => roleCounts[r]);
+        // Surface any unexpected role values (e.g. legacy data).
+        Object.keys(roleCounts).forEach(r => {
+          if (!roleOrder.includes(r)) {
+            roleLabels.push(r);
+            roleValues.push(roleCounts[r]);
+          }
+        });
+        const roleColors = roleLabels.map(r => ({
+          admin: '#1B4332',
+          organizer: '#9A6F8F',
+          user: '#7A9E7E',
+        }[r] || '#6B8FA6'));
+
+        if (roleValues.reduce((a, b) => a + b, 0) === 0) {
+          renderEmptyChart('role-chart');
+        } else {
+          const ctx = document.getElementById('role-chart').getContext('2d');
+          if (roleChart) roleChart.destroy();
+          roleChart = makeDoughnut(ctx, roleLabels.map(capitalize), roleValues, roleColors);
+        }
+
+        // User status doughnut — pulls active/inactive counts from /admin/stats.
+        const stats = await apiCallWithAuth('/admin/stats');
+        const active = stats?.users?.active ?? 0;
+        const inactive = stats?.users?.inactive ?? 0;
+        if (active + inactive === 0) {
+          renderEmptyChart('status-chart');
+        } else {
+          const ctx = document.getElementById('status-chart').getContext('2d');
+          if (statusChart) statusChart.destroy();
+          statusChart = makeDoughnut(
+            ctx,
+            ['Active', 'Inactive'],
+            [active, inactive],
+            ['#7A9E7E', '#C4704F'],
+          );
+        }
+
+        // Also populate Recent Signups while we have the user list.
+        renderRecentSignups(users);
+      } catch (err) {
+        console.warn('[admin] chart/data load failed', err);
+        renderEmptyChart('role-chart');
+        renderEmptyChart('status-chart');
+        const tbody = document.querySelector('#top-users-table tbody');
+        if (tbody) tbody.innerHTML = '<tr class="empty-row"><td colspan="5">Could not load recent signups</td></tr>';
+      }
+    }
+
+    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    // ---------- Recent Signups ----------
+    function renderRecentSignups(users) {
+      const tbody = document.querySelector('#top-users-table tbody');
+      if (!tbody) return;
+      const sorted = [...users]
+        .filter(u => u.createdAt)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 5);
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No users yet</td></tr>';
+        return;
+      }
+      tbody.innerHTML = sorted.map(u => `
+        <tr>
+          <td>${escapeText(u.name || '—')}</td>
+          <td>${escapeText(u.email || '—')}</td>
+          <td><span class="role-badge role-${escapeText(u.role || 'user')}">${escapeText(u.role || 'user')}</span></td>
+          <td><span class="status-${u.isActive ? 'active' : 'inactive'}">${u.isActive ? 'Active' : 'Inactive'}</span></td>
+          <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</td>
+        </tr>
+      `).join('');
+    }
+
+    // ---------- Boot ----------
     document.addEventListener('DOMContentLoaded', () => {
+      // The original boot block — keep behavior identical.
       checkAdminAccess();
       loadAdminDashboard();
       loadUsers();
-      
+
       // Display user name
       const user = JSON.parse(sessionStorage.getItem('currentUser') || '{}');
       if (user.name) {
         document.getElementById('user-name').textContent = `Welcome, ${user.name}`;
       }
+
+      // Enhancements
+      watchTable('users-table');
+      watchTable('top-users-table');
+      wireUserSearch();
+      loadCharts();
     });
   </script>
 </body>
