@@ -1991,7 +1991,11 @@
           // localStorage/'token'.
           const token = sessionStorage.getItem('authToken');
           const authHeaders = { 'Authorization': `Bearer ${token}` };
-          const tripRes = await fetch(`http://localhost:3000/trips/${tripId}`, {
+          // Resolve API base — prefer window.API_URL set by config.js,
+          // fall back to the prod EB CNAME so this works on the static
+          // S3 frontend even if config.js failed to load.
+          const WX_API_BASE = (window.API_URL || 'http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com').replace(/\/$/, '');
+          const tripRes = await fetch(`${WX_API_BASE}/trips/${tripId}`, {
             headers: authHeaders
           });
           const trip = await tripRes.json();
@@ -2005,7 +2009,7 @@
 
           let weatherUrl;
           if (loc && !isGeneric) {
-            weatherUrl = `http://localhost:3000/weather?location=${encodeURIComponent(loc)}`;
+            weatherUrl = `${WX_API_BASE}/weather?location=${encodeURIComponent(loc)}`;
           } else {
             weatherUrl = null; // will try GPS
           }
@@ -2022,7 +2026,7 @@
               navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000})
             );
             const {latitude: lat, longitude: lon} = pos.coords;
-            const res = await fetch(`http://localhost:3000/weather?lat=${lat}&lon=${lon}`, {
+            const res = await fetch(`${WX_API_BASE}/weather?lat=${lat}&lon=${lon}`, {
               headers: authHeaders,
             });
             data = await res.json();
