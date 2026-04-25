@@ -9,18 +9,30 @@ const app = express();
 // CORS configuration
 // - Always allows requests with no Origin (e.g., same-origin, curl, server-to-server).
 // - Always allows localhost / 127.0.0.1 on any port for local development.
+// - Always allows the prod S3 static-site frontend (TrailPack's public UI),
+//   so the static site → EB backend flow works without env var configuration.
 // - Additional origins can be whitelisted via the CORS_ALLOWED_ORIGINS env var
 //   as a comma-separated list. Supports exact strings or a leading "*." wildcard
 //   to match any subdomain (e.g., "*.netlify.app,https://trailpack.com").
+const defaultOrigins = [
+  // S3 static-website endpoint that serves the production frontend.
+  'http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com',
+  // HTTPS variant in case the bucket is ever fronted by CloudFront/ACM at the
+  // same hostname pattern; harmless when unused.
+  'https://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com',
+];
+
 const extraOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
 
+const allowedOrigins = [...defaultOrigins, ...extraOrigins];
+
 function isOriginAllowed(origin) {
   if (!origin) return true;
   if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
-  return extraOrigins.some(entry => {
+  return allowedOrigins.some(entry => {
     if (entry.startsWith('*.')) {
       const suffix = entry.slice(1); // ".example.com"
       try {
