@@ -4,144 +4,998 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>Profile - TrailPack</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="stylesheet" href="auth.css">
+  <title>Profile · TrailPack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <script src="config.js"></script>
+  <style>
+    :root {
+      --green:        #2D6A4F;
+      --green-dark:   #1B4332;
+      --green-light:  #52B788;
+      --green-pale:   #D8F3DC;
+      --sage:         #7A9E7E;
+      --cream:        #F5F0E8;
+      --surface:      #FFFFFF;
+      --ink:          #1b2422;
+      --ink-soft:     #5a6560;
+      --muted:        #6B7A72;
+      --line:         #E3DDD0;
+      --line-soft:    #EDE7DA;
+      --danger:       #C0392B;
+      --danger-dark:  #962818;
+      --danger-soft:  #F9E2DE;
+      --warning:      #D97706;
+      --info:         #2563EB;
+      --shadow-sm:    0 1px 2px rgba(15,36,28,0.04), 0 2px 8px rgba(15,36,28,0.05);
+      --shadow-md:    0 8px 24px rgba(15,36,28,0.10);
+      --radius:       16px;
+      --radius-sm:    10px;
+    }
+    html[data-theme="dark"] {
+      --cream:        #0F1713;
+      --surface:      #17231D;
+      --ink:          #E6EDE7;
+      --ink-soft:     #9BA8A1;
+      --line:         #233129;
+      --line-soft:    #1D2A23;
+      --green-pale:   #1F3B2C;
+      --danger-soft:  #3A1A14;
+      --shadow-sm:    0 1px 2px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.35);
+      --shadow-md:    0 10px 28px rgba(0,0,0,0.45);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    h1, h2, h3, h4 { margin: 0; color: var(--ink); }
+
+    /* ---------- Navbar (matches index.html) ---------- */
+    .navbar {
+      background: var(--green-dark);
+      color: #fff;
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 12px; }
+    .nav-brand h1 {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .nav-brand .logo-mark {
+      width: 22px; height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .nav-user .user-name {
+      font-size: 14px;
+      color: rgba(255,255,255,0.78);
+      margin-right: 4px;
+    }
+    .navbar .btn,
+    .navbar a.btn,
+    .navbar button {
+      background: transparent;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.18);
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color .15s ease, border-color .15s ease;
+      text-decoration: none;
+      font-family: inherit;
+    }
+    .navbar .btn:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.32); }
+    .navbar .btn-logout {
+      background: rgba(255,255,255,0.92);
+      color: var(--green-dark);
+      border-color: transparent;
+      font-weight: 600;
+    }
+    .navbar .btn-logout:hover { background: #fff; }
+
+    /* ---------- Page container ---------- */
+    .container {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+    }
+
+    /* ---------- Hero ---------- */
+    .profile-hero {
+      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
+      color: #fff;
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      box-shadow: var(--shadow-md);
+      margin-bottom: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+    .profile-hero::after {
+      content: "";
+      position: absolute;
+      right: -80px; top: -80px;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(82,183,136,0.40) 0%, rgba(82,183,136,0) 60%);
+      pointer-events: none;
+    }
+    .avatar-circle {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--green-light) 0%, var(--green) 100%);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      flex-shrink: 0;
+      border: 3px solid rgba(255,255,255,0.20);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+      position: relative;
+      z-index: 1;
+    }
+    .hero-text { z-index: 1; min-width: 0; }
+    .hero-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+    .hero-email {
+      font-size: 14px;
+      opacity: 0.86;
+      margin-bottom: 12px;
+      word-break: break-all;
+    }
+    .hero-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      background: rgba(255,255,255,0.12);
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+    .hero-meta strong { font-weight: 600; }
+
+    /* ---------- Stats row ---------- */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 18px;
+      text-align: center;
+      box-shadow: var(--shadow-sm);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .stat-icon { font-size: 22px; margin-bottom: 8px; display: block; line-height: 1; }
+    .stat-value {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--green-dark);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    html[data-theme="dark"] .stat-value { color: var(--green-light); }
+    .stat-label {
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--ink-soft);
+      font-weight: 600;
+    }
+
+    /* ---------- Section title ---------- */
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      margin: 14px 0 14px 4px;
+    }
+
+    /* ---------- Cards ---------- */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 26px 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 18px;
+    }
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+    .card-subtitle {
+      font-size: 13.5px;
+      color: var(--ink-soft);
+      margin-bottom: 18px;
+      line-height: 1.55;
+    }
+
+    /* ---------- Forms ---------- */
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .form-row label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-row label .opt {
+      font-weight: 400;
+      text-transform: none;
+      font-size: 12px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+    .form-row input[type="text"],
+    .form-row input[type="email"],
+    .form-row input[type="tel"],
+    .form-row input[type="password"] {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 14.5px;
+      font-family: inherit;
+      background: var(--surface);
+      color: var(--ink);
+      transition: border-color .15s ease, box-shadow .15s ease;
+      width: 100%;
+    }
+    .form-row input:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(45,106,79,0.14);
+    }
+    .form-row input:disabled {
+      background: var(--line-soft);
+      color: var(--ink-soft);
+      cursor: not-allowed;
+    }
+    .input-with-toggle { position: relative; }
+    .input-with-toggle input { padding-right: 46px !important; }
+    .toggle-btn {
+      position: absolute;
+      right: 6px; top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 8px;
+      font-size: 16px;
+      color: var(--ink-soft);
+      border-radius: 6px;
+      line-height: 1;
+    }
+    .toggle-btn:hover { background: var(--line-soft); color: var(--ink); }
+
+    /* ---------- Strength meter ---------- */
+    .strength-meter {
+      margin-top: 8px;
+      display: none;
+    }
+    .strength-meter.visible { display: block; }
+    .strength-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%;
+      width: 0%;
+      transition: width .25s ease, background-color .25s ease;
+      border-radius: 999px;
+      background: var(--danger);
+    }
+    .strength-fill.weak   { width: 25%;  background: var(--danger); }
+    .strength-fill.fair   { width: 50%;  background: var(--warning); }
+    .strength-fill.good   { width: 75%;  background: var(--info); }
+    .strength-fill.strong { width: 100%; background: var(--green); }
+    .strength-label {
+      font-size: 11.5px;
+      margin-top: 5px;
+      color: var(--ink-soft);
+      letter-spacing: 0.02em;
+    }
+    .strength-label .lvl { font-weight: 600; }
+    .strength-label .lvl.weak   { color: var(--danger); }
+    .strength-label .lvl.fair   { color: var(--warning); }
+    .strength-label .lvl.good   { color: var(--info); }
+    .strength-label .lvl.strong { color: var(--green); }
+
+    /* ---------- Buttons ---------- */
+    .btn-primary {
+      background: var(--green);
+      color: #fff;
+      border: none;
+      padding: 11px 22px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: background-color .15s ease, transform .1s ease;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--green-dark); }
+    .btn-primary:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary .spinner {
+      display: none;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    .btn-primary.loading .spinner { display: inline-block; }
+    .btn-primary.loading .label { opacity: 0.7; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background-color .15s ease;
+      white-space: nowrap;
+    }
+    .btn-danger:hover:not(:disabled) { background: var(--danger-dark); }
+    .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: var(--cream);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .btn-ghost:hover { background: var(--line-soft); }
+
+    /* ---------- Inline messages
+       (preserves the `.message` class profile.js writes; just restyles it) */
+    .message {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13.5px;
+      line-height: 1.4;
+      border: 1px solid transparent;
+    }
+    .message.success {
+      background: var(--green-pale);
+      color: var(--green-dark);
+      border-color: #b7e0c4;
+    }
+    .message.error {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border-color: #f3c6bf;
+    }
+    html[data-theme="dark"] .message.success { color: #B7E0C4; border-color: #2C5A40; }
+    html[data-theme="dark"] .message.error { color: #F4B8AE; border-color: #5A2820; }
+
+    /* ---------- Notification checkboxes ---------- */
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      cursor: pointer;
+      font-size: 14.5px;
+    }
+    .check-row input[type="checkbox"] {
+      width: 17px; height: 17px;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+
+    /* ---------- Danger Zone ---------- */
+    .danger-card {
+      border-color: #f3c6bf;
+      background: linear-gradient(180deg, var(--surface) 0%, #FDF7F5 100%);
+    }
+    html[data-theme="dark"] .danger-card {
+      background: var(--surface);
+      border-color: #5a2820;
+    }
+    .danger-card .card-title { color: var(--danger); }
+    .danger-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .danger-row .danger-text { flex: 1; min-width: 220px; }
+    .danger-row .danger-text strong {
+      color: var(--ink);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14.5px;
+    }
+    .danger-row .danger-text span {
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    /* ---------- Modal ---------- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15,23,19,0.58);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9000;
+      padding: 20px;
+    }
+    .modal-backdrop.visible { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 28px 26px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--line);
+      animation: modalIn .18s ease;
+    }
+    @keyframes modalIn {
+      from { transform: translateY(8px); opacity: 0; }
+      to   { transform: translateY(0);   opacity: 1; }
+    }
+    .modal-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--danger);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-text {
+      font-size: 14px;
+      color: var(--ink-soft);
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .modal-text strong { color: var(--danger); }
+    .modal-input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      margin-bottom: 18px;
+      background: var(--surface);
+      color: var(--ink);
+    }
+    .modal-input:focus {
+      outline: none;
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(192,57,43,0.16);
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 720px) {
+      .navbar { padding: 14px 18px; }
+      .nav-user .user-name { display: none; }
+      .container { padding: 18px 14px 50px; }
+      .profile-hero {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 24px 22px;
+      }
+      .avatar-circle { width: 72px; height: 72px; font-size: 28px; }
+      .hero-name { font-size: 24px; }
+      .stats-row { grid-template-columns: 1fr; gap: 10px; }
+      .card { padding: 20px 18px; }
+      .danger-row { flex-direction: column; align-items: stretch; }
+      .danger-row .btn-danger { width: 100%; }
+    }
+    @media (max-width: 460px) {
+      .navbar .btn { padding: 6px 10px; font-size: 12.5px; }
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <h1>⛺ TrailPack</h1>
-      <span class="tagline">Smart Camping Trip Planner</span>
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+        </svg>
+      </span>
+      <h1>TrailPack</h1>
     </div>
-    <div class="nav-links">
-      <span id="user-name" class="user-greeting"></span>
-      <a href="index.html" class="nav-link">Dashboard</a>
-      <a href="admin.html" class="nav-link" id="admin-link" style="display: none;">Admin</a>
-      <a href="organizer.html" class="nav-link" id="organizer-link" style="display: none;">Organizer</a>
-      <button class="btn btn-secondary" id="logout-btn">Logout</button>
+    <div class="nav-user">
+      <span id="user-info" class="user-name"></span>
+      <a href="index.html" class="btn">Dashboard</a>
+      <a href="organizer.html" id="organizer-link" class="btn" style="display:none;">Organizer</a>
+      <a href="admin.html" id="admin-link" class="btn" style="display:none;">Admin</a>
+      <button id="theme-toggle" class="btn" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+      <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
     </div>
   </nav>
 
-  <main class="container profile-container">
-    <div class="profile-header">
-      <h2>👤 My Profile</h2>
-    </div>
-
-    <div class="profile-grid">
-      <!-- Profile Info Card -->
-      <div class="profile-card">
-        <h3>Profile Information</h3>
-        <form id="profile-form">
-          <div class="form-group">
-            <label for="profile-name">Full Name</label>
-            <input type="text" id="profile-name" name="name" autocomplete="name" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="profile-email">Email</label>
-            <input type="email" id="profile-email" name="email" autocomplete="email" disabled>
-          </div>
-          
-          <div class="form-group">
-            <label for="profile-role">Role</label>
-            <input type="text" id="profile-role" name="role" disabled>
-          </div>
-          
-          <div class="form-group">
-            <label for="profile-phone">Phone Number</label>
-            <input type="tel" id="profile-phone" name="phone" autocomplete="tel" placeholder="Enter your phone number">
-          </div>
-          
-          <div id="profile-message" class="message" style="display: none;"></div>
-          
-          <button type="submit" class="btn btn-primary">Update Profile</button>
-        </form>
+  <main class="container">
+    <!-- Hero -->
+    <section class="profile-hero" aria-label="Profile summary">
+      <div class="avatar-circle" id="avatar-circle" aria-hidden="true">?</div>
+      <div class="hero-text">
+        <div class="hero-name" id="hero-name">Loading…</div>
+        <div class="hero-email" id="hero-email"></div>
+        <div class="hero-meta">📅&nbsp;Member since&nbsp;<strong id="hero-since">—</strong></div>
       </div>
+    </section>
 
-      <!-- Stats Card -->
-      <div class="profile-card">
-        <h3>📊 My Statistics</h3>
-        <div class="profile-stats">
-          <div class="profile-stat">
-            <div class="profile-stat-value" id="stat-total-trips">0</div>
-            <div class="profile-stat-label">Total Trips</div>
-          </div>
-          <div class="profile-stat">
-            <div class="profile-stat-value" id="stat-completed">0</div>
-            <div class="profile-stat-label">Completed</div>
-          </div>
-          <div class="profile-stat">
-            <div class="profile-stat-value" id="stat-items-packed">0</div>
-            <div class="profile-stat-label">Items Packed</div>
-          </div>
-          <div class="profile-stat">
-            <div class="profile-stat-value" id="stat-member-since">-</div>
-            <div class="profile-stat-label">Member Since</div>
+    <!-- Stats -->
+    <section class="stats-row" aria-label="Profile statistics">
+      <div class="stat-card">
+        <span class="stat-icon">🏕️</span>
+        <div class="stat-value" id="stat-total-trips">0</div>
+        <div class="stat-label">Trips Created</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">👥</span>
+        <div class="stat-value" id="stat-shared-trips">0</div>
+        <div class="stat-label">Trips Joined</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-icon">🎒</span>
+        <div class="stat-value" id="stat-items-packed">0</div>
+        <div class="stat-label">Gear Items</div>
+      </div>
+    </section>
+
+    <h2 class="section-title">Account</h2>
+
+    <!-- Edit Profile -->
+    <section class="card">
+      <div class="card-title">✏️ Edit Profile</div>
+      <div class="card-subtitle">Update your display name and contact info. Email is tied to your login and can't be changed here.</div>
+      <form id="profile-form">
+        <div class="form-row">
+          <label for="profile-name">Full Name</label>
+          <input type="text" id="profile-name" name="name" autocomplete="name" required>
+        </div>
+        <div class="form-row">
+          <label for="profile-email">Email <span class="opt">(read-only)</span></label>
+          <input type="email" id="profile-email" name="email" autocomplete="email" disabled>
+        </div>
+        <div class="form-row">
+          <label for="profile-role">Role <span class="opt">(read-only)</span></label>
+          <input type="text" id="profile-role" name="role" disabled>
+        </div>
+        <div class="form-row">
+          <label for="profile-phone">Phone Number <span class="opt">(optional)</span></label>
+          <input type="tel" id="profile-phone" name="phone" autocomplete="tel" placeholder="Add a phone number">
+        </div>
+        <button type="submit" class="btn-primary" id="profile-save-btn">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="label">Save Changes</span>
+        </button>
+        <div id="profile-message" class="message" style="display:none;"></div>
+      </form>
+    </section>
+
+    <!-- Change Password -->
+    <section class="card">
+      <div class="card-title">🔐 Change Password</div>
+      <div class="card-subtitle">Pick something strong — at least 8 characters with a mix of letters, numbers, and symbols.</div>
+      <form id="password-form">
+        <div class="form-row">
+          <label for="current-password">Current Password</label>
+          <div class="input-with-toggle">
+            <input type="password" id="current-password" name="currentPassword" autocomplete="current-password" required>
+            <button type="button" class="toggle-btn" data-target="current-password" aria-label="Show password">👁</button>
           </div>
         </div>
-      </div>
-
-      <!-- Change Password Card -->
-      <div class="profile-card">
-        <h3>🔐 Change Password</h3>
-        <form id="password-form">
-          <div class="form-group">
-            <label for="current-password">Current Password</label>
-            <input type="password" id="current-password" name="currentPassword" autocomplete="current-password" required>
-          </div>
-          
-          <div class="form-group">
-            <label for="new-password">New Password</label>
+        <div class="form-row">
+          <label for="new-password">New Password</label>
+          <div class="input-with-toggle">
             <input type="password" id="new-password" name="newPassword" autocomplete="new-password" required minlength="6">
+            <button type="button" class="toggle-btn" data-target="new-password" aria-label="Show password">👁</button>
           </div>
-          
-          <div class="form-group">
-            <label for="confirm-new-password">Confirm New Password</label>
+          <div class="strength-meter" id="strength-meter">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <div class="strength-label">Strength: <span class="lvl" id="strength-label">—</span></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="confirm-new-password">Confirm New Password</label>
+          <div class="input-with-toggle">
             <input type="password" id="confirm-new-password" name="confirmNewPassword" autocomplete="new-password" required>
+            <button type="button" class="toggle-btn" data-target="confirm-new-password" aria-label="Show password">👁</button>
           </div>
-          
-          <div id="password-message" class="message" style="display: none;"></div>
-          
-          <button type="submit" class="btn btn-primary">Change Password</button>
-        </form>
-      </div>
+        </div>
+        <button type="submit" class="btn-primary" id="password-save-btn">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="label">Update Password</span>
+        </button>
+        <div id="password-message" class="message" style="display:none;"></div>
+      </form>
+    </section>
 
-      <!-- Notification Settings -->
-      <div class="profile-card">
-        <h3>🔔 Notification Settings</h3>
-        <form id="notification-form">
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="email-notifications" name="emailNotifications">
-              <span>Email Notifications</span>
-            </label>
-          </div>
-          
-          <div class="form-group checkbox-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="checklist-reminders" name="checklistReminders">
-              <span>Checklist Reminders</span>
-            </label>
-          </div>
-          
-          <div id="notification-message" class="message" style="display: none;"></div>
-          
-          <button type="submit" class="btn btn-primary">Save Settings</button>
-        </form>
+    <!-- Notifications (kept for parity with previous profile page) -->
+    <section class="card">
+      <div class="card-title">🔔 Notifications</div>
+      <div class="card-subtitle">Choose what you'd like to be notified about.</div>
+      <form id="notification-form">
+        <label class="check-row">
+          <input type="checkbox" id="email-notifications" name="emailNotifications">
+          <span>Email Notifications</span>
+        </label>
+        <label class="check-row">
+          <input type="checkbox" id="checklist-reminders" name="checklistReminders">
+          <span>Checklist Reminders</span>
+        </label>
+        <button type="submit" class="btn-primary" id="notification-save-btn" style="margin-top: 12px;">
+          <span class="spinner" aria-hidden="true"></span>
+          <span class="label">Save Preferences</span>
+        </button>
+        <div id="notification-message" class="message" style="display:none;"></div>
+      </form>
+    </section>
+
+    <h2 class="section-title" style="color: var(--danger); margin-top: 28px;">Danger Zone</h2>
+
+    <!-- Delete Account -->
+    <section class="card danger-card">
+      <div class="card-title">⚠️ Delete Account</div>
+      <div class="card-subtitle">Permanently remove your account, trips, checklists, and all associated data. This cannot be undone.</div>
+      <div class="danger-row">
+        <div class="danger-text">
+          <strong>This will delete everything.</strong>
+          <span>All your trips, checklists, packed items, and shared trips will be permanently removed. We can't recover them.</span>
+        </div>
+        <button type="button" class="btn-danger" id="delete-account-btn">Delete My Account</button>
       </div>
-    </div>
+    </section>
   </main>
 
-  <script src="config.js"></script>
+  <!-- Delete confirmation modal -->
+  <div class="modal-backdrop" id="delete-modal" role="dialog" aria-modal="true" aria-labelledby="delete-modal-title">
+    <div class="modal-box">
+      <div class="modal-title" id="delete-modal-title">⚠️ Are you absolutely sure?</div>
+      <div class="modal-text">
+        This will permanently delete your TrailPack account and all of your data. There is no undo.
+        <br><br>
+        Type <strong>DELETE</strong> below to confirm.
+      </div>
+      <input type="text" class="modal-input" id="delete-confirm-input" placeholder='Type "DELETE" to confirm' autocomplete="off">
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="delete-cancel-btn">Cancel</button>
+        <button type="button" class="btn-danger" id="delete-confirm-btn" disabled>Delete Forever</button>
+      </div>
+    </div>
+  </div>
+
   <script src="ui.js"></script>
   <script src="auth.js"></script>
   <script src="profile.js"></script>
   <script>
+    /* ============================================================
+       Theme toggle (persists in localStorage; matches index.html)
+       ============================================================ */
+    (function() {
+      const saved = localStorage.getItem('tp-theme');
+      if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      const btn = document.getElementById('theme-toggle');
+      function refreshIcon() {
+        btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
+      }
+      refreshIcon();
+      btn.addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('tp-theme', 'light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          localStorage.setItem('tp-theme', 'dark');
+        }
+        refreshIcon();
+      });
+    })();
+
+    /* ============================================================
+       Auth + initial load. profile.js's loadProfile() populates
+       the form fields and stat ids; we then mirror those values
+       into the hero and pull a couple of extra bits.
+       ============================================================ */
     document.addEventListener('DOMContentLoaded', () => {
-      checkAuth();
-      loadProfile();
+      if (typeof checkAuth === 'function') checkAuth();
+      if (typeof loadProfile === 'function') loadProfile();
+
+      // Logout
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn && typeof logout === 'function') {
+        logoutBtn.addEventListener('click', logout);
+      }
+
+      // Show admin/organizer nav links if user has the role
+      try {
+        const u = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        if (u) {
+          document.getElementById('user-info').textContent = u.name ? 'Hi, ' + u.name : '';
+          if (u.role === 'admin') document.getElementById('admin-link').style.display = '';
+          if (u.role === 'admin' || u.role === 'organizer') document.getElementById('organizer-link').style.display = '';
+        }
+      } catch(_){}
     });
+
+    /* ============================================================
+       Show/hide password toggles
+       ============================================================ */
+    document.querySelectorAll('.toggle-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-target');
+        const input = document.getElementById(id);
+        if (!input) return;
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.textContent = '🙈';
+        } else {
+          input.type = 'password';
+          btn.textContent = '👁';
+        }
+      });
+    });
+
+    /* ============================================================
+       Password strength indicator
+       ============================================================ */
+    (function() {
+      const newPw = document.getElementById('new-password');
+      const meter = document.getElementById('strength-meter');
+      const fill  = document.getElementById('strength-fill');
+      const label = document.getElementById('strength-label');
+      function score(pw) {
+        if (!pw) return -1;
+        let s = 0;
+        if (pw.length >= 8) s++;
+        if (pw.length >= 12) s++;
+        if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) s++;
+        if (/\d/.test(pw)) s++;
+        if (/[^A-Za-z0-9]/.test(pw)) s++;
+        return Math.min(s, 4);
+      }
+      newPw.addEventListener('input', () => {
+        const v = newPw.value;
+        if (!v) { meter.classList.remove('visible'); return; }
+        meter.classList.add('visible');
+        const s = score(v);
+        const cls = s <= 1 ? 'weak' : s === 2 ? 'fair' : s === 3 ? 'good' : 'strong';
+        const txt = s <= 1 ? 'Weak' : s === 2 ? 'Fair' : s === 3 ? 'Good' : 'Strong';
+        fill.className = 'strength-fill ' + cls;
+        label.className = 'lvl ' + cls;
+        label.textContent = txt;
+      });
+    })();
+
+    /* ============================================================
+       Hero population
+       loadProfile() in profile.js writes #profile-name and
+       #profile-email asynchronously; mirror those into the hero
+       once the values arrive.
+       ============================================================ */
+    function populateHero() {
+      const nameEl  = document.getElementById('profile-name');
+      const emailEl = document.getElementById('profile-email');
+      const name  = (nameEl  && nameEl.value)  || '';
+      const email = (emailEl && emailEl.value) || '';
+      document.getElementById('hero-name').textContent  = name || 'Your Profile';
+      document.getElementById('hero-email').textContent = email;
+      const initials = name
+        .split(/\s+/).filter(Boolean).slice(0, 2)
+        .map(p => p[0].toUpperCase()).join('') || (email ? email[0].toUpperCase() : '?');
+      document.getElementById('avatar-circle').textContent = initials;
+    }
+    // loadProfile is async — poll briefly until #profile-name has a value
+    let pollCount = 0;
+    const heroPoll = setInterval(() => {
+      pollCount++;
+      const v = document.getElementById('profile-name').value;
+      if (v || pollCount > 30) {
+        populateHero();
+        clearInterval(heroPoll);
+      }
+    }, 100);
+    document.getElementById('profile-form').addEventListener('submit', () => {
+      // Update the hero name a moment after the save handler runs
+      setTimeout(populateHero, 700);
+    });
+
+    /* ============================================================
+       Hero "member since" + Trips Joined count.
+       Fetches /auth/me and /shared-trips/mine. Best-effort —
+       missing endpoints leave the defaults in place.
+       ============================================================ */
+    (async function() {
+      try {
+        const res = await apiCallWithAuth('/auth/me');
+        const u = res && res.user ? res.user : null;
+        if (u) {
+          if (u.stats && u.stats.joinedAt) {
+            const d = new Date(u.stats.joinedAt);
+            document.getElementById('hero-since').textContent = d.toLocaleDateString(undefined, {
+              year: 'numeric', month: 'short', day: 'numeric'
+            });
+          } else if (u.createdAt) {
+            const d = new Date(u.createdAt);
+            document.getElementById('hero-since').textContent = d.toLocaleDateString(undefined, {
+              year: 'numeric', month: 'short', day: 'numeric'
+            });
+          }
+        }
+      } catch (e) { console.warn('[profile] /auth/me extra fetch failed', e); }
+
+      try {
+        const shared = await apiCallWithAuth('/shared-trips/mine');
+        const list = Array.isArray(shared) ? shared : (shared && shared.trips) || [];
+        document.getElementById('stat-shared-trips').textContent = list.length;
+      } catch (_) { /* not fatal */ }
+    })();
+
+    /* ============================================================
+       Loading state for the three save buttons.
+       Hooks the message <div> via MutationObserver — when
+       profile.js sets style.display='block' on it, the API call
+       has finished, so we drop the loading state.
+       ============================================================ */
+    function wireLoadingState(formId, btnId, msgId) {
+      const form = document.getElementById(formId);
+      const btn  = document.getElementById(btnId);
+      const msg  = document.getElementById(msgId);
+      if (!form || !btn || !msg) return;
+
+      form.addEventListener('submit', () => {
+        btn.classList.add('loading');
+        btn.disabled = true;
+      });
+
+      const obs = new MutationObserver(() => {
+        if (msg.style.display === 'block' || msg.classList.contains('success') || msg.classList.contains('error')) {
+          btn.classList.remove('loading');
+          btn.disabled = false;
+        }
+      });
+      obs.observe(msg, { attributes: true, attributeFilter: ['style', 'class'] });
+
+      // Safety net: clear loading after 6s no matter what
+      form.addEventListener('submit', () => {
+        setTimeout(() => { btn.classList.remove('loading'); btn.disabled = false; }, 6000);
+      });
+    }
+    wireLoadingState('profile-form',     'profile-save-btn',     'profile-message');
+    wireLoadingState('password-form',    'password-save-btn',    'password-message');
+    wireLoadingState('notification-form','notification-save-btn','notification-message');
+
+    /* ============================================================
+       Delete account modal
+       ============================================================ */
+    (function() {
+      const openBtn = document.getElementById('delete-account-btn');
+      const modal   = document.getElementById('delete-modal');
+      const cancel  = document.getElementById('delete-cancel-btn');
+      const confirm = document.getElementById('delete-confirm-btn');
+      const input   = document.getElementById('delete-confirm-input');
+
+      function open() {
+        input.value = '';
+        confirm.disabled = true;
+        confirm.textContent = 'Delete Forever';
+        modal.classList.add('visible');
+        setTimeout(() => input.focus(), 50);
+      }
+      function close() { modal.classList.remove('visible'); }
+
+      openBtn.addEventListener('click', open);
+      cancel.addEventListener('click', close);
+      modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('visible')) close();
+      });
+      input.addEventListener('input', () => {
+        confirm.disabled = input.value.trim() !== 'DELETE';
+      });
+      confirm.addEventListener('click', async () => {
+        confirm.disabled = true;
+        confirm.textContent = 'Deleting…';
+        try {
+          await apiCallWithAuth('/auth/me', { method: 'DELETE' });
+          if (window.showToast) window.showToast('Account deleted. Goodbye!', 'success', 3000);
+          sessionStorage.clear();
+          try { localStorage.removeItem('tp-theme'); } catch(_) {}
+          setTimeout(() => { window.location.href = 'login.html'; }, 800);
+        } catch (err) {
+          confirm.textContent = 'Delete Forever';
+          confirm.disabled = false;
+          const msg = (err && err.message) || 'Could not delete account. Please contact support.';
+          if (window.showToast) window.showToast(msg, 'error', 5000);
+          else alert(msg);
+        }
+      });
+    })();
   </script>
 </body>
 </html>
