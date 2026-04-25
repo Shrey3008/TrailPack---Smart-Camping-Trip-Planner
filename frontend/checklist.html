@@ -1220,9 +1220,11 @@
         const btn = document.getElementById('theme-toggle');
         if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
       };
+      // Default to light. Existing users who explicitly chose 'dark' via the
+      // toggle keep their saved preference; we deliberately ignore the OS-level
+      // prefers-color-scheme so first-paint always matches the brand light theme.
       const savedTheme = localStorage.getItem(THEME_KEY);
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      applyTheme(savedTheme || (prefersDark ? 'dark' : 'light'));
+      applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
 
       /* ---------- Emoji maps ---------- */
       const TERRAIN_EMOJI = {

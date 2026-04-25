@@ -854,9 +854,11 @@
       }
     }
     function wireThemeToggle() {
+      // Default to light. Existing users who explicitly chose 'dark' via the
+      // toggle keep their saved preference; we deliberately ignore the OS-level
+      // prefers-color-scheme so first-paint always matches the brand light theme.
       const stored = localStorage.getItem('tp-theme');
-      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
-      applyTheme(stored || (prefersDark ? 'dark' : 'light'));
+      applyTheme(stored === 'dark' ? 'dark' : 'light');
       document.getElementById('theme-toggle')?.addEventListener('click', () => {
         const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         applyTheme(next);
