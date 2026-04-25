@@ -2003,14 +2003,27 @@
           const trip = await tripRes.json();
           console.log('trip:', trip);
 
-          // Determine location string
+          // Prefer the trip's stored lat/lon (set by the destination
+          // autocomplete on trip creation) — they're more accurate than
+          // re-geocoding a free-text location string and won't drift if
+          // OpenStreetMap returns a different match this time. Fall back
+          // to the location string, then to GPS.
+          const tripLat = (typeof trip.lat === 'number') ? trip.lat
+                        : (trip.lat != null && !isNaN(parseFloat(trip.lat))) ? parseFloat(trip.lat) : null;
+          const tripLon = (typeof trip.lon === 'number') ? trip.lon
+                        : (trip.lon != null && !isNaN(parseFloat(trip.lon))) ? parseFloat(trip.lon) : null;
+          const hasCoords = tripLat != null && tripLon != null;
+
           const GENERIC = ['mountain','lake','forest','trail','valley','beach','desert','jungle'];
           const loc = trip.location || trip.terrain || '';
           const isGeneric = GENERIC.some(w => loc.toLowerCase().includes(w));
-          console.log('location:', loc, '| isGeneric:', isGeneric);
+          console.log('location:', loc, '| isGeneric:', isGeneric, '| coords:', hasCoords ? `${tripLat},${tripLon}` : 'none');
 
           let weatherUrl;
-          if (loc && !isGeneric) {
+          if (hasCoords) {
+            // Best path: ship exact coordinates straight to the weather API.
+            weatherUrl = `${WX_API_BASE}/weather?lat=${tripLat}&lon=${tripLon}`;
+          } else if (loc && !isGeneric) {
             weatherUrl = `${WX_API_BASE}/weather?location=${encodeURIComponent(loc)}`;
           } else {
             weatherUrl = null; // will try GPS

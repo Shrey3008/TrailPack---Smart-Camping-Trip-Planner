@@ -73,6 +73,16 @@ const COUNTRY_NAMES = {
 // in the map, drop the suffix and keep just the city. Anything else
 // (no comma, long country name already spelled out, empty) is
 // returned trimmed and unchanged.
+// Validate a coordinate value to a finite number within [-max, max].
+// Accepts numbers or numeric strings. Returns null for missing/invalid input
+// so the trip item stores explicit null rather than undefined (DynamoDB-safe).
+function parseCoord(v, max) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  if (!Number.isFinite(n) || n < -max || n > max) return null;
+  return n;
+}
+
 function normalizeLocation(location) {
   if (!location || typeof location !== 'string') return location;
   const trimmed = location.trim();
@@ -174,7 +184,7 @@ const generateChecklist = (terrain, season, duration) => {
 // POST /trips - Create a new trip with rule-based checklist
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { name, terrain, season, duration, groupSize, location, startDate, endDate } = req.body;
+    const { name, terrain, season, duration, groupSize, location, lat, lon, startDate, endDate } = req.body;
 
     // Validation
     if (!name || !terrain || !season || !duration) {
@@ -186,6 +196,10 @@ router.post('/', authenticate, async (req, res) => {
     const parsedDuration = parseInt(duration);
     // Group size: clamp to [1, 50]; default to 1 when missing/invalid.
     const parsedGroupSize = Math.min(50, Math.max(1, parseInt(groupSize, 10) || 1));
+    // Optional geographic coordinates from the destination autocomplete.
+    // Validated to finite numbers within [-90,90] / [-180,180]; otherwise null.
+    const parsedLat = parseCoord(lat, 90);
+    const parsedLon = parseCoord(lon, 180);
 
     // Save trip with PutCommand
     const tripItem = {
@@ -199,6 +213,8 @@ router.post('/', authenticate, async (req, res) => {
       duration: parsedDuration,
       groupSize: parsedGroupSize,
       location: normalizeLocation(location) || null,
+      lat: parsedLat,
+      lon: parsedLon,
       startDate: startDate || null,
       endDate: endDate || null,
       status: 'planned',
@@ -384,7 +400,7 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    const { name, terrain, season, duration, groupSize, status } = req.body;
+    const { name, terrain, season, duration, groupSize, status, location, lat, lon } = req.body;
     
     const updateExpressions = [];
     const expressionAttributeNames = {};
@@ -415,6 +431,19 @@ router.put('/:id', authenticate, async (req, res) => {
       updateExpressions.push('#status = :status');
       expressionAttributeNames['#status'] = 'status';
       expressionAttributeValues[':status'] = status;
+    }
+    if (location !== undefined) {
+      updateExpressions.push('#loc = :loc');
+      expressionAttributeNames['#loc'] = 'location';
+      expressionAttributeValues[':loc'] = normalizeLocation(location) || null;
+    }
+    if (lat !== undefined) {
+      updateExpressions.push('lat = :lat');
+      expressionAttributeValues[':lat'] = parseCoord(lat, 90);
+    }
+    if (lon !== undefined) {
+      updateExpressions.push('lon = :lon');
+      expressionAttributeValues[':lon'] = parseCoord(lon, 180);
     }
     
     if (updateExpressions.length === 0) {
