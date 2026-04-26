@@ -712,6 +712,88 @@
       .trip-card .trip-actions { flex-direction: column; }
       .trip-card .trip-actions .btn { width: 100%; }
     }
+
+    /* =========================================================================
+       Dashboard polish v2 — design system parity with admin / organizer pages.
+       ========================================================================= */
+
+    /* Stat cards: colored left accents + Playfair display numbers */
+    .stats-bar .stat-card {
+      position: relative;
+      overflow: hidden;
+      padding: 22px 22px 20px 26px !important;
+    }
+    .stats-bar .stat-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 5px;
+      background: var(--green);
+    }
+    .stats-bar .stat-card:nth-child(1)::before { background: #2D6A4F; }            /* sage green */
+    .stats-bar .stat-card:nth-child(2)::before { background: #C4704F; }            /* terracotta */
+    .stats-bar .stat-card:nth-child(3)::before { background: #6B8FA6; }            /* dusty blue */
+    .stats-bar .stat-card:nth-child(4)::before { background: #C4A84F; }            /* golden */
+
+    .stats-bar .stat-card:nth-child(1) .stat-icon { background: rgba(45,106,79,0.12) !important; color: #2D6A4F !important; }
+    .stats-bar .stat-card:nth-child(2) .stat-icon { background: rgba(196,112,79,0.14) !important; color: #C4704F !important; }
+    .stats-bar .stat-card:nth-child(3) .stat-icon { background: rgba(107,143,166,0.16) !important; color: #4F7287 !important; }
+    .stats-bar .stat-card:nth-child(4) .stat-icon { background: rgba(196,168,79,0.18) !important; color: #8B7833 !important; }
+
+    .stats-bar .stat-card .stat-value {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-size: 2.6rem !important;
+      font-weight: 700 !important;
+      line-height: 1 !important;
+      letter-spacing: -0.01em !important;
+    }
+    .stats-bar .stat-card .stat-label {
+      font-size: 0.7rem !important;
+      letter-spacing: 0.09em !important;
+    }
+    .stats-bar .stat-card:hover { transform: translateY(-3px); }
+
+    /* "Your Trips" section: wrap header + filters + content in one unified card */
+    main.container > section.dashboard-section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px 26px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px !important;
+    }
+    main.container > section.dashboard-section .section-header { margin-bottom: 14px !important; }
+    main.container > section.dashboard-section .section-header h2 { font-size: 1.55rem !important; }
+    main.container > section.dashboard-section .filter-tabs { margin: 0 0 18px !important; }
+
+    /* Section CTA pill — slightly tighter */
+    main.container > section.dashboard-section .section-header .btn.btn-primary {
+      font-size: 0.85rem !important;
+      padding: 9px 18px !important;
+    }
+
+    /* Empty state inside the section card — softer, no extra shadow */
+    main.container > section.dashboard-section .empty-state {
+      background: #FCFAF6;
+      border: 1px dashed var(--line);
+      box-shadow: none !important;
+      padding: 44px 24px !important;
+      margin-top: 4px;
+    }
+    html[data-theme="dark"] main.container > section.dashboard-section .empty-state {
+      background: rgba(255,255,255,0.02);
+    }
+    main.container > section.dashboard-section .empty-state .empty-icon { font-size: 2.4rem; margin-bottom: 10px; }
+    main.container > section.dashboard-section .empty-state h3 { font-size: 1.25rem; }
+    main.container > section.dashboard-section .empty-state p { font-size: 0.92rem; }
+
+    /* "Shared With Me" section — same card treatment but only when visible */
+    #shared-trips-section[style*="display: none"] { display: none !important; }
+
+    @media (max-width: 600px) {
+      main.container > section.dashboard-section { padding: 18px 16px; border-radius: 14px; }
+      .stats-bar .stat-card .stat-value { font-size: 2.2rem !important; }
+    }
   </style>
 </head>
 <body>

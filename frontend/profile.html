@@ -487,6 +487,21 @@
       color: var(--ink-soft);
       line-height: 1.5;
     }
+    /* Simpler, single-row danger card */
+    .danger-card-simple { padding: 18px 20px; }
+    .danger-card-simple .danger-row { gap: 20px; }
+    .danger-card-simple .danger-text strong {
+      color: var(--danger);
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+    .danger-card-simple .btn-danger {
+      flex-shrink: 0;
+      padding: 9px 18px;
+      font-size: 13.5px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
 
     /* ---------- Modal ---------- */
     .modal-backdrop {
@@ -716,18 +731,16 @@
       </form>
     </section>
 
-    <h2 class="section-title" style="color: var(--danger); margin-top: 28px;">Danger Zone</h2>
+    <h2 class="section-title" style="margin-top: 28px;">Account</h2>
 
     <!-- Delete Account -->
-    <section class="card danger-card">
-      <div class="card-title">⚠️ Delete Account</div>
-      <div class="card-subtitle">Permanently remove your account, trips, checklists, and all associated data. This cannot be undone.</div>
+    <section class="card danger-card danger-card-simple">
       <div class="danger-row">
         <div class="danger-text">
-          <strong>This will delete everything.</strong>
-          <span>All your trips, checklists, packed items, and shared trips will be permanently removed. We can't recover them.</span>
+          <strong>⚠️ Delete account</strong>
+          <span>Permanently removes your account, trips, and checklists. This cannot be undone.</span>
         </div>
-        <button type="button" class="btn-danger" id="delete-account-btn">Delete My Account</button>
+        <button type="button" class="btn-danger" id="delete-account-btn">Delete account</button>
       </div>
     </section>
   </main>

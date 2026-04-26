@@ -133,6 +133,7 @@ async function loadTrips() {
     const trips = data.trips || [];
     
     if (trips.length === 0) {
+      container.innerHTML = '';
       container.style.display = 'none';
       if (emptyState) emptyState.style.display = 'block';
       return;
