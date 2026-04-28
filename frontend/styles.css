@@ -479,6 +479,22 @@ a:hover {
   text-align: center;
 }
 
+/* Forgot-password helper link under the Login button. Small, centered,
+   themed, no underline — opens forgot-password.html. */
+.forgot-link {
+  text-align: center;
+  margin-top: var(--space-4);
+  margin-bottom: 0;
+  font-size: 0.85rem;
+}
+.forgot-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+.forgot-link a:hover { color: var(--primary); text-decoration: underline; }
+
 .auth-links {
   text-align: center;
   margin-top: var(--space-6);

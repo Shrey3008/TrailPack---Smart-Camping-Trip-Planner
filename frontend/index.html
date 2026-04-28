@@ -810,11 +810,10 @@
     </div>
     <div class="nav-user">
       <span id="user-info" class="user-name"></span>
-      <a href="profile.html" class="btn btn-ghost btn-sm">Profile</a>
-      <a href="organizer.html" id="organizer-link" class="btn btn-ghost btn-sm" style="display:none;">Organizer</a>
-      <button id="admin-panel-btn" class="btn btn-ghost btn-sm" onclick="window.location.href='admin.html'">Admin Panel</button>
-      <button id="theme-toggle" class="btn btn-ghost btn-sm btn-theme" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
-      <button class="btn btn-ghost btn-sm btn-logout" onclick="logout()">Logout</button>
+      <a href="history.html" class="btn">History</a>
+      <a href="profile.html" class="btn">Profile</a>
+      <button id="theme-toggle" class="btn" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+      <button class="btn btn-logout" id="logout-btn" type="button" onclick="logout()">Logout</button>
     </div>
   </nav>
 
@@ -942,6 +941,22 @@
             <label for="tp-ct-end">End date</label>
             <input id="tp-ct-end" name="endDate" type="date">
           </div>
+          <script>
+            // Block past dates: set min on both date inputs to today on every modal open.
+            (function () {
+              function todayISO() {
+                const d = new Date();
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${dd}`;
+              }
+              const s = document.getElementById('tp-ct-start');
+              const e = document.getElementById('tp-ct-end');
+              if (s) s.min = todayISO();
+              if (e) e.min = todayISO();
+            })();
+          </script>
         </div>
         <p class="tp-date-hint" id="tp-date-hint" hidden></p>
 
@@ -979,13 +994,18 @@
 
       if (window.currentUser) {
         const userInfo = document.getElementById('user-info');
-        userInfo.textContent = `${window.currentUser.name} (${window.currentUser.role || 'user'})`;
+        if (userInfo) {
+          userInfo.textContent = `${window.currentUser.name} (${window.currentUser.role || 'user'})`;
+        }
 
+        // Admin Panel + Organizer entries were removed from the dashboard
+        // navbar when the hamburger dropdown was standardised across pages.
+        // Keep the role-detection logic here as a no-op-safe lookup so any
+        // future re-introduction (or role-only feature) can re-attach.
         const adminBtn = document.getElementById('admin-panel-btn');
-        if (window.currentUser.role === 'admin') {
-          adminBtn.style.display = 'inline-block';
-        } else {
-          adminBtn.style.display = 'none';
+        if (adminBtn) {
+          adminBtn.style.display =
+            window.currentUser.role === 'admin' ? 'inline-block' : 'none';
         }
         if (window.currentUser.role === 'organizer' || window.currentUser.role === 'admin') {
           const orgLink = document.getElementById('organizer-link');
@@ -1122,6 +1142,8 @@
         const end   = parseISO(endEl.value);
         const dur   = clampDur(parseInt(durEl.value, 10) || 1);
         if (start) {
+          // End date can't be before start date.
+          endEl.min = startEl.value;
           // If end is missing or now <= start, project a fresh end from
           // the current duration. Otherwise keep end and re-sync duration.
           if (!end || end <= start) {
@@ -1265,7 +1287,9 @@
         input.value = formatLabel(s);
         latEl.value = s.lat;
         lonEl.value = s.lon;
-        showHint(`\u2713 Coordinates locked: ${Number(s.lat).toFixed(3)}, ${Number(s.lon).toFixed(3)}`, true);
+        hint.hidden = true;
+        hint.textContent = '';
+        hint.classList.remove('is-confirmed');
         hideDropdown();
       });
 
@@ -1488,5 +1512,6 @@
       });
     }
   </script>
+  <script src="nav-menu.js"></script>
 </body>
 </html>

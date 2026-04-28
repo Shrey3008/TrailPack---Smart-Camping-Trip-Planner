@@ -59,65 +59,86 @@
     }
     h1, h2, h3, h4 { margin: 0; color: var(--ink); }
 
-    /* ---------- Navbar (matches index.html) ---------- */
+    /* ---------- Navbar (mirrors index.html exactly) ---------- */
     .navbar {
-      background: var(--green-dark);
-      color: #fff;
-      padding: 18px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      background: var(--green-dark) !important;
+      color: #fff !important;
+      padding: 18px 32px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
       box-shadow: 0 1px 0 rgba(0,0,0,0.04);
     }
     .nav-brand { display: flex; align-items: center; gap: 12px; }
-    .nav-brand h1 {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      color: #fff;
+    .nav-brand h1,
+    .nav-brand .brand-text {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.55rem !important;
+      color: #fff !important;
+      letter-spacing: 0.005em;
+      margin: 0 !important;
     }
     .nav-brand .logo-mark {
-      width: 22px; height: 22px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(82, 183, 136, 0.15);
     }
+    .nav-brand .logo-mark svg { display: block; }
+
     .nav-user {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
       flex-wrap: wrap;
     }
-    .nav-user .user-name {
-      font-size: 14px;
-      color: rgba(255,255,255,0.78);
+    .nav-user .user-name,
+    .nav-user #user-info {
+      color: rgba(255,255,255,0.88) !important;
+      font-weight: 500 !important;
+      font-size: 0.92rem !important;
       margin-right: 4px;
     }
+
+    /* Pill buttons in navbar — same overrides as index.html. */
     .navbar .btn,
     .navbar a.btn,
     .navbar button {
-      background: transparent;
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.18);
-      padding: 7px 14px;
-      border-radius: 999px;
-      font-size: 13px;
-      font-weight: 500;
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 500 !important;
+      font-size: 0.85rem !important;
+      background: transparent !important;
+      color: #fff !important;
+      border: 1px solid rgba(255,255,255,0.45) !important;
+      padding: 7px 14px !important;
+      border-radius: 999px !important;
       cursor: pointer;
-      transition: background-color .15s ease, border-color .15s ease;
-      text-decoration: none;
-      font-family: inherit;
+      text-decoration: none !important;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     }
-    .navbar .btn:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.32); }
-    .navbar .btn-logout {
-      background: rgba(255,255,255,0.92);
-      color: var(--green-dark);
-      border-color: transparent;
-      font-weight: 600;
+    .navbar .btn:hover,
+    .navbar a.btn:hover,
+    .navbar button:hover {
+      background: rgba(255,255,255,0.10) !important;
+      border-color: rgba(255,255,255,0.65) !important;
     }
-    .navbar .btn-logout:hover { background: #fff; }
+    /* Logout = red outlined pill (matches index.html). */
+    .navbar .btn-logout,
+    .navbar button[onclick*="logout"] {
+      background: transparent !important;
+      border-color: rgba(255, 138, 128, 0.55) !important;
+      color: #FFBFBA !important;
+    }
+    .navbar .btn-logout:hover,
+    .navbar button[onclick*="logout"]:hover {
+      background: rgba(192, 57, 43, 0.20) !important;
+      border-color: #FF8A80 !important;
+      color: #fff !important;
+    }
 
     /* ---------- Page container ---------- */
     .container {
@@ -599,13 +620,13 @@
           <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
         </svg>
       </span>
-      <h1>TrailPack</h1>
+      <h1 class="brand-text">TrailPack</h1>
     </div>
     <div class="nav-user">
       <span id="user-info" class="user-name"></span>
       <a href="index.html" class="btn">Dashboard</a>
-      <a href="organizer.html" id="organizer-link" class="btn" style="display:none;">Organizer</a>
-      <a href="admin.html" id="admin-link" class="btn" style="display:none;">Admin</a>
+      <a href="history.html" class="btn">History</a>
+      <a href="profile.html" class="btn">Profile</a>
       <button id="theme-toggle" class="btn" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
       <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
     </div>
@@ -809,9 +830,15 @@
       try {
         const u = JSON.parse(sessionStorage.getItem('currentUser') || 'null');
         if (u) {
-          document.getElementById('user-info').textContent = u.name ? 'Hi, ' + u.name : '';
-          if (u.role === 'admin') document.getElementById('admin-link').style.display = '';
-          if (u.role === 'admin' || u.role === 'organizer') document.getElementById('organizer-link').style.display = '';
+          const userInfo = document.getElementById('user-info');
+          if (userInfo) userInfo.textContent = u.name ? 'Hi, ' + u.name : '';
+          // Role-gated nav links were removed when the navbar was
+          // standardised across pages; guard against null lookups so
+          // older role-detection code can stay no-op safe.
+          const adminLink = document.getElementById('admin-link');
+          const orgLink = document.getElementById('organizer-link');
+          if (u.role === 'admin' && adminLink) adminLink.style.display = '';
+          if ((u.role === 'admin' || u.role === 'organizer') && orgLink) orgLink.style.display = '';
         }
       } catch(_){}
     });
@@ -1010,5 +1037,6 @@
       });
     })();
   </script>
+  <script src="nav-menu.js"></script>
 </body>
 </html>

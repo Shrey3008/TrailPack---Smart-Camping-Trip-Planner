@@ -371,6 +371,63 @@
       font-weight: 600;
       letter-spacing: 0.02em;
     }
+    /* "Select all" checkbox in category head */
+    .category-head-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .cat-select-all {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: transparent;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    }
+    .cat-select-all:hover { background: var(--line); color: var(--ink); }
+    .cat-select-all input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 14px; height: 14px;
+      border: 1.5px solid #9aa49d;
+      border-radius: 4px;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      margin: 0;
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+    .cat-select-all input[type="checkbox"]:checked {
+      background: var(--green, #2D6A4F);
+      border-color: var(--green, #2D6A4F);
+    }
+    .cat-select-all input[type="checkbox"]:checked::after {
+      content: '';
+      width: 4px; height: 8px;
+      border: solid #fff;
+      border-width: 0 2px 2px 0;
+      transform: translateY(-1px) rotate(45deg);
+    }
+    .cat-select-all input[type="checkbox"]:indeterminate {
+      background: var(--green, #2D6A4F);
+      border-color: var(--green, #2D6A4F);
+    }
+    .cat-select-all input[type="checkbox"]:indeterminate::after {
+      content: '';
+      width: 8px; height: 2px;
+      background: #fff;
+    }
+    html[data-theme="dark"] .cat-select-all input[type="checkbox"] { background: #101A14; border-color: #4a574e; }
+
     .category-divider {
       border: none;
       border-bottom: 1.5px dashed var(--dashed);
@@ -689,6 +746,129 @@
     .tp-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .tp-toast.success { background: var(--green); color: #fff; }
     .tp-toast.error   { background: var(--danger); color: #fff; }
+
+    /* ===========================================================
+       Custom modal — replaces native alert() / confirm() so popups
+       match the app theme (no S3 hostname, no white system chrome).
+       =========================================================== */
+    .tp-modal {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    .tp-modal.show { opacity: 1; pointer-events: auto; }
+    .tp-modal-card {
+      background: var(--surface, #fff);
+      color: var(--ink, #1B263B);
+      border: 1px solid var(--border, rgba(0,0,0,0.08));
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      padding: 22px 24px 20px;
+      box-shadow: 0 24px 60px rgba(15, 36, 70, 0.28), 0 8px 20px rgba(15, 36, 70, 0.16);
+      transform: scale(0.96) translateY(6px);
+      transition: transform 0.20s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+    .tp-modal.show .tp-modal-card { transform: scale(1) translateY(0); }
+    /* Icon tile is opt-in — most dialogs go without it for a cleaner look. */
+    .tp-modal-icon { display: none; }
+    .tp-modal[data-show-icon="true"] .tp-modal-icon {
+      display: inline-flex;
+      align-items: center; justify-content: center;
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .tp-modal[data-variant="info"]    .tp-modal-icon { background: rgba(59,143,207,0.15);  color: #2563A6; }
+    .tp-modal[data-variant="success"] .tp-modal-icon { background: rgba(45,106,79,0.15);   color: var(--green, #2D6A4F); }
+    .tp-modal[data-variant="warning"] .tp-modal-icon { background: rgba(231,111,81,0.18);  color: #E76F51; }
+    .tp-modal[data-variant="danger"]  .tp-modal-icon { background: rgba(192,57,43,0.15);   color: var(--danger, #C0392B); }
+    .tp-modal-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin: 0 0 8px;
+      color: var(--ink, #1B263B);
+      line-height: 1.2;
+    }
+    .tp-modal-body {
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: var(--muted, #475569);
+      margin: 0 0 18px;
+      word-wrap: break-word;
+    }
+    .tp-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .tp-modal-btn {
+      appearance: none;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+      font-family: inherit;
+      letter-spacing: 0.005em;
+      min-width: 86px;
+    }
+    .tp-modal-btn:active { transform: translateY(1px); }
+    .tp-modal-btn-secondary {
+      background: transparent;
+      color: var(--ink, #1B263B);
+      border-color: #3B7BD9;
+    }
+    .tp-modal-btn-secondary:hover {
+      background: rgba(59,123,217,0.08);
+      border-color: #2563A6;
+    }
+    .tp-modal-btn-primary {
+      background: var(--green, #2D6A4F);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(45,106,79,0.25);
+    }
+    .tp-modal-btn-primary:hover { background: var(--green-dark, #1B4332); }
+    .tp-modal-btn-danger {
+      background: #C0392B;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(192,57,43,0.30);
+    }
+    .tp-modal-btn-danger:hover { background: #962d22; }
+    .tp-modal-btn:focus-visible {
+      outline: 2px solid var(--green, #2D6A4F);
+      outline-offset: 2px;
+    }
+    /* Dark mode tweaks */
+    html[data-theme="dark"] .tp-modal-btn-secondary {
+      color: var(--ink, #E2E8F0);
+      border-color: #5B9BFF;
+    }
+    html[data-theme="dark"] .tp-modal-btn-secondary:hover {
+      background: rgba(91,155,255,0.10);
+      border-color: #87B6FF;
+    }
+    html[data-theme="dark"] .tp-modal { background: rgba(0,0,0,0.65); }
+
+    @media (max-width: 540px) {
+      .tp-modal-card { padding: 18px 18px 16px; border-radius: 14px; max-width: 100%; }
+      .tp-modal-title { font-size: 1.15rem; }
+      .tp-modal-body { font-size: 0.9rem; margin-bottom: 16px; }
+      .tp-modal-btn { flex: 1; min-width: 0; padding: 9px 14px; }
+    }
 
     /* ===========================================================
        Inserted cards: Weather Hero / Calorie & Water / Smart Gear
@@ -1034,6 +1214,372 @@
         color: #000 !important;
       }
     }
+
+    /* ---------- Floating Start Trip button ---------- */
+    .floating-start {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 950;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 22px;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(180deg, #2D6A4F 0%, #234F3C 100%);
+      color: #fff;
+      font-size: 14.5px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(45, 106, 79, 0.36), 0 2px 6px rgba(15, 36, 28, 0.18);
+      opacity: 0;
+      transform: translateY(12px) scale(0.96);
+      pointer-events: none;
+      transition: opacity .22s ease, transform .22s ease, box-shadow .15s ease;
+    }
+    .floating-start.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .floating-start:hover { box-shadow: 0 10px 28px rgba(45, 106, 79, 0.44), 0 2px 6px rgba(15, 36, 28, 0.22); }
+    .floating-start:disabled {
+      background: #B5BFB9;
+      box-shadow: 0 4px 14px rgba(31,42,46,0.10);
+      cursor: not-allowed;
+    }
+    .floating-start .fs-progress {
+      font-size: 11.5px;
+      font-weight: 600;
+      opacity: 0.85;
+      padding-left: 8px;
+      margin-left: 4px;
+      border-left: 1px solid rgba(255,255,255,0.30);
+    }
+    .floating-start:disabled .fs-progress { border-left-color: rgba(255,255,255,0.40); }
+    @media (max-width: 600px) {
+      .floating-start { right: 14px; bottom: 14px; padding: 11px 18px; font-size: 13.5px; }
+    }
+    @media print {
+      .floating-start { display: none !important; }
+    }
+
+    /* =========================================================================
+       Density v2 — tighter spacing across the checklist page.
+       Reduces vertical whitespace by ~30% without restructuring markup.
+       ========================================================================= */
+
+    /* Hero: shorter, tighter inner padding, smaller title */
+    .checklist-hero { height: 220px !important; }
+    .checklist-hero .hero-inner { padding: 14px 20px !important; }
+    .checklist-hero .hero-name { font-size: 1.7rem !important; margin-top: 6px !important; margin-bottom: 8px !important; }
+    .checklist-hero .hero-brand { font-size: 0.82rem !important; }
+
+    /* Container: less top + bottom padding */
+    main.container { padding: 18px 20px 32px !important; }
+
+    /* Export row + actions: tighter pills + spacing */
+    .export-row { margin: 0 0 8px !important; gap: 6px !important; }
+    .btn-export { padding: 5px 12px !important; font-size: 0.78rem !important; }
+    .actions { margin: 0 0 14px !important; gap: 10px !important; }
+    .btn-action { padding: 11px 22px !important; font-size: 0.95rem !important; }
+
+    /* Category & info cards: tighter padding + closer stacking */
+    .category, .info-card, .ins-card-white {
+      padding: 14px 18px !important;
+      margin-bottom: 10px !important;
+    }
+    .category-head, .ins-card-head { margin-bottom: 4px !important; }
+    .category-title, .ins-card-title { font-size: 1.02rem !important; }
+    .category-divider, .ins-card-divider { margin: 2px 0 10px !important; }
+
+    /* Select-all pill: smaller in tighter header */
+    .cat-select-all { padding: 3px 9px !important; font-size: 11.5px !important; }
+
+    /* Item rows: denser */
+    .items-list { gap: 4px !important; }
+    .item { padding: 9px 14px !important; gap: 10px !important; }
+    .item-check { width: 19px !important; height: 19px !important; border-radius: 5px !important; }
+    .item-name { font-size: 0.92rem !important; line-height: 1.35 !important; }
+
+    /* Add-item button: tighter and closer */
+    .add-item-btn { margin-top: 8px !important; padding: 8px !important; font-size: 0.85rem !important; }
+
+    /* Inserted cards (weather / provisions / smart gear): tighter margins */
+    .ins-card { margin-bottom: 10px !important; }
+
+    /* =========================================================================
+       Weather card v4 — iPhone-style dynamic theming, full container width.
+       Card switches gradient + FX based on data-theme on .wx-gradient:
+       sunny | partlyCloudy | cloudy | rainy | storm | snow |
+       clearNight | partlyCloudyNight
+       ========================================================================= */
+
+    .wx-hero {
+      max-width: none !important;
+      width: 100%;
+      border-radius: 24px !important;
+      border: none !important;
+      overflow: hidden;
+      box-shadow: 0 14px 40px rgba(15, 36, 70, 0.18), 0 4px 12px rgba(15, 36, 70, 0.10) !important;
+    }
+
+    .wx-hero .wx-gradient {
+      position: relative;
+      padding: 22px 22px 20px !important;
+      color: #fff;
+      transition: background 0.5s ease;
+    }
+    .wx-hero .wx-fx {
+      position: absolute; inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .wx-hero .wx-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* Theme gradients */
+    .wx-hero .wx-gradient[data-theme="sunny"]              { background: linear-gradient(180deg, #4A90D9 0%, #87CEEB 100%); }
+    .wx-hero .wx-gradient[data-theme="partlyCloudy"]       { background: linear-gradient(180deg, #5B8DB8 0%, #8FB8D8 100%); }
+    .wx-hero .wx-gradient[data-theme="cloudy"]             { background: linear-gradient(180deg, #6B7B8D 0%, #9BABB8 100%); }
+    .wx-hero .wx-gradient[data-theme="rainy"]              { background: linear-gradient(180deg, #4A5568 0%, #718096 100%); }
+    .wx-hero .wx-gradient[data-theme="storm"]              { background: linear-gradient(180deg, #2D3748 0%, #4A5568 100%); }
+    .wx-hero .wx-gradient[data-theme="snow"]               { background: linear-gradient(180deg, #B8D4E8 0%, #D6E8F5 100%); color: #1a2744 !important; }
+    .wx-hero .wx-gradient[data-theme="clearNight"]         { background: linear-gradient(180deg, #0A0E2A 0%, #1A1F4E 100%); }
+    .wx-hero .wx-gradient[data-theme="partlyCloudyNight"]  { background: linear-gradient(180deg, #1A2744 0%, #2D3F6B 100%); }
+
+    /* Snow theme uses dark text */
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-loc,
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-temp,
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-cond,
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-hilo,
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-pill { color: #1a2744 !important; }
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-pill {
+      background: rgba(255,255,255,0.55) !important;
+      border-color: rgba(255,255,255,0.75) !important;
+    }
+
+    /* Location */
+    .wx-hero .wx-loc {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      opacity: 0.92;
+      margin-bottom: 8px;
+    }
+    .wx-hero .wx-loc::before { content: '📍 '; }
+
+    /* Big icon */
+    .wx-hero .wx-icon-wrap {
+      position: relative;
+      margin: 4px 0 6px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 96px; height: 96px;
+    }
+    .wx-hero .wx-emoji {
+      position: relative;
+      z-index: 1;
+      font-size: 76px;
+      line-height: 1;
+      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.28));
+    }
+    /* Sun: pulsing radial glow behind ☀️ */
+    .wx-hero .wx-gradient[data-theme="sunny"] .wx-icon-wrap::before {
+      content: '';
+      position: absolute; inset: -16px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 224, 130, 0.55) 0%, rgba(255, 224, 130, 0) 65%);
+      animation: wx-sun-pulse 3.5s ease-in-out infinite;
+    }
+    /* Moon: soft white glow behind 🌙 */
+    .wx-hero .wx-gradient[data-theme="clearNight"] .wx-icon-wrap::before,
+    .wx-hero .wx-gradient[data-theme="partlyCloudyNight"] .wx-icon-wrap::before {
+      content: '';
+      position: absolute; inset: -10px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0) 65%);
+    }
+
+    /* Temperature */
+    .wx-hero .wx-temp {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 64px;
+      font-weight: 200;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      margin-top: 2px;
+    }
+    /* Condition text */
+    .wx-hero .wx-cond {
+      font-size: 18px;
+      font-weight: 500;
+      opacity: 0.95;
+      margin-top: 2px;
+      letter-spacing: 0.01em;
+    }
+    /* Hi / Lo */
+    .wx-hero .wx-hilo {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0.85;
+      margin-top: 8px;
+    }
+    .wx-hero .wx-hilo-dot { opacity: 0.5; }
+
+    /* Pills row — four equal-width pills that fill the card. */
+    .wx-hero .wx-pills {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 16px;
+      width: 100%;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .wx-hero .wx-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      background: rgba(255,255,255,0.16);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      white-space: nowrap;
+    }
+    .wx-hero .wx-pill-icon { font-size: 14px; line-height: 1; }
+    @media (max-width: 540px) {
+      .wx-hero .wx-pills {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .wx-hero .wx-pill { padding: 8px 12px; font-size: 13px; }
+    }
+
+    /* Forecast strip */
+    .wx-hero .wx-forecast {
+      background: var(--surface);
+      padding: 12px 14px !important;
+      gap: 6px !important;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+    }
+    .wx-hero .wx-day {
+      text-align: center;
+      padding: 8px 4px;
+      border-radius: 10px;
+    }
+    .wx-hero .wx-day .wx-day-name {
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .wx-hero .wx-day .wx-day-emoji { font-size: 22px; line-height: 1; margin: 2px 0 6px; }
+    .wx-hero .wx-day .wx-day-hi { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .wx-hero .wx-day .wx-day-lo { font-size: 12px; color: var(--muted); }
+
+    /* "Today" highlight */
+    .wx-hero .wx-day.is-today {
+      background: linear-gradient(180deg, rgba(45,106,79,0.10), rgba(45,106,79,0.04));
+      box-shadow: inset 0 0 0 1px rgba(45,106,79,0.22);
+    }
+    .wx-hero .wx-day.is-today .wx-day-name { color: var(--green, #2D6A4F); font-weight: 700; }
+    .wx-hero .wx-day.is-today .wx-day-hi   { color: var(--green-dark, #1B4332); }
+    html[data-theme="dark"] .wx-hero .wx-day.is-today {
+      background: linear-gradient(180deg, rgba(82,183,136,0.18), rgba(82,183,136,0.06));
+      box-shadow: inset 0 0 0 1px rgba(82,183,136,0.40);
+    }
+    html[data-theme="dark"] .wx-hero .wx-day.is-today .wx-day-name,
+    html[data-theme="dark"] .wx-hero .wx-day.is-today .wx-day-hi { color: var(--green-light, #52B788); }
+
+    /* ----- FX: stars ----- */
+    .wx-hero .wx-star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 4px rgba(255,255,255,0.7);
+      animation: wx-twinkle 3s ease-in-out infinite;
+    }
+    @keyframes wx-twinkle {
+      0%, 100% { opacity: 0.3; transform: scale(1); }
+      50%      { opacity: 1;   transform: scale(1.15); }
+    }
+
+    /* ----- FX: rain ----- */
+    .wx-hero .wx-rain {
+      position: absolute;
+      top: -10%;
+      width: 1.5px;
+      height: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.55) 100%);
+      border-radius: 1px;
+      animation: wx-rainfall 1s linear infinite;
+    }
+    @keyframes wx-rainfall {
+      0%   { transform: translateY(0)     translateX(0); opacity: 0; }
+      10%  { opacity: 0.9; }
+      100% { transform: translateY(360px) translateX(-6px); opacity: 0; }
+    }
+
+    /* ----- FX: snowflakes ----- */
+    .wx-hero .wx-flake {
+      position: absolute;
+      top: -10%;
+      color: #fff;
+      opacity: 0.85;
+      text-shadow: 0 0 4px rgba(255,255,255,0.5);
+      animation: wx-snowfall linear infinite;
+    }
+    .wx-hero .wx-gradient[data-theme="snow"] .wx-flake { color: #ffffff; opacity: 0.95; text-shadow: 0 1px 4px rgba(50,80,120,0.35); }
+    @keyframes wx-snowfall {
+      0%   { transform: translateY(0)     translateX(0)  rotate(0); opacity: 0; }
+      10%  { opacity: 0.95; }
+      100% { transform: translateY(380px) translateX(40px) rotate(360deg); opacity: 0; }
+    }
+
+    /* ----- FX: sun pulse ----- */
+    @keyframes wx-sun-pulse {
+      0%, 100% { transform: scale(1);     opacity: 0.85; }
+      50%      { transform: scale(1.12);  opacity: 1; }
+    }
+
+    @media (max-width: 540px) {
+      .wx-hero { border-radius: 20px !important; }
+      .wx-hero .wx-temp { font-size: 56px; }
+      .wx-hero .wx-emoji { font-size: 64px; }
+      .wx-hero .wx-icon-wrap { width: 80px; height: 80px; }
+    }
+
+    /* Hero on mobile: shorter still */
+    @media (max-width: 640px) {
+      .checklist-hero { height: 180px !important; }
+      .checklist-hero .hero-name { font-size: 1.4rem !important; }
+      main.container { padding: 14px 14px 28px !important; }
+      .category, .info-card, .ins-card-white { padding: 12px 14px !important; }
+    }
   </style>
 </head>
 <body>
@@ -1076,26 +1622,28 @@
       <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
     </div>
 
-    <!-- ======== Inserted Card 1: Weather ======== -->
+    <!-- ======== Inserted Card 1: Weather (iPhone-style dynamic) ======== -->
     <section class="ins-card wx-hero" id="wx-hero" aria-label="Weather forecast">
-      <div class="wx-gradient">
-        <div class="wx-top">
-          <span class="wx-loc">📍 <span id="wx-loc-text">—</span></span>
-          <span class="wx-cond" id="wx-cond-text">—</span>
-        </div>
-        <div class="wx-center">
-          <span class="wx-emoji" id="wx-emoji">🌤️</span>
-          <div>
-            <div class="wx-temp" id="wx-temp">—</div>
-            <span class="wx-feels" id="wx-feels">Feels like —</span>
+      <div class="wx-gradient" id="wx-gradient" data-theme="cloudy">
+        <div class="wx-fx" id="wx-fx" aria-hidden="true"></div>
+        <div class="wx-content">
+          <div class="wx-loc"><span id="wx-loc-text">—</span></div>
+          <div class="wx-icon-wrap">
+            <span class="wx-emoji" id="wx-emoji">🌤️</span>
           </div>
-        </div>
-        <div class="wx-tiles">
-          <div class="wx-tile"><div class="wx-tile-label">💧 Humidity</div><div class="wx-tile-value" id="wx-humidity">—</div></div>
-          <div class="wx-tile"><div class="wx-tile-label">💨 Wind</div><div class="wx-tile-value" id="wx-wind">—</div></div>
-          <div class="wx-tile"><div class="wx-tile-label">🌡️ High</div><div class="wx-tile-value" id="wx-high">—</div></div>
-          <div class="wx-tile"><div class="wx-tile-label">🌡️ Low</div><div class="wx-tile-value" id="wx-low">—</div></div>
-          <div class="wx-tile" id="wx-uv-tile"><div class="wx-tile-label" id="wx-uv-label">☀️ UV Index</div><div class="wx-tile-value" id="wx-uv-value">—</div></div>
+          <div class="wx-temp" id="wx-temp">—°</div>
+          <div class="wx-cond" id="wx-cond-text">—</div>
+          <div class="wx-hilo">
+            <span>H: <span id="wx-high">—</span></span>
+            <span class="wx-hilo-dot">·</span>
+            <span>L: <span id="wx-low">—</span></span>
+          </div>
+          <div class="wx-pills">
+            <span class="wx-pill" id="wx-feels-pill"><span id="wx-feels">Feels —</span></span>
+            <span class="wx-pill"><span class="wx-pill-icon">💧</span><span id="wx-humidity">—</span></span>
+            <span class="wx-pill"><span class="wx-pill-icon">💨</span><span id="wx-wind">—</span></span>
+            <span class="wx-pill" id="wx-uv-tile"><span id="wx-uv-label">☀️ UV</span> <span id="wx-uv-value">—</span></span>
+          </div>
         </div>
       </div>
       <div class="wx-forecast" id="wx-forecast">
@@ -1208,6 +1756,16 @@
     </section>
 
     <div class="tp-toast" id="tp-toast" role="status" aria-live="polite"></div>
+
+    <!-- Custom modal (replaces native alert/confirm) -->
+    <div class="tp-modal" id="tp-modal" role="dialog" aria-modal="true" aria-labelledby="tp-modal-title" data-variant="info" data-show-icon="false">
+      <div class="tp-modal-card">
+        <div class="tp-modal-icon" id="tp-modal-icon">ℹ️</div>
+        <h3 class="tp-modal-title" id="tp-modal-title">Notice</h3>
+        <p class="tp-modal-body" id="tp-modal-body">—</p>
+        <div class="tp-modal-actions" id="tp-modal-actions"></div>
+      </div>
+    </div>
   </main>
 
   <script>
@@ -1388,11 +1946,101 @@
         const title = document.createElement('h3');
         title.className = 'category-title';
         title.textContent = category;
+
+        const headActions = document.createElement('div');
+        headActions.className = 'category-head-actions';
+
+        // "Select all" toggle for this category
+        const selectAllLabel = document.createElement('label');
+        selectAllLabel.className = 'cat-select-all';
+        selectAllLabel.title = 'Toggle all items in this category';
+        const selectAllBox = document.createElement('input');
+        selectAllBox.type = 'checkbox';
+        selectAllBox.className = 'cat-select-all-box';
+        selectAllBox.setAttribute('aria-label', `Select all items in ${category}`);
+        const selectAllText = document.createElement('span');
+        selectAllText.textContent = 'Select all';
+        selectAllLabel.append(selectAllBox, selectAllText);
+
         const count = document.createElement('span');
         count.className = 'category-count';
         count.textContent = catItems.length + ' ' + (catItems.length === 1 ? 'item' : 'items');
-        head.append(title, count);
+
+        headActions.append(selectAllLabel, count);
+        head.append(title, headActions);
         card.appendChild(head);
+
+        // Sync the checkbox's tri-state to the current items in this category.
+        const syncSelectAll = () => {
+          const total = catItems.length;
+          const packed = catItems.filter(i => i.packed).length;
+          if (total === 0) {
+            selectAllBox.checked = false;
+            selectAllBox.indeterminate = false;
+          } else if (packed === total) {
+            selectAllBox.checked = true;
+            selectAllBox.indeterminate = false;
+          } else if (packed === 0) {
+            selectAllBox.checked = false;
+            selectAllBox.indeterminate = false;
+          } else {
+            selectAllBox.checked = false;
+            selectAllBox.indeterminate = true;
+          }
+        };
+        syncSelectAll();
+        // Expose so togglePacked can refresh the header state without re-rendering.
+        card._syncSelectAll = syncSelectAll;
+
+        selectAllLabel.addEventListener('click', (e) => {
+          // Let the input itself handle the click; ignore label-bubbled clicks
+          // that would otherwise toggle twice.
+          if (e.target !== selectAllBox) return;
+        });
+        selectAllBox.addEventListener('change', async () => {
+          // Decide direction: if any unpacked, mark all packed; else unmark all.
+          const targetPacked = catItems.some(i => !i.packed);
+          // Optimistic UI: update each row + item state immediately.
+          catItems.forEach(item => {
+            if (item.packed === targetPacked) return;
+            item.packed = targetPacked;
+            const row = card.querySelector('.item[data-item-id="' + CSS.escape(String(item.itemId)) + '"]');
+            if (row) {
+              row.classList.toggle('packed', targetPacked);
+              row.setAttribute('aria-pressed', targetPacked ? 'true' : 'false');
+            }
+          });
+          syncSelectAll();
+          updateProgress();
+          // Fire PATCHes in parallel; revert any that fail.
+          const failures = [];
+          await Promise.all(catItems.map(async item => {
+            try {
+              await api('/trips/' + tripId + '/items/' + item.itemId, {
+                method: 'PATCH',
+                body: JSON.stringify({ packed: targetPacked }),
+              });
+            } catch (err) {
+              failures.push({ item, err });
+            }
+          }));
+          if (failures.length) {
+            // Revert just the failed ones.
+            failures.forEach(({ item }) => {
+              item.packed = !targetPacked;
+              const row = card.querySelector('.item[data-item-id="' + CSS.escape(String(item.itemId)) + '"]');
+              if (row) {
+                row.classList.toggle('packed', item.packed);
+                row.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
+              }
+            });
+            syncSelectAll();
+            updateProgress();
+            (window.showToast
+              ? window.showToast(`Couldn't update ${failures.length} item${failures.length === 1 ? '' : 's'}`, 'error')
+              : tpAlert('Could not update some items', { variant: 'warning', title: 'Sync issue' }));
+          }
+        });
 
         const hr = document.createElement('hr');
         hr.className = 'category-divider';
@@ -1451,7 +2099,7 @@
             renderCategories();
             updateProgress();
           } catch (err) {
-            alert('Could not add item: ' + err.message);
+            tpAlert('Could not add item: ' + err.message, { variant: 'danger', title: 'Add failed' });
           } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = 'Add';
@@ -1488,6 +2136,11 @@
         row.classList.toggle('packed', next);
         row.setAttribute('aria-pressed', next ? 'true' : 'false');
         updateProgress();
+        // Refresh this row's parent category select-all checkbox state.
+        const parentCard = row.closest('.category');
+        if (parentCard && typeof parentCard._syncSelectAll === 'function') {
+          parentCard._syncSelectAll();
+        }
         try {
           await api('/trips/' + tripId + '/items/' + item.itemId, {
             method: 'PATCH',
@@ -1499,7 +2152,10 @@
           row.classList.toggle('packed', item.packed);
           row.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
           updateProgress();
-          alert('Could not update item: ' + err.message);
+          if (parentCard && typeof parentCard._syncSelectAll === 'function') {
+            parentCard._syncSelectAll();
+          }
+          tpAlert('Could not update item: ' + err.message, { variant: 'danger', title: 'Update failed' });
         }
       }
 
@@ -1527,11 +2183,11 @@
             || document.querySelector('main')
             || document.getElementById('categories');
           if (!element) {
-            (window.showToast ? window.showToast('Could not find checklist content to export.', 'error') : alert('Could not find checklist content to export.'));
+            (window.showToast ? window.showToast('Could not find checklist content to export.', 'error') : tpAlert('Could not find checklist content to export.', { variant: 'warning' }));
             return;
           }
           if (typeof html2pdf === 'undefined') {
-            (window.showToast ? window.showToast('PDF library failed to load. Check your connection and retry.', 'error') : alert('PDF library failed to load. Check your connection and retry.'));
+            (window.showToast ? window.showToast('PDF library failed to load. Check your connection and retry.', 'error') : tpAlert('PDF library failed to load. Check your connection and retry.', { variant: 'danger' }));
             return;
           }
           const opt = {
@@ -1579,7 +2235,7 @@
             .catch((err) => {
               restoreHidden();
               console.error('html2pdf failed:', err);
-              (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : alert('PDF generation failed.'));
+              (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : tpAlert('PDF generation failed.', { variant: 'danger' }));
             });
           return;
         }
@@ -1641,25 +2297,31 @@
         btn.disabled = true;
         try {
           await api('/trips/' + tripId, {
-            method: 'PATCH',
+            method: 'PUT',
             body: JSON.stringify({ status: 'active' }),
           });
           window.location.href = 'index.html';
         } catch (err) {
-          alert('Could not start trip: ' + err.message);
+          tpAlert('Could not start trip: ' + err.message, { variant: 'danger', title: "Couldn't start trip" });
           btn.disabled = false;
         }
       }
 
       async function cancelTrip() {
-        if (!confirm('Cancel this trip? This cannot be undone.')) return;
+        const ok = await tpConfirm('This will permanently remove the trip and its checklist.', {
+          variant: 'danger',
+          title: 'Delete trip?',
+          confirmLabel: 'Delete',
+          cancelLabel: 'Cancel',
+        });
+        if (!ok) return;
         const btn = document.getElementById('cancel-trip-btn');
         btn.disabled = true;
         try {
           await api('/trips/' + tripId, { method: 'DELETE' });
           window.location.href = 'index.html';
         } catch (err) {
-          alert('Could not cancel trip: ' + err.message);
+          tpAlert('Could not cancel trip: ' + err.message, { variant: 'danger', title: "Couldn't cancel trip" });
           btn.disabled = false;
         }
       }
@@ -1676,6 +2338,106 @@
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
       }
+
+      /* ---------- Custom modal (replaces native alert/confirm) ---------- */
+      // Variant → default icon + title used when caller doesn't override.
+      const TP_MODAL_PRESETS = {
+        info:    { icon: 'ℹ️', title: 'Notice'      },
+        success: { icon: '✅', title: 'Success'     },
+        warning: { icon: '⚠️', title: 'Heads up'    },
+        danger:  { icon: '🛑', title: 'Are you sure?' },
+      };
+      let tpModalCleanup = null;
+      function tpModalClose() {
+        const m = document.getElementById('tp-modal');
+        if (!m) return;
+        m.classList.remove('show');
+        if (tpModalCleanup) { tpModalCleanup(); tpModalCleanup = null; }
+      }
+      // Internal: open the modal with the supplied config, returning a Promise
+      // that resolves with `true` when the primary button is clicked, `false`
+      // otherwise (cancel / backdrop / Escape).
+      function tpModalOpen(opts) {
+        return new Promise((resolve) => {
+          const m       = document.getElementById('tp-modal');
+          const iconEl  = document.getElementById('tp-modal-icon');
+          const titleEl = document.getElementById('tp-modal-title');
+          const bodyEl  = document.getElementById('tp-modal-body');
+          const actsEl  = document.getElementById('tp-modal-actions');
+          if (!m || !iconEl || !titleEl || !bodyEl || !actsEl) {
+            // Fallback to native if markup is missing.
+            const ok = opts.kind === 'confirm' ? window.confirm(opts.message || '') : (window.alert(opts.message || ''), true);
+            resolve(!!ok);
+            return;
+          }
+
+          const variant = opts.variant || (opts.kind === 'confirm' ? 'danger' : 'info');
+          const preset  = TP_MODAL_PRESETS[variant] || TP_MODAL_PRESETS.info;
+
+          m.setAttribute('data-variant', variant);
+          // Icon tile is hidden by default for a cleaner look; callers can
+          // opt in with { showIcon: true } or by passing a custom { icon }.
+          const showIcon = opts.showIcon === true || typeof opts.icon === 'string';
+          m.setAttribute('data-show-icon', showIcon ? 'true' : 'false');
+          iconEl.textContent  = opts.icon  || preset.icon;
+          titleEl.textContent = opts.title || preset.title;
+          bodyEl.textContent  = opts.message || '';
+
+          // Build action buttons.
+          actsEl.innerHTML = '';
+          const finish = (result) => { tpModalClose(); resolve(result); };
+
+          if (opts.kind === 'confirm') {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'tp-modal-btn tp-modal-btn-secondary';
+            cancelBtn.textContent = opts.cancelLabel || 'Cancel';
+            cancelBtn.addEventListener('click', () => finish(false));
+            actsEl.appendChild(cancelBtn);
+
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'tp-modal-btn ' + (variant === 'danger' ? 'tp-modal-btn-danger' : 'tp-modal-btn-primary');
+            okBtn.textContent = opts.confirmLabel || (variant === 'danger' ? 'Confirm' : 'OK');
+            okBtn.addEventListener('click', () => finish(true));
+            actsEl.appendChild(okBtn);
+
+            setTimeout(() => okBtn.focus(), 50);
+          } else {
+            const okBtn = document.createElement('button');
+            okBtn.type = 'button';
+            okBtn.className = 'tp-modal-btn tp-modal-btn-primary';
+            okBtn.textContent = opts.confirmLabel || 'OK';
+            okBtn.addEventListener('click', () => finish(true));
+            actsEl.appendChild(okBtn);
+            setTimeout(() => okBtn.focus(), 50);
+          }
+
+          // Esc + backdrop dismiss → resolve as cancelled (false for confirm, true for alert).
+          const onKey = (e) => {
+            if (e.key === 'Escape') finish(opts.kind === 'confirm' ? false : true);
+            if (e.key === 'Enter' && opts.kind !== 'confirm') finish(true);
+          };
+          const onBackdrop = (e) => { if (e.target === m) finish(opts.kind === 'confirm' ? false : true); };
+          document.addEventListener('keydown', onKey);
+          m.addEventListener('click', onBackdrop);
+          tpModalCleanup = () => {
+            document.removeEventListener('keydown', onKey);
+            m.removeEventListener('click', onBackdrop);
+          };
+
+          m.classList.add('show');
+        });
+      }
+      // Public helpers — drop-in replacements for alert() / confirm().
+      function tpAlert(message, opts) {
+        return tpModalOpen(Object.assign({ kind: 'alert', message }, opts || {}));
+      }
+      function tpConfirm(message, opts) {
+        return tpModalOpen(Object.assign({ kind: 'confirm', message }, opts || {}));
+      }
+      window.tpAlert = tpAlert;
+      window.tpConfirm = tpConfirm;
 
       /* ---------- Weather card ---------- */
       // Backend lives at GET /weather?location=&startDate=&endDate= (Open-Meteo).
@@ -1883,21 +2645,106 @@
         if (v == null || Number.isNaN(Number(v))) return '—';
         return Math.round(Number(v)) + (suffix || '');
       }
+      // ---------- iPhone-style weather theming ----------
+      // Theme key drives the .wx-gradient[data-theme] CSS gradient + decorative FX.
+      const WX_THEME_EMOJI = {
+        sunny: '☀️', partlyCloudy: '⛅', cloudy: '☁️',
+        rainy: '🌧️', storm: '⛈️', snow: '❄️',
+        clearNight: '🌙', partlyCloudyNight: '🌙',
+      };
+      function wxIsNightNow(data) {
+        // Prefer sunrise/sunset (unix seconds) from the API when present.
+        if (data && Number.isFinite(data.sunrise) && Number.isFinite(data.sunset)) {
+          const now = Date.now() / 1000;
+          return !(now >= data.sunrise && now < data.sunset);
+        }
+        const h = new Date().getHours();
+        return h >= 20 || h < 6;
+      }
+      function wxResolveTheme(condition, isNight) {
+        const c = String(condition || '').toLowerCase();
+        if (/thunder|storm/.test(c))                   return 'storm';
+        if (/snow|sleet|blizzard|flurr/.test(c))       return 'snow';
+        if (/drizzle|rain|shower/.test(c))             return 'rainy';
+        if (/clear/.test(c))                           return isNight ? 'clearNight' : 'sunny';
+        if (/cloud|overcast/.test(c)) {
+          if (/few|scatter|partly|broken/.test(c))     return isNight ? 'partlyCloudyNight' : 'partlyCloudy';
+          return 'cloudy';
+        }
+        if (/mist|fog|haze|smoke|dust|sand/.test(c))   return 'cloudy';
+        return isNight ? 'partlyCloudyNight' : 'partlyCloudy';
+      }
+      // Generate the decorative overlay (stars, rain, snow) for the active theme.
+      function wxRenderFx(theme) {
+        const fx = document.getElementById('wx-fx');
+        if (!fx) return;
+        fx.innerHTML = '';
+        if (theme === 'clearNight' || theme === 'partlyCloudyNight') {
+          const count = theme === 'clearNight' ? 45 : 28;
+          for (let i = 0; i < count; i++) {
+            const s = document.createElement('span');
+            s.className = 'wx-star';
+            s.style.left   = (Math.random() * 100).toFixed(2) + '%';
+            s.style.top    = (Math.random() * 70).toFixed(2) + '%';
+            const sz = (1 + Math.random() * 1.8).toFixed(1) + 'px';
+            s.style.width  = sz;
+            s.style.height = sz;
+            s.style.animationDelay    = (Math.random() * 3).toFixed(2) + 's';
+            s.style.animationDuration = (2 + Math.random() * 3).toFixed(2) + 's';
+            fx.appendChild(s);
+          }
+        } else if (theme === 'rainy' || theme === 'storm') {
+          const count = theme === 'storm' ? 55 : 40;
+          for (let i = 0; i < count; i++) {
+            const d = document.createElement('span');
+            d.className = 'wx-rain';
+            d.style.left              = (Math.random() * 100).toFixed(2) + '%';
+            d.style.animationDelay    = (Math.random() * 1.2).toFixed(2) + 's';
+            d.style.animationDuration = (0.7 + Math.random() * 0.6).toFixed(2) + 's';
+            fx.appendChild(d);
+          }
+        } else if (theme === 'snow') {
+          const count = 32;
+          for (let i = 0; i < count; i++) {
+            const f = document.createElement('span');
+            f.className = 'wx-flake';
+            f.textContent = '❄';
+            f.style.left              = (Math.random() * 100).toFixed(2) + '%';
+            f.style.fontSize          = (8 + Math.random() * 12).toFixed(1) + 'px';
+            f.style.animationDelay    = (Math.random() * 4).toFixed(2) + 's';
+            f.style.animationDuration = (4 + Math.random() * 4).toFixed(2) + 's';
+            fx.appendChild(f);
+          }
+        }
+      }
+      function wxApplyTheme(condition, data) {
+        const grad = document.getElementById('wx-gradient');
+        if (!grad) return null;
+        const isNight = wxIsNightNow(data);
+        const theme   = wxResolveTheme(condition, isNight);
+        if (grad.getAttribute('data-theme') !== theme) {
+          grad.setAttribute('data-theme', theme);
+          wxRenderFx(theme);
+        }
+        return theme;
+      }
+
       function wxHeroUnavailable(locLabel, condLabel) {
         const el = (id) => document.getElementById(id);
         el('wx-loc-text').textContent = locLabel || (trip && trip.location) || 'Location unavailable';
         el('wx-cond-text').textContent = condLabel || 'Weather unavailable';
         el('wx-emoji').textContent = '🌤️';
-        el('wx-temp').textContent = '—';
-        el('wx-feels').textContent = 'Feels like —';
+        el('wx-temp').textContent = '—°';
+        el('wx-feels').textContent = 'Feels —';
         el('wx-humidity').textContent = '—';
         el('wx-wind').textContent = '—';
         el('wx-high').textContent = '—';
         el('wx-low').textContent = '—';
         const uvLabel = el('wx-uv-label');
         const uvValue = el('wx-uv-value');
-        if (uvLabel) uvLabel.textContent = '☀️ UV Index';
+        if (uvLabel) uvLabel.textContent = '☀️ UV';
         if (uvValue) uvValue.textContent = '—';
+        wxApplyTheme('cloudy', null);
       }
 
       // Resolve coordinates via the Geolocation API. Always resolves —
@@ -1920,37 +2767,57 @@
       function wxRenderHero(data) {
         if (!data) { wxHeroUnavailable(); return; }
         const el = (id) => document.getElementById(id);
+
+        // Apply iPhone-style theme (gradient + FX) based on condition + day/night.
+        const theme = wxApplyTheme(data.condition, data);
+
         el('wx-loc-text').textContent = data.location || (trip && trip.location) || '—';
         el('wx-cond-text').textContent = data.condition || '—';
-        el('wx-emoji').textContent = wxConditionEmoji(data.condition);
+        el('wx-emoji').textContent = (theme && WX_THEME_EMOJI[theme]) || wxConditionEmoji(data.condition);
         el('wx-temp').textContent  = wxFmtNum(data.temp, '°');
-        el('wx-feels').textContent = 'Feels like ' + wxFmtNum(data.feels_like, '°');
+        el('wx-feels').textContent = 'Feels ' + wxFmtNum(data.feels_like, '°');
         el('wx-humidity').textContent = wxFmtNum(data.humidity, '%');
         el('wx-wind').textContent     = wxFmtNum(data.wind_speed, ' km/h');
         el('wx-high').textContent     = wxFmtNum(data.high, '°');
         el('wx-low').textContent      = wxFmtNum(data.low, '°');
 
-        // UV tile: show UV Index when the API returns a number; otherwise
-        // swap the tile to '☁️ Condition' with the condition string
-        // (OWM free tier returns null for uv_index).
+        // UV pill: hide entirely when the API didn't return a UV value;
+        // otherwise show "☀️ UV" + value.
         const uvLabel = el('wx-uv-label');
         const uvValue = el('wx-uv-value');
+        const uvPill  = el('wx-uv-tile');
         if (uvLabel && uvValue) {
           if (data.uv_index == null || Number.isNaN(Number(data.uv_index))) {
-            uvLabel.textContent = '☁️ Condition';
-            uvValue.textContent = data.condition || '—';
+            if (uvPill) uvPill.style.display = 'none';
           } else {
-            uvLabel.textContent = '☀️ UV Index';
+            if (uvPill) uvPill.style.display = '';
+            uvLabel.textContent = '☀️ UV';
             uvValue.textContent = wxFmtNum(data.uv_index, '');
           }
         }
 
         // 5-day forecast strip.
+        // Prepend a "Today" entry built from the current weather data, since the
+        // backend's forecast list intentionally skips today when 5 future days
+        // are available. We dedupe in case the first API entry already matches.
         const fc = el('wx-forecast');
-        const days = Array.isArray(data.forecast) ? data.forecast.slice(0, 5) : [];
+        const apiDays = Array.isArray(data.forecast) ? data.forecast.slice() : [];
+        const todayShort = new Date().toLocaleDateString('en-US', { weekday: 'short' });
+        if (apiDays[0] && apiDays[0].day && String(apiDays[0].day).slice(0, 3).toLowerCase() === todayShort.toLowerCase()) {
+          // First API day already represents today — just relabel it.
+          apiDays[0] = Object.assign({}, apiDays[0], { day: 'Today' });
+        } else {
+          apiDays.unshift({
+            day: 'Today',
+            emoji: wxConditionEmoji(data.condition),
+            high: data.high,
+            low: data.low,
+          });
+        }
+        const days = apiDays.slice(0, 5);
         if (days.length) {
-          fc.innerHTML = days.map((d) => (
-            '<div class="wx-day">' +
+          fc.innerHTML = days.map((d, i) => (
+            '<div class="wx-day' + (i === 0 ? ' is-today' : '') + '">' +
               '<div class="wx-day-name">' + escapeHtml(d.day || '—') + '</div>' +
               '<div class="wx-day-emoji">' + (d.emoji || '🌤️') + '</div>' +
               '<div class="wx-day-hi">' + wxFmtNum(d.high, '°') + '</div>' +
@@ -2049,34 +2916,13 @@
 
           console.log('weather data:', data);
 
-          // Populate the card
-          document.getElementById('wx-loc-text').textContent = data.location || loc;
-          document.getElementById('wx-temp').textContent = data.temp != null ? `${data.temp}°C` : '--';
-          document.getElementById('wx-feels').textContent = data.feels_like != null ? `Feels like ${data.feels_like}°C` : '';
-          document.getElementById('wx-humidity').textContent = data.humidity != null ? `${data.humidity}%` : '--';
-          document.getElementById('wx-wind').textContent = data.wind_speed != null ? `${data.wind_speed} km/h` : '--';
-          document.getElementById('wx-high').textContent = data.high != null ? `${data.high}°C` : '--';
-          document.getElementById('wx-low').textContent = data.low != null ? `${data.low}°C` : '--';
-          document.getElementById('wx-cond-text').textContent = data.condition || '';
-          document.getElementById('wx-uv-value').textContent = data.uv_index != null ? Math.round(data.uv_index) : '--';
-
-          // 5-day forecast strip: backend returns an array of
-          // { day, emoji, high, low } — log once so we can verify the
-          // shape, then populate the first 5 .wx-day cells in order.
-          console.log('forecast:', data.forecast);
-          const forecastEls = document.querySelectorAll('#wx-forecast .wx-day');
-          const fcArr = Array.isArray(data.forecast) ? data.forecast : [];
-          forecastEls.forEach((cell, i) => {
-            const f = fcArr[i];
-            const nameEl  = cell.querySelector('.wx-day-name');
-            const emojiEl = cell.querySelector('.wx-day-emoji');
-            const hiEl    = cell.querySelector('.wx-day-hi');
-            const loEl    = cell.querySelector('.wx-day-lo');
-            if (nameEl)  nameEl.textContent  = f && f.day   ? f.day   : '—';
-            if (emojiEl) emojiEl.textContent = f && f.emoji ? f.emoji : '🌤️';
-            if (hiEl)    hiEl.textContent    = f && f.high != null ? `${f.high}°` : '—';
-            if (loEl)    loEl.textContent    = f && f.low  != null ? `${f.low}°`  : '—';
-          });
+          // Delegate to the iPhone-style themed renderer — it handles the
+          // gradient/FX, pill formatting, "Today" prepend, and forecast strip.
+          if (data && !data.message) {
+            wxRenderHero(data);
+          } else {
+            wxHeroUnavailable(loc, data && data.message);
+          }
 
           // Remove "Weather unavailable" text if showing
           const unavail = document.getElementById('wx-unavailable');
@@ -2084,6 +2930,7 @@
 
         } catch (err) {
           console.error('loadWeatherHero FAILED:', err);
+          wxHeroUnavailable();
         }
       }
 
@@ -2254,7 +3101,7 @@
           }
           sgRender();
           updateProgress();
-          alert('Could not update item: ' + err.message);
+          tpAlert('Could not update item: ' + err.message, { variant: 'danger', title: 'Update failed' });
         }
       }
       // Wire the "✨ Generate suggestions" button on the Smart Gear
@@ -2362,5 +3209,62 @@
       });
     })();
   </script>
+
+  <!-- Floating Start Trip button — mirrors #start-trip-btn, appears on scroll ----- -->
+  <button id="floating-start-btn" class="floating-start" type="button" disabled aria-hidden="true">
+    <span class="fs-icon" aria-hidden="true">🚀</span>
+    <span class="fs-label">Start Trip</span>
+    <span class="fs-progress" id="fs-progress">0 / 0</span>
+  </button>
+  <script>
+    (function () {
+      const original = document.getElementById('start-trip-btn');
+      const floating = document.getElementById('floating-start-btn');
+      const progressEl = document.getElementById('fs-progress');
+      if (!original || !floating) return;
+
+      // Click → forward to original button (preserves all existing logic).
+      floating.addEventListener('click', () => {
+        if (floating.disabled) return;
+        original.click();
+      });
+
+      // Mirror disabled state from original button + refresh progress label
+      // whenever the checklist re-renders (categories container is the parent
+      // of every checklist item).
+      function syncState() {
+        floating.disabled = original.disabled;
+        const checks = document.querySelectorAll('input.tp-check, input[type="checkbox"][data-item-id]');
+        if (checks.length) {
+          const packed = Array.from(checks).filter(c => c.checked).length;
+          progressEl.textContent = `${packed} / ${checks.length}`;
+        } else {
+          progressEl.textContent = '';
+        }
+      }
+      // Initial + observe disabled flips on the original button
+      syncState();
+      new MutationObserver(syncState).observe(original, { attributes: true, attributeFilter: ['disabled'] });
+      // Also re-sync when the checklist container mutates (item add/remove/check)
+      const cats = document.getElementById('categories') || document.querySelector('.categories') || document.body;
+      new MutationObserver(syncState).observe(cats, { childList: true, subtree: true });
+
+      // Show/hide based on whether the original Start Trip button is in view.
+      // IntersectionObserver fires once when it scrolls past the viewport top.
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            floating.classList.remove('is-visible');
+            floating.setAttribute('aria-hidden', 'true');
+          } else {
+            floating.classList.add('is-visible');
+            floating.setAttribute('aria-hidden', 'false');
+          }
+        });
+      }, { rootMargin: '0px 0px -40px 0px', threshold: 0 });
+      io.observe(original);
+    })();
+  </script>
+  <script src="nav-menu.js"></script>
 </body>
 </html>

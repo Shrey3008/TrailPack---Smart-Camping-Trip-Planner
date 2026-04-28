@@ -6,6 +6,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { estimateProvisions } = require('../services/provisionsService');
 const sharedTrips = require('../services/sharedTripsService');
+const aiService = require('../services/aiService');
 
 const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
@@ -94,8 +95,12 @@ function normalizeLocation(location) {
   return country ? `${city}, ${country}` : city;
 }
 
-// Smart Rule-Based Checklist Generator
-// Generates items based on terrain, season, and duration rules (no AI or external API)
+// Smart Rule-Based Checklist Generator (fallback path).
+// This is now the *fallback* used by POST /trips when the Groq-backed
+// generator (aiService.generateBaseChecklist) is unavailable or returns
+// an empty/invalid list. Kept as deterministic, dependency-free code so
+// trip creation is guaranteed to succeed even if the AI provider is
+// down, mis-configured, or rate-limited.
 const generateChecklist = (terrain, season, duration) => {
   const items = [];
   
@@ -181,7 +186,8 @@ const generateChecklist = (terrain, season, duration) => {
   return items;
 };
 
-// POST /trips - Create a new trip with rule-based checklist
+// POST /trips - Create a new trip with an AI-generated checklist
+// (Groq via aiService) and a deterministic rule-based fallback.
 router.post('/', authenticate, async (req, res) => {
   try {
     const { name, terrain, season, duration, groupSize, location, lat, lon, startDate, endDate } = req.body;
@@ -229,9 +235,26 @@ router.post('/', authenticate, async (req, res) => {
     // Write a tripId pointer so collaborators can look up the trip by id alone.
     await sharedTrips.putTripPointer(tripId, userId);
 
-    // Generate rule-based checklist items
-    const checklistItems = generateChecklist(terrain, season, parsedDuration);
-    
+    // Generate the initial checklist. Try the Groq-backed AI generator
+    // first so the list is tailored to terrain/season/duration/location;
+    // if it returns [] (no key, AI error, bad JSON, fewer than its
+    // MIN_ITEMS sanity floor) fall back to the deterministic rule-based
+    // generator so trip creation never fails because of an AI hiccup.
+    let checklistItems = await aiService.generateBaseChecklist({
+      name,
+      location: tripItem.location,
+      terrain,
+      season,
+      duration: parsedDuration,
+      groupSize: parsedGroupSize,
+    });
+    let checklistSource = 'ai';
+    if (!Array.isArray(checklistItems) || checklistItems.length === 0) {
+      checklistItems = generateChecklist(terrain, season, parsedDuration);
+      checklistSource = 'rule-based';
+    }
+    console.log(`[trips] checklist generated via ${checklistSource} (${checklistItems.length} items) for trip ${tripId}`);
+
     const itemPromises = checklistItems.map(item => {
       const itemId = uuidv4();
       return docClient.send(new PutCommand({

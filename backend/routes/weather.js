@@ -150,6 +150,26 @@ router.get('/', authenticate, async (req, res) => {
       }
     }
 
+    // Final fallback: OWM's city-name search doesn't recognise national
+    // parks, regions, or many non-city place names (e.g. "Yosemite
+    // National Park"). When the city query path 404s, geocode the
+    // free-text location via Open-Meteo (which handles parks/regions
+    // well) and re-query OWM with the resulting lat/lon. OWM's
+    // coords endpoint always returns the nearest reporting station,
+    // so this turns "Yosemite National Park" into valid weather data.
+    if (!curResp.ok && curResp.status === 404 && location) {
+      try {
+        const place = await geocodeLocation(location);
+        if (place && place.latitude != null && place.longitude != null) {
+          const coordBase = `lat=${encodeURIComponent(place.latitude)}&lon=${encodeURIComponent(place.longitude)}`;
+          console.log(`[weather] OWM still 404 for '${location}', geocoded to ${place.latitude},${place.longitude} via Open-Meteo`);
+          [curResp, fcResp] = await owmFetch(coordBase);
+        }
+      } catch (geoErr) {
+        console.warn('[weather] Open-Meteo geocode fallback failed:', geoErr.message);
+      }
+    }
+
     if (!curResp.ok) {
       const status = curResp.status === 404 ? 404 : 502;
       const detail = await curResp.text().catch(() => '');

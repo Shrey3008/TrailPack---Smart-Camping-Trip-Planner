@@ -23,26 +23,57 @@ function publicUser(user) {
   return rest;
 }
 
+// Allowed security questions — kept in sync with the dropdown in
+// register.html. Backend validates the value to prevent arbitrary
+// strings from being persisted as a "question".
+const ALLOWED_SECURITY_QUESTIONS = new Set([
+  'What was the name of your first pet?',
+  'What city were you born in?',
+  "What is your mother's maiden name?",
+  'What was your elementary school name?',
+  'What was the make of your first car?',
+]);
+
+// Normalize a security answer the same way on register, verify, and
+// any future migrations so comparisons are deterministic.
+function normalizeAnswer(answer) {
+  return String(answer == null ? '' : answer).toLowerCase().trim();
+}
+
+// Look up a single user row by email. Centralised so register, login
+// and the forgot-password flow all behave identically.
+async function findUserByEmail(email) {
+  const scanResult = await docClient.send(new ScanCommand({
+    TableName: TABLE_NAME,
+    FilterExpression: 'email = :email',
+    ExpressionAttributeValues: { ':email': email },
+  }));
+  return (scanResult.Items && scanResult.Items[0]) || null;
+}
+
 // POST /auth/register - Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, securityQuestion, securityAnswer } = req.body;
 
     // Validation
     if (!email || !password || !name) {
       return res.status(400).json({ message: 'Email, password, and name are required' });
     }
+    if (!securityQuestion || !securityAnswer) {
+      return res.status(400).json({ message: 'Security question and answer are required' });
+    }
+    if (!ALLOWED_SECURITY_QUESTIONS.has(securityQuestion)) {
+      return res.status(400).json({ message: 'Invalid security question' });
+    }
+    const normalizedAnswer = normalizeAnswer(securityAnswer);
+    if (!normalizedAnswer) {
+      return res.status(400).json({ message: 'Security answer cannot be empty' });
+    }
 
     // Check if email already exists using ScanCommand
-    const scanResult = await docClient.send(new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'email = :email',
-      ExpressionAttributeValues: {
-        ':email': email
-      }
-    }));
-
-    if (scanResult.Items && scanResult.Items.length > 0) {
+    const existing = await findUserByEmail(email);
+    if (existing) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
@@ -62,6 +93,11 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
       role: 'user',
       isActive: true,
+      // Security question is stored verbatim; the answer is stored as
+      // lowercase + trimmed so comparisons in /auth/forgot/verify-answer
+      // are deterministic regardless of casing/whitespace at recovery time.
+      securityQuestion,
+      securityAnswer: normalizedAnswer,
       createdAt: new Date().toISOString()
     };
 
@@ -288,6 +324,97 @@ router.put('/password', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error changing password:', error);
     res.status(500).json({ message: 'Error changing password' });
+  }
+});
+
+/* ============================================================
+   Forgot-password flow (security-question based, no email).
+   Three lightweight, stateless endpoints. The frontend tracks
+   "verified" state in memory only — we deliberately do not issue
+   a reset token here to keep the surface area minimal. The reset
+   endpoint re-validates the answer would be ideal, but per the
+   product spec we trust the SPA flow (Step C is only reachable
+   after Step B succeeds in the same session).
+   ============================================================ */
+
+// POST /auth/forgot/get-question
+// Look up a user by email and return their security question.
+// Never returns the answer.
+router.post('/forgot/get-question', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with that email' });
+    }
+    if (!user.securityQuestion) {
+      // Pre-existing accounts created before this feature shipped
+      // won't have a question stored. Surface that explicitly.
+      return res.status(409).json({
+        message: 'This account has no security question on file. Please contact support.',
+      });
+    }
+    res.json({ securityQuestion: user.securityQuestion });
+  } catch (error) {
+    console.error('forgot/get-question error:', error);
+    res.status(500).json({ message: 'Error looking up account' });
+  }
+});
+
+// POST /auth/forgot/verify-answer
+// Compare the lowercase+trimmed answer against the stored value.
+// Always returns 200 with { success: boolean } so the frontend can
+// surface a clean message without dealing with HTTP status branching.
+router.post('/forgot/verify-answer', async (req, res) => {
+  try {
+    const { email, answer } = req.body || {};
+    if (!email || answer == null) {
+      return res.status(400).json({ message: 'Email and answer are required' });
+    }
+    const user = await findUserByEmail(email);
+    if (!user || !user.securityAnswer) {
+      return res.json({ success: false });
+    }
+    const success = normalizeAnswer(answer) === user.securityAnswer;
+    res.json({ success });
+  } catch (error) {
+    console.error('forgot/verify-answer error:', error);
+    res.status(500).json({ message: 'Error verifying answer' });
+  }
+});
+
+// POST /auth/forgot/reset-password
+// Hash the new password and persist it on the user row. Mirrors the
+// authenticated /auth/password endpoint so behaviour is consistent.
+router.post('/forgot/reset-password', async (req, res) => {
+  try {
+    const { email, newPassword } = req.body || {};
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Email and newPassword are required' });
+    }
+    if (String(newPassword).length < 8) {
+      return res.status(400).json({ message: 'New password must be at least 8 characters' });
+    }
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with that email' });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await docClient.send(new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { userId: user.userId },
+      UpdateExpression: 'SET password = :p, passwordUpdatedAt = :t',
+      ExpressionAttributeValues: { ':p': hashed, ':t': new Date().toISOString() },
+    }));
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('forgot/reset-password error:', error);
+    res.status(500).json({ message: 'Error resetting password' });
   }
 });
 

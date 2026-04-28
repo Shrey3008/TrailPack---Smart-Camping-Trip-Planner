@@ -343,6 +343,93 @@ Trip:
     }
   }
 
+  // Generate the *initial* packing checklist for a brand-new trip.
+  // Returns an array of { name, category } objects matching the shape
+  // produced by the rule-based generateChecklist() in routes/trips.js,
+  // so the caller can drop the result into DynamoDB without further
+  // transformation. On any failure (no Groq key, network error, bad
+  // JSON, empty array, fewer than MIN_ITEMS valid rows) returns []
+  // so trips.js can fall back to its rule-based generator.
+  async generateBaseChecklist(trip) {
+    // No key → return empty so the caller falls back to the rule-based
+    // path. Mirrors the behaviour of generateGearSuggestions().
+    if (!this.groq) return [];
+
+    // Categories that the existing checklist UI groups items under.
+    // The model is instructed to only emit these; unknown values are
+    // coerced to 'Tools' as a safe default during sanitization.
+    const ALLOWED_CATS = new Set(['Essentials', 'Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
+    const MIN_ITEMS = 8;   // anything less and we don't trust the response
+    const MAX_ITEMS = 30;  // cap so a runaway response doesn't bloat DDB
+
+    try {
+      const prompt =
+`You are a camping packing-list expert. Produce a complete, practical packing checklist for ONE camping trip with the details below. The list must cover all essential needs (shelter, clothing, food/water, safety, tools), tailored to the specific terrain, season, and duration provided.
+
+Rules:
+- Output between ${MIN_ITEMS} and ${MAX_ITEMS} items total.
+- Every item MUST use exactly one of these categories: Essentials | Shelter | Clothing | Food & Water | Safety | Tools.
+- Item names should be short (1-5 words), specific, and uniquely named (no duplicates).
+- Tailor items to the trip's terrain (e.g. trekking poles for Mountain, bug spray for Forest/Jungle, extra electrolytes for Desert/Beach, traction devices for Snow) and season (e.g. insulated jacket for Winter, sunscreen for Summer, rain shell for Spring/Fall).
+- Scale quantities up for longer trips: trips longer than 3 days should include water-purification gear and extra food; longer than 5 days should include emergency communication and signal gear.
+- Do NOT include "Other" or generic catch-all items.
+
+Respond with ONLY a valid JSON object of this exact shape (no markdown, no prose):
+{ "items": [ { "name": "<short item name>", "category": "<Essentials|Shelter|Clothing|Food & Water|Safety|Tools>" } ] }
+
+Trip:
+- Name: ${trip.name || 'Camping trip'}
+- Location: ${trip.location || 'Not specified'}
+- Terrain: ${trip.terrain || 'Not specified'}
+- Season: ${trip.season || 'Not specified'}
+- Duration: ${trip.duration || 1} day(s)
+- Group size: ${trip.groupSize || trip.participants || 1}`;
+
+      const response = await this.groq.chat.completions.create({
+        model: 'llama-3.1-8b-instant',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+      });
+      const text = response && response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content;
+      if (!text) return [];
+
+      let parsed;
+      try { parsed = JSON.parse(text); } catch (_) { return []; }
+      const arr = Array.isArray(parsed && parsed.items) ? parsed.items : [];
+
+      // Sanitize: strip empties, dedupe by lowercased name (model may
+      // emit "Headlamp" and "headlamp" as separate rows), coerce
+      // unknown categories to 'Tools', cap to MAX_ITEMS.
+      const seen = new Set();
+      const items = [];
+      for (const it of arr) {
+        if (!it || typeof it.name !== 'string') continue;
+        const name = it.name.trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        items.push({
+          name,
+          category: ALLOWED_CATS.has(it.category) ? it.category : 'Tools',
+        });
+        if (items.length >= MAX_ITEMS) break;
+      }
+
+      // Sanity floor — if the model returned a sliver of a checklist,
+      // treat it as a failure and let the caller use the rule-based
+      // generator instead of shipping a half-baked list to the user.
+      if (items.length < MIN_ITEMS) {
+        console.warn(`[aiService] generateBaseChecklist returned only ${items.length} items, falling back`);
+        return [];
+      }
+      return items;
+    } catch (error) {
+      console.error('AI base checklist error:', error);
+      return [];
+    }
+  }
+
   // Generate AI-enhanced risk recommendations for a specific trip.
   // The rule-based /ai/risk-analysis route still owns scoring + factor
   // detection (deterministic, tested); this method supplies the

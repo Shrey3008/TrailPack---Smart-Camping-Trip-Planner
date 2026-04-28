@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cron = require('node-cron');
+const notificationScheduler = require('./services/notificationScheduler');
 
 // DB handled via DynamoDB client in db.js
 
@@ -114,6 +116,17 @@ const PORT = process.env.PORT || 3000;
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+
+    // Daily notification scheduler — fires at 09:00 server time and
+    // emails trip owners 3-day pre-trip reminders + 1-day packing
+    // nudges. The scheduler is fully self-contained and fail-soft;
+    // see services/notificationScheduler.js for guard rails.
+    try {
+      cron.schedule('0 9 * * *', () => notificationScheduler.run(), { timezone: 'America/New_York' });
+      console.log('[scheduler] Notification scheduler started — runs daily at 9AM America/New_York');
+    } catch (err) {
+      console.error('[scheduler] Failed to start cron job:', err.message);
+    }
   });
 }
 
