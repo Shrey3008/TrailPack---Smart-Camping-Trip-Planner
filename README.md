@@ -306,7 +306,7 @@ The smart-checklist engine starts from a base list and adds items per terrain, s
 
 ## Author
 
-**Hetvi Patel** — original author and primary developer.
+**Shrey Patel** — original author and primary developer.
 
 ## License
 
