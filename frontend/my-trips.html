@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>My Trips — TrailPack</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+
+  <!-- Design-system fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+
+  <!-- Shared dashboard styles (also used by index.html). Provides
+       .navbar, .dashboard-section, .trips-grid, .trip-card, .filter-tabs,
+       .empty-state, the Create Trip modal, etc. -->
+  <link rel="stylesheet" href="dashboard-light.css">
+</head>
+<body class="dash-light">
+  <!-- Page-local styling: search/sort row above the filter tabs.
+       Visuals tuned to match the dashboard's filter-tab + pill aesthetic. -->
+  <style>
+    body.dash-light .mt-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 0 0 16px;
+    }
+    body.dash-light .mt-search {
+      position: relative;
+      flex: 1 1 320px;
+      max-width: 460px;
+    }
+    body.dash-light .mt-search input {
+      width: 100%;
+      box-sizing: border-box;
+      height: 42px;
+      padding: 0 14px 0 40px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    body.dash-light .mt-search input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+    }
+    body.dash-light .mt-search svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af;
+      pointer-events: none;
+    }
+    body.dash-light .mt-sort {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    body.dash-light .mt-sort select {
+      height: 42px;
+      padding: 0 36px 0 14px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: #fff;
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+    }
+    body.dash-light .mt-sort select:focus {
+      outline: none;
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+    }
+  </style>
+
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+        </svg>
+      </span>
+      <h1 class="brand-text">TrailPack</h1>
+    </div>
+    <div class="nav-user">
+      <!--
+        Avatar + online indicator wrapper. The .user-greeting class is
+        recognised by nav-menu.js's isUserDisplayEl() so this block stays
+        in the navbar instead of being moved into the hamburger dropdown.
+        #user-info is preserved verbatim for app.js's textContent setter.
+      -->
+      <span class="user-greeting nav-user-block">
+        <span class="nav-avatar" id="nav-avatar" aria-hidden="true">•</span>
+        <span class="nav-user-text">
+          <span id="user-info" class="user-name"></span>
+        </span>
+      </span>
+      <a href="profile.html" class="btn">Profile</a>
+      <button class="btn btn-logout" id="logout-btn" type="button" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Hero banner: dynamic time-based greeting + upcoming-trip count.
+       Populated by updateHero() in dashboard-light.js once #dash-greeting
+       and #dash-hero-sub exist on the page. -->
+  <section class="dash-hero" aria-label="Welcome">
+    <div class="dash-hero__inner">
+      <div class="dash-hero__copy">
+        <h2 class="dash-hero__greeting" id="dash-greeting">Your Trips 🏕️</h2>
+        <p class="dash-hero__sub" id="dash-hero-sub">Plan smart. Pack light. Hike better.</p>
+      </div>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- Stats Bar — same IDs as dashboard so loadStats() (app.js) populates them. -->
+    <div class="stats-bar">
+      <div class="stat-card" data-accent="green">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-trips">0</div>
+          <div class="stat-label">Total Trips</div>
+        </div>
+        <div class="stat-icon">🗺️</div>
+      </div>
+      <div class="stat-card" data-accent="orange">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-items">0</div>
+          <div class="stat-label">Total Items</div>
+        </div>
+        <div class="stat-icon">📦</div>
+      </div>
+      <div class="stat-card" data-accent="blue">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-packed">0</div>
+          <div class="stat-label">Packed</div>
+        </div>
+        <div class="stat-icon">✅</div>
+      </div>
+      <div class="stat-card" data-accent="purple">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-percentage">0%</div>
+          <div class="stat-label">Progress</div>
+        </div>
+        <div class="stat-icon">📊</div>
+      </div>
+    </div>
+
+    <!-- ============== Your Trips section ============== -->
+    <section class="dashboard-section">
+      <div class="section-header">
+        <div class="section-header-left">
+          <h2>Your Trips</h2>
+          <p class="section-sub">Browse, filter, and jump back into any trip.</p>
+        </div>
+        <button class="btn btn-primary" id="open-create-trip">+ Create New Trip</button>
+      </div>
+
+      <!-- Search + sort toolbar (page-local; lightly wired below). -->
+      <div class="mt-toolbar" role="region" aria-label="Search and sort trips">
+        <label class="mt-search" for="mt-search-input">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input id="mt-search-input" type="search" placeholder="Search by trip name or destination…" autocomplete="off">
+        </label>
+        <span class="mt-sort">
+          <span aria-hidden="true">Sort</span>
+          <select id="mt-sort-select" aria-label="Sort trips">
+            <option value="recent">Most recent</option>
+            <option value="name">Name (A–Z)</option>
+            <option value="upcoming">Upcoming first</option>
+          </select>
+        </span>
+      </div>
+
+      <div class="filter-tabs" id="trip-filters" role="tablist" aria-label="Filter trips by terrain">
+        <button type="button" class="filter-tab is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="filter-tab" data-filter="mountain" role="tab" aria-selected="false">Mountain</button>
+        <button type="button" class="filter-tab" data-filter="forest" role="tab" aria-selected="false">Forest</button>
+        <button type="button" class="filter-tab" data-filter="desert" role="tab" aria-selected="false">Desert</button>
+        <button type="button" class="filter-tab" data-filter="beach" role="tab" aria-selected="false">Beach</button>
+      </div>
+
+      <div id="trips-container" class="trips-grid">
+        <!-- Trips rendered by app.js; enhanced by dashboard-light.js -->
+      </div>
+
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon" aria-hidden="true">🏕️</div>
+        <h3>No trips yet</h3>
+        <p>Your next adventure is waiting.</p>
+        <button class="btn btn-primary" id="open-create-trip-empty" type="button">+ Create Your First Trip</button>
+      </div>
+    </section>
+
+    <!-- ============== Shared With Me section ============== -->
+    <section class="dashboard-section" id="shared-trips-section" style="display: none;">
+      <div class="section-header">
+        <div class="section-header-left">
+          <h2>Shared With Me</h2>
+          <p class="section-sub">Trips others have invited you to collaborate on.</p>
+        </div>
+      </div>
+      <div id="shared-trips-container" class="trips-grid"></div>
+    </section>
+  </main>
+
+  <!-- ================= Page footer ================= -->
+  <footer class="site-footer" role="contentinfo">
+    <p>© 2026 TrailPack — Plan smart. Pack light. Hike better.</p>
+  </footer>
+
+  <!-- ================= Create Trip modal ================= -->
+  <div class="tp-ct-overlay" id="tp-ct-overlay" aria-hidden="true" role="dialog" aria-labelledby="tp-ct-title">
+    <div class="tp-ct-modal">
+      <h3 id="tp-ct-title">Plan a new trip</h3>
+      <p class="tp-ct-sub">We'll generate a personalized packing checklist for you.</p>
+      <form id="tp-ct-form" autocomplete="off">
+        <div class="tp-field">
+          <label for="tp-ct-name">Trip name</label>
+          <input id="tp-ct-name" name="name" required placeholder="e.g. Rocky Mountain Weekend">
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-terrain">Terrain</label>
+            <select id="tp-ct-terrain" name="terrain" required>
+              <option value="Mountain">Mountain</option>
+              <option value="Forest">Forest</option>
+              <option value="Desert">Desert</option>
+              <option value="Beach">Beach</option>
+              <option value="Lake">Lake</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-season">Season</label>
+            <select id="tp-ct-season" name="season" required>
+              <option value="Spring">Spring</option>
+              <option value="Summer" selected>Summer</option>
+              <option value="Fall">Fall</option>
+              <option value="Winter">Winter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-duration">Duration (days)</label>
+            <input id="tp-ct-duration" name="duration" type="number" min="1" max="60" value="3" required>
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-group-size">Number of people</label>
+            <input id="tp-ct-group-size" name="groupSize" type="number" min="1" max="50" value="1" placeholder="e.g. 4" required>
+          </div>
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-start">Start date</label>
+            <input id="tp-ct-start" name="startDate" type="date">
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-end">End date</label>
+            <input id="tp-ct-end" name="endDate" type="date">
+          </div>
+          <script>
+            // Block past dates: set min on both date inputs to today on every modal open.
+            (function () {
+              function todayISO() {
+                const d = new Date();
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${dd}`;
+              }
+              const s = document.getElementById('tp-ct-start');
+              const e = document.getElementById('tp-ct-end');
+              if (s) s.min = todayISO();
+              if (e) e.min = todayISO();
+            })();
+          </script>
+        </div>
+        <p class="tp-date-hint" id="tp-date-hint" hidden></p>
+
+        <div class="tp-field">
+          <label for="tp-ct-location">Destination</label>
+          <div class="tp-ac-wrap">
+            <input id="tp-ct-location" name="location" placeholder="Search for a city or town"
+                   autocomplete="off" spellcheck="false" role="combobox"
+                   aria-autocomplete="list" aria-controls="tp-ac-dropdown" aria-expanded="false">
+            <div class="tp-ac-dropdown" id="tp-ac-dropdown" role="listbox" hidden></div>
+          </div>
+          <input type="hidden" id="tp-ct-lat" name="lat">
+          <input type="hidden" id="tp-ct-lon" name="lon">
+          <p class="tp-ac-hint" id="tp-ac-hint" hidden></p>
+        </div>
+
+        <div class="tp-ct-actions">
+          <button type="button" class="tp-ct-cancel" id="tp-ct-cancel">Cancel</button>
+          <button type="submit" class="tp-ct-confirm" id="tp-ct-confirm">Create Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+  <!-- Shared dashboard boot. The hero greeting (#dash-greeting,
+       #dash-hero-sub) and stats bar IDs now exist on this page, so
+       updateHero() + loadStats() will both populate live. -->
+  <script src="dashboard-light.js"></script>
+  <script src="nav-menu.js"></script>
+
+  <!-- ================= Page-local enhancements =================
+       Wires the search input + sort dropdown to the trip cards that
+       app.js renders into #trips-container. Stays additive: the
+       existing terrain filter tabs (.filter-tab[data-filter]) keep
+       working — search is combined via a separate hidden-class. -->
+  <script>
+    (function () {
+      const input    = document.getElementById('mt-search-input');
+      const sortSel  = document.getElementById('mt-sort-select');
+      const grid     = document.getElementById('trips-container');
+      if (!grid) return;
+
+      const HIDDEN_CLASS = 'is-hidden-by-search';
+
+      // CSS shim so search-hidden cards collapse just like filter-hidden ones.
+      const shim = document.createElement('style');
+      shim.textContent = `body.dash-light .trip-card.${HIDDEN_CLASS}{display:none !important;}`;
+      document.head.appendChild(shim);
+
+      function applySearch() {
+        const q = (input?.value || '').trim().toLowerCase();
+        Array.from(grid.querySelectorAll('.trip-card')).forEach(card => {
+          if (!q) { card.classList.remove(HIDDEN_CLASS); return; }
+          const name = (card.querySelector('h3')?.textContent || '').toLowerCase();
+          const meta = (card.querySelector('.trip-meta')?.textContent || '').toLowerCase();
+          const date = (card.querySelector('.trip-date')?.textContent || '').toLowerCase();
+          const hit = name.includes(q) || meta.includes(q) || date.includes(q);
+          card.classList.toggle(HIDDEN_CLASS, !hit);
+        });
+        updateEmptyState();
+      }
+
+      // Pull a sort key out of the rendered card. Dates live in .trip-date
+      // (text like "Jul 10 – Jul 14, 2026"); fall back to current order.
+      function parseStartDate(card) {
+        const t = card.querySelector('.trip-date')?.textContent || '';
+        const m = t.match(/[A-Za-z]+\s+\d{1,2}[^\d]*\d{4}/);
+        if (!m) return null;
+        const d = new Date(m[0].replace(/\s+\u2013\s+.*/, '')); // first half if range
+        return isNaN(d) ? null : d.getTime();
+      }
+
+      function applySort() {
+        const mode = sortSel?.value || 'recent';
+        const cards = Array.from(grid.querySelectorAll('.trip-card'));
+        cards.sort((a, b) => {
+          if (mode === 'name') {
+            const na = (a.querySelector('h3')?.textContent || '').trim().toLowerCase();
+            const nb = (b.querySelector('h3')?.textContent || '').trim().toLowerCase();
+            return na.localeCompare(nb);
+          }
+          if (mode === 'upcoming') {
+            const da = parseStartDate(a) ?? Infinity;
+            const db = parseStartDate(b) ?? Infinity;
+            return da - db;
+          }
+          // 'recent' — keep server order (newest first per backend) but
+          // push past-dated trips after future ones if dates are present.
+          const da = parseStartDate(a);
+          const db = parseStartDate(b);
+          if (da == null && db == null) return 0;
+          if (da == null) return 1;
+          if (db == null) return -1;
+          return db - da;
+        });
+        cards.forEach(c => grid.appendChild(c));
+      }
+
+      function updateEmptyState() {
+        // If a search query hides every card, surface a friendly note.
+        const empty = document.getElementById('empty-state');
+        if (!empty) return;
+        const visible = grid.querySelectorAll('.trip-card:not(.is-hidden-by-filter):not(.' + HIDDEN_CLASS + ')').length;
+        const hasCards = grid.querySelectorAll('.trip-card').length > 0;
+        if (!hasCards) return; // app.js handles true-empty case
+        empty.style.display = visible === 0 ? 'block' : 'none';
+        if (visible === 0) {
+          const h = empty.querySelector('h3');
+          const p = empty.querySelector('p');
+          if (h) h.textContent = 'No trips match';
+          if (p) p.textContent = 'Try a different search or filter.';
+        }
+      }
+
+      // Recursion guard: applySort() reparents nodes via appendChild,
+      // which fires the MutationObserver. Without this, the observer
+      // would re-call applySort() forever and hang the page.
+      let isReordering = false;
+
+      function safeApply() {
+        if (isReordering) return;
+        isReordering = true;
+        try {
+          applySort();
+          applySearch();
+        } finally {
+          // Defer the unlock past any pending mutation callbacks.
+          setTimeout(() => { isReordering = false; }, 0);
+        }
+      }
+
+      input?.addEventListener('input', applySearch);
+      sortSel?.addEventListener('change', safeApply);
+
+      // Re-apply only when app.js renders new trip cards (e.g. after
+      // create/delete). We detect "new render" by checking for added
+      // .trip-card nodes in the mutation list — node moves caused by
+      // our own appendChild are filtered out by the guard above.
+      const obs = new MutationObserver((mutations) => {
+        if (isReordering) return;
+        const hasNewCards = mutations.some(m =>
+          Array.from(m.addedNodes).some(n =>
+            n.nodeType === 1 && n.classList && n.classList.contains('trip-card')
+          )
+        );
+        if (hasNewCards) safeApply();
+      });
+      obs.observe(grid, { childList: true });
+
+      // Run once after first paint in case trips already exist.
+      setTimeout(safeApply, 80);
+    })();
+  </script>
+</body>
+</html>

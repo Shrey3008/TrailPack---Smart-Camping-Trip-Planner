@@ -1,0 +1,53 @@
+{
+  "CallerReference": "trailpack-frontend-cf-2026-04-29",
+  "Comment": "TrailPack frontend (S3 website) - HTTPS + caching",
+  "Enabled": true,
+  "PriceClass": "PriceClass_100",
+  "HttpVersion": "http2",
+  "IsIPV6Enabled": true,
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "s3-website-origin",
+        "DomainName": "trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only",
+          "OriginSslProtocols": { "Quantity": 1, "Items": ["TLSv1.2"] },
+          "OriginReadTimeout": 30,
+          "OriginKeepaliveTimeout": 5
+        },
+        "CustomHeaders": { "Quantity": 0 },
+        "OriginPath": "",
+        "ConnectionAttempts": 3,
+        "ConnectionTimeout": 10
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "s3-website-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "AllowedMethods": {
+      "Quantity": 2,
+      "Items": ["GET","HEAD"],
+      "CachedMethods": { "Quantity": 2, "Items": ["GET","HEAD"] }
+    },
+    "Compress": true,
+    "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  },
+  "DefaultRootObject": "login.html",
+  "CustomErrorResponses": {
+    "Quantity": 1,
+    "Items": [
+      { "ErrorCode": 403, "ResponsePagePath": "/login.html", "ResponseCode": "200", "ErrorCachingMinTTL": 10 }
+    ]
+  },
+  "ViewerCertificate": {
+    "CloudFrontDefaultCertificate": true,
+    "MinimumProtocolVersion": "TLSv1.2_2021"
+  },
+  "Restrictions": { "GeoRestriction": { "RestrictionType": "none", "Quantity": 0 } },
+  "WebACLId": ""
+}

@@ -7,800 +7,292 @@
   <title>TrailPack — Smart Camping Trip Planner</title>
   <link rel="stylesheet" href="styles.css">
 
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <style>
+    @keyframes discoverShimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+
+    /* =====================================================================
+       Discover home content (Hipcamp-style)
+       Quick action tiles, themed carousels of destinations, feature
+       tiles, and an SEO link grid. Rendered by JS into #discoverHomeContent
+       and hidden the first time the user runs an actual search. */
+    .disc-home-wrap { max-width: 1240px; margin: 0 auto; padding: 28px; }
+    .disc-section { margin-bottom: 44px; }
+    .disc-section-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .disc-section-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.55rem; font-weight: 700; color: #111; margin: 0;
+      letter-spacing: -0.005em;
+    }
+    .disc-section-sub {
+      font-size: 0.875rem; color: #6b7280; margin: 4px 0 0;
+    }
+    .disc-section-link {
+      font-size: 0.85rem; font-weight: 600; color: #2d6a4f;
+      text-decoration: none; cursor: pointer;
+    }
+    .disc-section-link:hover { text-decoration: underline; }
+
+    /* Quick action tiles — colored pills like Hipcamp's "Available tonight". */
+    .disc-quick-tiles {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+    .disc-quick-tile {
+      position: relative;
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: 6px;
+      padding: 18px 18px 16px;
+      border-radius: 18px;
+      border: 0;
+      cursor: pointer;
+      font-family: inherit;
+      text-align: left;
+      color: #fff;
+      box-shadow: 0 3px 10px rgba(0,0,0,.10);
+      transition: transform .15s ease, box-shadow .15s ease;
+      min-height: 110px;
+    }
+    .disc-quick-tile:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 22px rgba(0,0,0,.16);
+    }
+    .disc-quick-tile .qt-icon { font-size: 1.6rem; line-height: 1; }
+    .disc-quick-tile .qt-title { font-size: 1rem; font-weight: 700; }
+    .disc-quick-tile .qt-sub   { font-size: .78rem; opacity: .92; }
+    .disc-quick-tile.qt-1 { background: linear-gradient(135deg, #f7b61b 0%, #f59e0b 100%); }
+    .disc-quick-tile.qt-2 { background: linear-gradient(135deg, #17807d 0%, #0f766e 100%); }
+    .disc-quick-tile.qt-3 { background: linear-gradient(135deg, #2d6a4f 0%, #1f5036 100%); }
+    .disc-quick-tile.qt-4 { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+    .disc-quick-tile.qt-5 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+    @media (max-width: 1100px) { .disc-quick-tiles { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 720px)  { .disc-quick-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+    /* Horizontal carousels — destination cards, scroll-snap on mobile. */
+    .disc-row {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(240px, 1fr);
+      gap: 18px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding: 4px 4px 12px;
+      scrollbar-width: thin;
+    }
+    .disc-row::-webkit-scrollbar { height: 8px; }
+    .disc-row::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+    .disc-row > * { scroll-snap-align: start; }
+    @media (min-width: 900px) {
+      .disc-row { grid-template-columns: repeat(4, 1fr); grid-auto-flow: initial; overflow: visible; }
+    }
+
+    .disc-card {
+      display: flex; flex-direction: column;
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid rgba(0,0,0,.06);
+      box-shadow: 0 2px 6px rgba(0,0,0,.05);
+      transition: transform .15s ease, box-shadow .15s ease;
+      text-align: left;
+      font-family: inherit;
+      padding: 0;
+    }
+    .disc-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    }
+    .disc-card-photo {
+      width: 100%; aspect-ratio: 4/3;
+      background-size: cover; background-position: center;
+      background-color: #e5e7eb;
+    }
+    .disc-card-body { padding: 12px 14px 14px; }
+    .disc-card-title {
+      font-size: .95rem; font-weight: 700; color: #111;
+      margin: 0 0 2px; line-height: 1.25;
+    }
+    .disc-card-sub {
+      font-size: .78rem; color: #6b7280; margin: 0;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .disc-card-badge {
+      display: inline-block; font-size: .68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .04em;
+      color: #2d6a4f; background: #ecfdf5;
+      padding: 2px 8px; border-radius: 999px;
+      margin-top: 8px;
+    }
+
+    /* Feature tiles row — like Hipcamp's "New ways to find yourself outside". */
+    .disc-feat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .disc-feat-tile {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 22px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,.07);
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      font-family: inherit;
+      text-align: left;
+      transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+    .disc-feat-tile:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,0,0,.10);
+      border-color: rgba(45,106,79,.4);
+    }
+    .disc-feat-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: #ecfdf5; color: #2d6a4f;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .disc-feat-title { font-size: 1rem; font-weight: 700; color: #111; margin: 0; }
+    .disc-feat-sub   { font-size: .82rem; color: #6b7280; margin: 0; line-height: 1.4; }
+    @media (max-width: 1000px) { .disc-feat-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 540px)  { .disc-feat-grid { grid-template-columns: 1fr; } }
+
+    /* Trust strip / promo banner. */
+    .disc-promo {
+      display: flex; align-items: center; gap: 18px;
+      padding: 22px 26px;
+      border-radius: 16px;
+      background: linear-gradient(120deg, #ecfdf5 0%, #d1fae5 100%);
+      border: 1px solid rgba(45,106,79,.18);
+    }
+    .disc-promo-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: #2d6a4f; color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; flex-shrink: 0;
+    }
+    .disc-promo-title { font-size: 1.05rem; font-weight: 700; color: #111; margin: 0; }
+    .disc-promo-sub   { font-size: .87rem; color: #374151; margin: 2px 0 0; }
+
+    /* SEO link grid at the bottom. */
+    .disc-link-cols {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      align-items: stretch;
+    }
+    .disc-link-cols > div {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .disc-link-col-title {
+      font-size: .66rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: #6b7280; margin: 0 0 12px;
+    }
+    .disc-link-list {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      gap: 10px;
+      justify-content: space-between;
+    }
+    .disc-link-item {
+      font-size: .84rem; color: #111; cursor: pointer;
+      background: none; border: 0; padding: 0; text-align: left; font-family: inherit;
+    }
+    .disc-link-item:hover { color: #2d6a4f; text-decoration: underline; }
+    @media (max-width: 720px) { .disc-link-cols { grid-template-columns: 1fr; gap: 22px; } }
+
+    /* ---------- More to Discover (collapsible) ---------- */
+    .disc-more-wrap {
+      margin: 6px 0 28px;
+      display: flex;
+      justify-content: center;
+    }
+    .disc-more-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 22px;
+      background: #ffffff;
+      color: #1a1a1a;
+      border: 1px solid #e8e8e4;
+      border-radius: 9999px;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+    }
+    .disc-more-toggle:hover {
+      background: #f3f4f6;
+      border-color: #d8d8d2;
+      box-shadow: 0 4px 14px rgba(15,23,42,0.10);
+    }
+    .disc-more-toggle:active { transform: translateY(1px); }
+    .disc-more-toggle:focus-visible {
+      outline: 2px solid rgba(45,106,79,0.55);
+      outline-offset: 2px;
+    }
+    .disc-more-toggle .chev {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      transition: transform 0.25s ease;
+    }
+    .disc-more-toggle[aria-expanded="true"] .chev {
+      transform: rotate(180deg);
+    }
+    .disc-more {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.45s ease, opacity 0.25s ease;
+    }
+    .disc-more.is-open {
+      max-height: 6000px;
+      opacity: 1;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .disc-more, .disc-more-toggle .chev { transition: none; }
+    }
+  </style>
+
   <!-- Design-system fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
 
-  <style>
-    /* =========================================================================
-       TrailPack Dashboard — scoped design-system overrides.
-       Applied ONLY on this page. Targets app.js-rendered markup so we don't
-       need to touch any other files.
-       ========================================================================= */
-    :root {
-      --green:       #2D6A4F;
-      --green-dark:  #1B4332;
-      --green-light: #52B788;
-      --green-pale:  #D8F3DC;
-      --cream:       #F5F7F5;
-      --surface:     #FFFFFF;
-      --ink:         #1b2422;
-      --ink-soft:    #5a6560;
-      --line:        #E3EAE5;
-      --danger:      #C0392B;
-      --danger-soft: #F9E2DE;
-      --shadow-sm:   0 1px 2px rgba(15, 36, 28, 0.04), 0 2px 8px rgba(15, 36, 28, 0.05);
-      --shadow-md:   0 8px 24px rgba(15, 36, 28, 0.10);
-      --radius:      14px;
-    }
+  <!-- Leaflet (Discover Trails Near You map) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
-    /* Dark theme — activated by [data-theme="dark"] on <html>. */
-    html[data-theme="dark"] {
-      --cream:       #0F1713;
-      --surface:     #17231D;
-      --ink:         #E6EDE7;
-      --ink-soft:    #9BA8A1;
-      --line:        #233129;
-      --green-pale:  #1F3B2C;
-      --shadow-sm:   0 1px 2px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.35);
-      --shadow-md:   0 10px 28px rgba(0,0,0,0.45);
-    }
-    html[data-theme="dark"] .trip-badge { color: #C8E6C9 !important; }
-    html[data-theme="dark"] .empty-state { border-color: var(--line); }
-    html[data-theme="dark"] .tp-ct-modal input,
-    html[data-theme="dark"] .tp-ct-modal select {
-      background: #101A14;
-      color: var(--ink);
-      border-color: var(--line);
-    }
-    html[data-theme="dark"] .tp-ct-cancel:hover { background: #1E2C23; }
-    html[data-theme="dark"] .section-sub { color: var(--ink-soft); }
-
-    html, body {
-      background: var(--cream) !important;
-      color: var(--ink);
-      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
-      font-weight: 400;
-      letter-spacing: -0.005em;
-    }
-    body { margin: 0; }
-
-    /* ---------- Navbar ---------- */
-    .navbar {
-      background: var(--green-dark) !important;
-      color: #fff !important;
-      padding: 18px 32px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
-    }
-    .nav-brand { display: flex; align-items: center; gap: 12px; }
-    .nav-brand h1,
-    .nav-brand .brand-text {
-      font-family: 'Playfair Display', Georgia, serif !important;
-      font-weight: 700 !important;
-      font-size: 1.55rem !important;
-      color: #fff !important;
-      letter-spacing: 0.005em;
-      margin: 0 !important;
-    }
-    .nav-brand .logo-mark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      background: rgba(82, 183, 136, 0.15);
-    }
-    .nav-brand .logo-mark svg { display: block; }
-
-    .nav-user {
-      display: flex !important;
-      align-items: center !important;
-      gap: 10px !important;
-      flex-wrap: wrap;
-    }
-    .nav-user .user-name,
-    .nav-user #user-info {
-      color: rgba(255,255,255,0.88) !important;
-      font-weight: 500 !important;
-      font-size: 0.92rem !important;
-      margin-right: 6px;
-    }
-
-    /* Pill buttons in navbar. Override existing .btn.btn-ghost + buttons. */
-    .navbar .btn,
-    .navbar a.btn,
-    .navbar button {
-      font-family: 'Inter', sans-serif !important;
-      font-weight: 500 !important;
-      font-size: 0.85rem !important;
-      line-height: 1 !important;
-      padding: 8px 16px !important;
-      border-radius: 999px !important;
-      border: 1px solid rgba(255,255,255,0.35) !important;
-      background: transparent !important;
-      color: #fff !important;
-      cursor: pointer;
-      text-decoration: none !important;
-      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    }
-    .navbar .btn:hover,
-    .navbar a.btn:hover,
-    .navbar button:hover {
-      background: rgba(255,255,255,0.10) !important;
-      border-color: rgba(255,255,255,0.65) !important;
-    }
-    /* Logout = red outlined pill */
-    .navbar .btn-logout,
-    .navbar button[onclick*="logout"] {
-      border-color: rgba(255, 138, 128, 0.55) !important;
-      color: #FFBFBA !important;
-    }
-    .navbar .btn-logout:hover,
-    .navbar button[onclick*="logout"]:hover {
-      background: rgba(192, 57, 43, 0.20) !important;
-      border-color: #FF8A80 !important;
-      color: #fff !important;
-    }
-
-    /* ---------- Layout ---------- */
-    main.container {
-      max-width: 1200px;
-      margin: 32px auto !important;
-      padding: 0 24px !important;
-    }
-
-    /* ---------- Stat cards ---------- */
-    .stats-bar {
-      display: grid !important;
-      grid-template-columns: repeat(4, 1fr) !important;
-      gap: 20px !important;
-      margin-bottom: 36px !important;
-      /* Guard against any rule in styles.css that might hide the row. */
-      visibility: visible !important;
-      opacity: 1 !important;
-      height: auto !important;
-      min-height: 92px;
-      overflow: visible !important;
-      position: relative;
-      z-index: 1;
-    }
-    .stat-card {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
-      border-radius: var(--radius) !important;
-      padding: 20px !important;
-      display: flex !important;
-      align-items: center !important;
-      gap: 16px !important;
-      box-shadow: var(--shadow-sm) !important;
-      transition: transform 0.18s ease, box-shadow 0.18s ease;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    .stat-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md) !important;
-    }
-    .stat-card .stat-icon {
-      flex: 0 0 52px;
-      width: 52px; height: 52px;
-      border-radius: 12px;
-      background: var(--green-pale) !important;
-      color: var(--green) !important;
-      display: grid !important;
-      place-items: center !important;
-      font-size: 1.55rem !important;
-    }
-    .stat-card .stat-content { display: flex; flex-direction: column; }
-    .stat-card .stat-value {
-      font-family: 'Inter', sans-serif !important;
-      font-size: 2rem !important;
-      font-weight: 700 !important;
-      line-height: 1.1 !important;
-      color: var(--ink) !important;
-      letter-spacing: -0.015em;
-    }
-    .stat-card .stat-label {
-      font-size: 0.72rem !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.08em !important;
-      text-transform: uppercase !important;
-      color: var(--ink-soft) !important;
-      margin-top: 2px;
-    }
-
-    /* ---------- Section header ---------- */
-    .section-header {
-      display: flex !important;
-      align-items: flex-start !important;
-      justify-content: space-between !important;
-      gap: 16px;
-      margin-bottom: 16px !important;
-    }
-    .section-header-left { display: flex; flex-direction: column; gap: 4px; }
-    .section-header h2 {
-      font-family: 'Playfair Display', Georgia, serif !important;
-      font-weight: 700 !important;
-      font-size: 1.75rem !important;
-      color: var(--ink) !important;
-      margin: 0 !important;
-      letter-spacing: -0.005em;
-    }
-    .section-sub {
-      font-family: 'Inter', sans-serif;
-      font-size: 0.88rem;
-      font-weight: 400;
-      color: var(--ink-soft);
-      margin: 0;
-      font-style: italic;
-      letter-spacing: 0.005em;
-    }
-
-    /* ---------- Filter tabs ---------- */
-    .filter-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 0 0 22px;
-    }
-    .filter-tab {
-      font-family: 'Inter', sans-serif;
-      font-weight: 500;
-      font-size: 0.85rem;
-      padding: 8px 16px;
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-      color: var(--ink-soft);
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .filter-tab:hover {
-      color: var(--ink);
-      border-color: var(--green-light);
-    }
-    .filter-tab.is-active {
-      background: var(--green);
-      color: #fff;
-      border-color: var(--green);
-      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.28);
-    }
-    .filter-tab.is-active:hover { background: var(--green-dark); border-color: var(--green-dark); }
-    .trip-card.is-hidden-by-filter { display: none !important; }
-    .section-header .btn.btn-primary {
-      font-family: 'Inter', sans-serif !important;
-      font-weight: 600 !important;
-      font-size: 0.88rem !important;
-      padding: 10px 20px !important;
-      border-radius: 999px !important;
-      background: var(--green) !important;
-      color: #fff !important;
-      border: 0 !important;
-      cursor: pointer;
-      box-shadow: 0 1px 0 rgba(27, 67, 50, 0.2), 0 6px 18px rgba(45, 106, 79, 0.28);
-      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-    }
-    .section-header .btn.btn-primary:hover {
-      background: var(--green-dark) !important;
-      transform: translateY(-1px);
-    }
-
-    .dashboard-section { margin-bottom: 48px; }
-
-    /* ---------- Trip grid & trip cards ----------
-       app.js renders: .trip-card > h3, .trip-meta > .trip-badge*, .trip-date,
-       .trip-actions > .btn.btn-primary + .btn.btn-danger.
-       We skin them and then enhance via the small script at the bottom. */
-    .trips-grid {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
-      gap: 22px !important;
-    }
-    .trip-card {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
-      border-radius: var(--radius) !important;
-      padding: 22px !important;
-      box-shadow: var(--shadow-sm) !important;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 14px !important;
-      position: relative;
-    }
-    .trip-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-md) !important;
-      border-color: rgba(82, 183, 136, 0.45) !important;
-    }
-    .trip-card h3 {
-      font-family: 'Inter', sans-serif !important;
-      font-size: 1.05rem !important;
-      font-weight: 700 !important;
-      color: var(--ink) !important;
-      margin: 0 !important;
-      letter-spacing: -0.005em;
-    }
-    .trip-meta {
-      display: flex !important;
-      flex-wrap: wrap !important;
-      gap: 6px !important;
-    }
-    .trip-badge {
-      background: var(--green-pale) !important;
-      color: var(--green-dark) !important;
-      border-radius: 999px !important;
-      padding: 4px 10px !important;
-      font-size: 0.72rem !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.01em;
-      text-transform: capitalize;
-    }
-    /* Season badges are rendered by app.js renderSeasonBadge() with
-       inline styles using !important so each season gets its own emoji
-       palette (see SEASON_EMOJI in app.js). Plain .trip-badge rules
-       above still apply for padding / radius / font. */
-    .trip-date {
-      font-size: 0.78rem !important;
-      color: var(--ink-soft) !important;
-      font-weight: 500 !important;
-    }
-    /* Terrain emoji row — injected by script below. Emoji sits top-left,
-       above the trip name. Created-date stays in its original spot. */
-    .tp-card-top {
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      margin-bottom: -4px;
-    }
-    .tp-card-top .tp-terrain-emoji {
-      font-size: 1.75rem !important;
-      line-height: 1;
-      display: inline-block;
-    }
-    /* Progress block */
-    .tp-progress-block {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-top: 2px;
-    }
-    .tp-progress-label {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.78rem;
-      color: var(--ink-soft);
-      font-weight: 500;
-    }
-    .tp-progress-label strong {
-      color: var(--ink);
-      font-weight: 600;
-    }
-    .tp-progress-bar {
-      height: 8px;
-      width: 100%;
-      background: var(--green-pale);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .tp-progress-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--green-light), var(--green));
-      border-radius: 999px;
-      transition: width 0.5s ease;
-    }
-
-    /* Trip card buttons */
-    .trip-actions {
-      display: flex !important;
-      gap: 10px !important;
-      margin-top: auto !important;
-    }
-    .trip-card .trip-actions .btn {
-      font-family: 'Inter', sans-serif !important;
-      font-weight: 600 !important;
-      font-size: 0.82rem !important;
-      padding: 9px 16px !important;
-      border-radius: 999px !important;
-      border: 0 !important;
-      cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .trip-card .trip-actions .btn.btn-primary {
-      background: var(--green) !important;
-      color: #fff !important;
-      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
-    }
-    .trip-card .trip-actions .btn.btn-primary:hover {
-      background: var(--green-dark) !important;
-      transform: translateY(-1px);
-    }
-    .trip-card .trip-actions .btn.btn-danger {
-      background: transparent !important;
-      color: var(--danger) !important;
-      border: 1px solid var(--danger) !important;
-    }
-    .trip-card .trip-actions .btn.btn-danger:hover {
-      background: var(--danger) !important;
-      color: #fff !important;
-    }
-
-    /* ---------- Empty state ---------- */
-    .empty-state {
-      background: var(--surface);
-      border: 1px dashed var(--line);
-      border-radius: var(--radius);
-      padding: 48px 24px;
-      text-align: center;
-      box-shadow: var(--shadow-sm);
-    }
-    .empty-state .empty-icon { font-size: 2.75rem; margin-bottom: 12px; }
-    .empty-state h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 600;
-      font-size: 1.4rem;
-      color: var(--ink);
-      margin: 0 0 6px;
-    }
-    .empty-state p {
-      color: var(--ink-soft);
-      margin: 0 0 18px;
-    }
-    .empty-state .btn.btn-primary {
-      background: var(--green) !important;
-      color: #fff !important;
-      border: 0 !important;
-      padding: 10px 22px !important;
-      border-radius: 999px !important;
-      font-weight: 600 !important;
-      cursor: pointer;
-    }
-
-    /* ---------- Create Trip modal ---------- */
-    .tp-ct-overlay {
-      position: fixed; inset: 0;
-      background: rgba(15, 36, 28, 0.45);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1200;
-      opacity: 0;
-      transition: opacity 0.22s ease;
-    }
-    .tp-ct-overlay.open { opacity: 1; }
-    .tp-ct-modal {
-      background: var(--surface);
-      border-radius: 18px;
-      width: min(520px, 92vw);
-      padding: 28px 28px 24px;
-      box-shadow: 0 30px 80px rgba(15, 36, 28, 0.35);
-      transform: translateY(24px) scale(0.98);
-      opacity: 0;
-      transition: transform 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.22s ease;
-    }
-    .tp-ct-overlay.open .tp-ct-modal {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-    .tp-ct-modal h3 {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--ink);
-      margin: 0 0 4px;
-    }
-    .tp-ct-modal p.tp-ct-sub {
-      color: var(--ink-soft);
-      margin: 0 0 20px;
-      font-size: 0.92rem;
-    }
-    .tp-ct-modal .tp-field {
-      display: flex; flex-direction: column;
-      margin-bottom: 14px;
-    }
-    .tp-ct-modal .tp-field label {
-      font-size: 0.78rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--ink-soft);
-      margin-bottom: 6px;
-    }
-    .tp-ct-modal input,
-    .tp-ct-modal select {
-      font-family: inherit;
-      font-size: 0.95rem;
-      padding: 11px 14px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #fff;
-      color: var(--ink);
-      outline: none;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .tp-ct-modal input:focus,
-    .tp-ct-modal select:focus {
-      border-color: var(--green-light);
-      box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.18);
-    }
-    .tp-ct-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-    .tp-ct-actions {
-      display: flex; justify-content: flex-end; gap: 10px;
-      margin-top: 18px;
-    }
-    .tp-ct-actions button {
-      font-family: 'Inter', sans-serif;
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 10px 20px;
-      border-radius: 999px;
-      border: 0;
-      cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease;
-    }
-    .tp-ct-cancel {
-      background: transparent;
-      color: var(--ink-soft);
-      border: 1px solid var(--line) !important;
-    }
-    .tp-ct-cancel:hover {
-      background: var(--cream);
-      color: var(--ink);
-    }
-    .tp-ct-confirm {
-      background: var(--green);
-      color: #fff;
-      box-shadow: 0 6px 18px rgba(45, 106, 79, 0.28);
-    }
-    .tp-ct-confirm:hover { background: var(--green-dark); transform: translateY(-1px); }
-    .tp-ct-confirm:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-
-    /* ---------- Destination autocomplete ---------- */
-    .tp-ac-wrap { position: relative; }
-    .tp-ac-dropdown {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0;
-      right: 0;
-      background: #fff;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(15, 36, 28, 0.12);
-      max-height: 260px;
-      overflow-y: auto;
-      z-index: 50;
-      padding: 4px;
-    }
-    html[data-theme="dark"] .tp-ac-dropdown { background: var(--surface); border-color: var(--line); }
-    .tp-ac-item {
-      padding: 9px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13.5px;
-      color: var(--ink);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      transition: background-color .12s ease, color .12s ease;
-    }
-    .tp-ac-item:hover, .tp-ac-item.is-active {
-      background: rgba(122, 158, 126, 0.18);
-      color: var(--green-dark);
-    }
-    html[data-theme="dark"] .tp-ac-item:hover, html[data-theme="dark"] .tp-ac-item.is-active {
-      background: rgba(82, 183, 136, 0.20);
-      color: #DDF1E2;
-    }
-    .tp-ac-item .ac-name { font-weight: 600; }
-    .tp-ac-item .ac-meta { font-size: 11.5px; color: var(--ink-soft); }
-    .tp-ac-item:hover .ac-meta, .tp-ac-item.is-active .ac-meta {
-      color: var(--green-dark);
-      opacity: 0.85;
-    }
-    html[data-theme="dark"] .tp-ac-item:hover .ac-meta, html[data-theme="dark"] .tp-ac-item.is-active .ac-meta {
-      color: #BFE0C8;
-    }
-    .tp-ac-empty {
-      padding: 9px 12px;
-      font-size: 13px;
-      color: var(--ink-soft);
-    }
-    .tp-ac-hint {
-      font-size: 11.5px;
-      color: var(--ink-soft);
-      margin: 4px 0 0 0;
-    }
-    .tp-ac-hint.is-confirmed { color: var(--green); font-weight: 500; }
-
-    /* ---------- Date ↔ duration sync hint ---------- */
-    .tp-date-hint {
-      font-size: 12px;
-      color: var(--green);
-      font-weight: 500;
-      margin: -4px 0 4px 2px;
-      letter-spacing: 0.005em;
-    }
-    html[data-theme="dark"] .tp-date-hint { color: var(--green-light); }
-
-    /* ---------- Style ui.js confirm modal + toast to match the design ---------- */
-    .tp-modal-overlay {
-      background: rgba(15, 36, 28, 0.45) !important;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
-    .tp-modal {
-      border-radius: 18px !important;
-      box-shadow: 0 30px 80px rgba(15, 36, 28, 0.35) !important;
-      padding: 26px !important;
-      font-family: 'Inter', sans-serif !important;
-    }
-    .tp-modal-title {
-      font-family: 'Playfair Display', Georgia, serif !important;
-      font-weight: 600 !important;
-      font-size: 1.3rem !important;
-      color: var(--ink) !important;
-    }
-    .tp-modal-body {
-      color: var(--ink-soft) !important;
-      font-size: 0.95rem !important;
-    }
-    .tp-modal-actions .btn {
-      border-radius: 999px !important;
-      padding: 10px 20px !important;
-      font-weight: 600 !important;
-    }
-    .tp-modal-actions .tp-modal-cancel {
-      background: transparent !important;
-      border: 1px solid var(--line) !important;
-      color: var(--ink-soft) !important;
-    }
-    .tp-modal-actions .tp-modal-confirm {
-      background: var(--danger) !important;
-      color: #fff !important;
-      border: 0 !important;
-    }
-
-    /* Toasts — dark forest green, bottom-right, slide up */
-    .tp-toast-container {
-      bottom: 24px !important;
-      right: 24px !important;
-      left: auto !important;
-      top: auto !important;
-    }
-    .tp-toast {
-      background: var(--green-dark) !important;
-      color: #fff !important;
-      border-radius: 12px !important;
-      padding: 12px 16px !important;
-      font-family: 'Inter', sans-serif !important;
-      box-shadow: 0 18px 40px rgba(15, 36, 28, 0.35) !important;
-      animation: tp-toast-rise 0.25s ease-out both;
-    }
-    .tp-toast-success { background: var(--green) !important; }
-    .tp-toast-error   { background: var(--danger) !important; }
-    .tp-toast-warning { background: #B45309 !important; }
-    @keyframes tp-toast-rise {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0);    }
-    }
-
-    /* ---------- Responsive ---------- */
-    @media (max-width: 900px) {
-      .stats-bar { grid-template-columns: repeat(2, 1fr) !important; }
-      .navbar { padding: 16px 20px !important; }
-      .nav-user .user-name,
-      .nav-user #user-info { display: none !important; }
-    }
-    @media (max-width: 560px) {
-      .stats-bar { grid-template-columns: 1fr !important; }
-      main.container { padding: 0 16px !important; }
-      .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-      .trip-card .trip-actions { flex-direction: column; }
-      .trip-card .trip-actions .btn { width: 100%; }
-    }
-
-    /* =========================================================================
-       Dashboard polish v2 — design system parity with admin / organizer pages.
-       ========================================================================= */
-
-    /* Stat cards: colored left accents + Playfair display numbers */
-    .stats-bar .stat-card {
-      position: relative;
-      overflow: hidden;
-      padding: 22px 22px 20px 26px !important;
-    }
-    .stats-bar .stat-card::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 5px;
-      background: var(--green);
-    }
-    .stats-bar .stat-card:nth-child(1)::before { background: #2D6A4F; }            /* sage green */
-    .stats-bar .stat-card:nth-child(2)::before { background: #C4704F; }            /* terracotta */
-    .stats-bar .stat-card:nth-child(3)::before { background: #6B8FA6; }            /* dusty blue */
-    .stats-bar .stat-card:nth-child(4)::before { background: #C4A84F; }            /* golden */
-
-    .stats-bar .stat-card:nth-child(1) .stat-icon { background: rgba(45,106,79,0.12) !important; color: #2D6A4F !important; }
-    .stats-bar .stat-card:nth-child(2) .stat-icon { background: rgba(196,112,79,0.14) !important; color: #C4704F !important; }
-    .stats-bar .stat-card:nth-child(3) .stat-icon { background: rgba(107,143,166,0.16) !important; color: #4F7287 !important; }
-    .stats-bar .stat-card:nth-child(4) .stat-icon { background: rgba(196,168,79,0.18) !important; color: #8B7833 !important; }
-
-    .stats-bar .stat-card .stat-value {
-      font-family: 'Playfair Display', Georgia, serif !important;
-      font-size: 2.6rem !important;
-      font-weight: 700 !important;
-      line-height: 1 !important;
-      letter-spacing: -0.01em !important;
-    }
-    .stats-bar .stat-card .stat-label {
-      font-size: 0.7rem !important;
-      letter-spacing: 0.09em !important;
-    }
-    .stats-bar .stat-card:hover { transform: translateY(-3px); }
-
-    /* "Your Trips" section: wrap header + filters + content in one unified card */
-    main.container > section.dashboard-section {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 24px 26px;
-      box-shadow: var(--shadow-sm);
-      margin-bottom: 24px !important;
-    }
-    main.container > section.dashboard-section .section-header { margin-bottom: 14px !important; }
-    main.container > section.dashboard-section .section-header h2 { font-size: 1.55rem !important; }
-    main.container > section.dashboard-section .filter-tabs { margin: 0 0 18px !important; }
-
-    /* Section CTA pill — slightly tighter */
-    main.container > section.dashboard-section .section-header .btn.btn-primary {
-      font-size: 0.85rem !important;
-      padding: 9px 18px !important;
-    }
-
-    /* Empty state inside the section card — softer, no extra shadow */
-    main.container > section.dashboard-section .empty-state {
-      background: #FCFAF6;
-      border: 1px dashed var(--line);
-      box-shadow: none !important;
-      padding: 44px 24px !important;
-      margin-top: 4px;
-    }
-    html[data-theme="dark"] main.container > section.dashboard-section .empty-state {
-      background: rgba(255,255,255,0.02);
-    }
-    main.container > section.dashboard-section .empty-state .empty-icon { font-size: 2.4rem; margin-bottom: 10px; }
-    main.container > section.dashboard-section .empty-state h3 { font-size: 1.25rem; }
-    main.container > section.dashboard-section .empty-state p { font-size: 0.92rem; }
-
-    /* "Shared With Me" section — same card treatment but only when visible */
-    #shared-trips-section[style*="display: none"] { display: none !important; }
-
-    @media (max-width: 600px) {
-      main.container > section.dashboard-section { padding: 18px 16px; border-radius: 14px; }
-      .stats-bar .stat-card .stat-value { font-size: 2.2rem !important; }
-    }
-  </style>
+  <!-- Shared dashboard styles (also used by my-trips.html). -->
+  <link rel="stylesheet" href="dashboard-light.css">
 </head>
-<body>
+<body class="dash-light">
   <nav class="navbar">
     <div class="nav-brand">
       <span class="logo-mark" aria-hidden="true">
-        <!-- Mountain mark in --green-light -->
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
           <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
@@ -809,86 +301,416 @@
       <h1 class="brand-text">TrailPack</h1>
     </div>
     <div class="nav-user">
-      <span id="user-info" class="user-name"></span>
-      <a href="history.html" class="btn">History</a>
+      <!--
+        Avatar + online indicator wrapper. The .user-greeting class is
+        recognised by nav-menu.js's isUserDisplayEl() so this block stays
+        in the navbar instead of being moved into the hamburger dropdown.
+        #user-info is preserved verbatim for app.js's textContent setter.
+      -->
+      <span class="user-greeting nav-user-block">
+        <span class="nav-avatar" id="nav-avatar" aria-hidden="true">•</span>
+        <span class="nav-user-text">
+          <span id="user-info" class="user-name"></span>
+        </span>
+      </span>
       <a href="profile.html" class="btn">Profile</a>
-      <button id="theme-toggle" class="btn" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
       <button class="btn btn-logout" id="logout-btn" type="button" onclick="logout()">Logout</button>
     </div>
   </nav>
 
+  <!-- Hero banner: dynamic time-based greeting + upcoming-trip count.
+       Populated by updateHero() in the boot block. -->
+  <section class="dash-hero" aria-label="Welcome">
+    <div class="dash-hero__inner">
+      <div class="dash-hero__copy">
+        <h2 class="dash-hero__greeting" id="dash-greeting">Welcome back 🏕️</h2>
+        <p class="dash-hero__sub" id="dash-hero-sub">Plan Smart. Pack Light. Hike Better.</p>
+      </div>
+      <svg class="dash-hero__art" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <!-- Muted, airy palette to match the soft sage hero panel. -->
+        <!-- Sun -->
+        <circle cx="230" cy="58" r="20" fill="#f5c842" opacity="0.55"/>
+        <circle cx="230" cy="58" r="30" fill="#f5c842" opacity="0.12"/>
+        <!-- Back mountain (lighter sage) -->
+        <path d="M0,180 L0,120 L70,55 L140,110 L200,70 L280,130 L320,100 L320,180 Z" fill="#b7d9c4"/>
+        <!-- Front mountain (deep green) with snow caps -->
+        <path d="M0,180 L0,150 L50,95 L110,140 L170,105 L250,160 L320,135 L320,180 Z" fill="#2d6a4f"/>
+        <path d="M44,103 L50,95 L56,103 L62,98 L66,103 L52,113 Z" fill="#ffffff" opacity="0.95"/>
+        <path d="M163,113 L170,105 L177,113 L181,109 L185,114 L172,122 Z" fill="#ffffff" opacity="0.95"/>
+        <!-- Trees -->
+        <g fill="#2d6a4f">
+          <polygon points="205,180 215,158 225,180"/>
+          <polygon points="218,180 228,150 238,180"/>
+          <polygon points="232,180 242,160 252,180"/>
+        </g>
+        <!-- Tent -->
+        <g>
+          <polygon points="258,175 280,140 302,175" fill="#40916c"/>
+          <polygon points="275,175 280,140 285,175" fill="#2d6a4f"/>
+        </g>
+      </svg>
+    </div>
+  </section>
+
   <main class="container">
     <!-- Stats Bar -->
     <div class="stats-bar">
-      <div class="stat-card">
-        <div class="stat-icon">🗺️</div>
+      <div class="stat-card" data-accent="green">
         <div class="stat-content">
           <div class="stat-value" id="stat-trips">0</div>
           <div class="stat-label">Total Trips</div>
         </div>
+        <div class="stat-icon">🗺️</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">📦</div>
+      <div class="stat-card" data-accent="orange">
         <div class="stat-content">
           <div class="stat-value" id="stat-items">0</div>
           <div class="stat-label">Total Items</div>
         </div>
+        <div class="stat-icon">📦</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">✅</div>
+      <div class="stat-card" data-accent="blue">
         <div class="stat-content">
           <div class="stat-value" id="stat-packed">0</div>
           <div class="stat-label">Packed</div>
         </div>
+        <div class="stat-icon">✅</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-icon">📊</div>
+      <div class="stat-card" data-accent="purple">
         <div class="stat-content">
           <div class="stat-value" id="stat-percentage">0%</div>
           <div class="stat-label">Progress</div>
         </div>
+        <div class="stat-icon">📊</div>
       </div>
     </div>
 
-    <!-- Dashboard Section -->
-    <section class="dashboard-section">
-      <div class="section-header">
-        <div class="section-header-left">
-          <h2>Your Trips</h2>
-          <p class="section-sub">Plan smart. Pack light. Hike better.</p>
+    <!-- ===== DISCOVER SECTION START ===== -->
+<section id="discoverSection">
+
+  <div style="background:#fff; padding:28px 28px 0; border-bottom:1px solid rgba(0,0,0,.09);">
+    <div style="max-width:1240px; margin:0 auto;">
+
+      <!-- Tabs -->
+      <div style="display:flex; gap:2px; margin-bottom:18px;">
+        <button onclick="setDiscoverTab(this)" style="padding:8px 18px; border-radius:9999px; font-size:.875rem; font-weight:600; border:1.5px solid #374151; background:#fff; color:#111; cursor:pointer; font-family:inherit;">Destination</button>
+        <button onclick="setDiscoverTab(this)" style="padding:8px 18px; border-radius:9999px; font-size:.875rem; font-weight:600; border:1.5px solid transparent; background:none; color:#6b7280; cursor:pointer; font-family:inherit;">Road Trip</button>
+      </div>
+
+      <!-- Search Bar -->
+      <div style="position:relative; width:100%;">
+        <div style="display:flex; align-items:center; background:#fff; border:1.5px solid #d1d5db; border-radius:9999px; height:52px; box-shadow:0 3px 12px rgba(0,0,0,.08);">
+
+          <!-- Location Field -->
+          <div id="discoverLocField" onclick="toggleLocDropdown(event)" style="display:flex; align-items:center; gap:10px; padding:0 20px; cursor:pointer; flex:2.2; height:100%; border-radius:9999px; border:none; background:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div style="flex:1; min-width:0;">
+              <span style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#374151; display:block;">Location</span>
+              <input id="discoverLocInput" type="text" placeholder="Search destinations" autocomplete="off"
+                onclick="toggleLocDropdown(event)" oninput="onDiscoverLocInput(this.value)"
+                style="border:none; background:none; font-family:inherit; font-size:.855rem; color:#111; outline:none; width:100%; cursor:pointer;">
+            </div>
+          </div>
+
+          <div style="width:1px; background:#e5e7eb; height:30px; flex-shrink:0;"></div>
+
+          <!-- Radius Field -->
+          <div id="discoverRadiusField" onclick="toggleRadiusPopover(event)" style="display:flex; align-items:center; gap:10px; padding:0 20px; cursor:pointer; min-width:136px; height:100%; border-radius:9999px; border:none; background:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
+            <div>
+              <span style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#374151; display:block;">Radius</span>
+              <span id="discoverRadiusDisplay" style="font-size:.855rem; color:#6b7280;">25 miles</span>
+            </div>
+          </div>
+
+          <div style="width:1px; background:#e5e7eb; height:30px; flex-shrink:0;"></div>
+
+          <!-- Difficulty Field -->
+          <div onclick="cycleDiscoverDifficulty()" style="display:flex; align-items:center; gap:10px; padding:0 20px; cursor:pointer; min-width:126px; height:100%; border-radius:9999px; border:none; background:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <div>
+              <span style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#374151; display:block;">Difficulty</span>
+              <span id="discoverDiffDisplay" style="font-size:.855rem; color:#6b7280;">Any level</span>
+            </div>
+          </div>
+
+          <!-- Search Button -->
+          <button onclick="triggerDiscoverSearch()" style="background:#2d6a4f; color:#fff; border:none; border-radius:9999px; padding:0 22px; font-size:.84rem; font-weight:700; display:flex; align-items:center; gap:7px; height:40px; margin:6px 6px 6px 0; white-space:nowrap; cursor:pointer; font-family:inherit;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Search Trails
+          </button>
         </div>
-        <button class="btn btn-primary" id="open-create-trip">+ Create New Trip</button>
+
+        <!-- Location Dropdown (hidden by default) -->
+        <div id="discoverLocDropdown" style="position:absolute; top:calc(100% + 10px); left:0; width:380px; background:#fff; border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,.15); border:1px solid rgba(0,0,0,.08); z-index:400; overflow:hidden; display:none;">
+          <div onclick="useDiscoverNearby()" style="display:flex; align-items:center; gap:12px; padding:11px 16px; cursor:pointer;">
+            <div style="width:40px; height:40px; border-radius:10px; background:#ecfdf5; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#2d6a4f;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+            <div>
+              <div style="font-weight:600; font-size:.9rem; color:#111;">Nearby</div>
+              <div style="font-size:.775rem; color:#9ca3af;">Use your current location</div>
+            </div>
+          </div>
+          <div style="padding:10px 16px 4px; font-size:.68rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:#d1d5db; border-top:1px solid #f3f4f6;">Popular destinations</div>
+          <div id="discoverCityList">
+            <div onclick="discoverPickCity('Chicago, Illinois',41.8781,-87.6298)" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;"><div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div style="font-weight:600;font-size:.9rem;color:#111;">Chicago, Illinois</div><div style="font-size:.775rem;color:#9ca3af;">United States</div></div></div>
+            <div onclick="discoverPickCity('Denver, Colorado',39.7392,-104.9903)" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;"><div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div style="font-weight:600;font-size:.9rem;color:#111;">Denver, Colorado</div><div style="font-size:.775rem;color:#9ca3af;">United States</div></div></div>
+            <div onclick="discoverPickCity('Seattle, Washington',47.6062,-122.3321)" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;"><div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div style="font-weight:600;font-size:.9rem;color:#111;">Seattle, Washington</div><div style="font-size:.775rem;color:#9ca3af;">United States</div></div></div>
+            <div onclick="discoverPickCity('Austin, Texas',30.2672,-97.7431)" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;"><div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div style="font-weight:600;font-size:.9rem;color:#111;">Austin, Texas</div><div style="font-size:.775rem;color:#9ca3af;">United States</div></div></div>
+            <div onclick="discoverPickCity('Atlanta, Georgia',33.7490,-84.3880)" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;"><div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div style="font-weight:600;font-size:.9rem;color:#111;">Atlanta, Georgia</div><div style="font-size:.775rem;color:#9ca3af;">United States</div></div></div>
+          </div>
+        </div>
+
+        <!-- Radius Popover (hidden by default) -->
+        <div id="discoverRadiusPopover" style="position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); width:280px; background:#fff; border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,.15); border:1px solid rgba(0,0,0,.08); z-index:400; padding:22px; display:none;">
+          <div style="font-weight:700; font-size:.875rem; color:#111; margin-bottom:14px;">Search Radius</div>
+          <div id="discoverRadiusBig" style="font-size:2.4rem; font-weight:800; color:#2d6a4f; text-align:center; margin-bottom:12px;">25 miles</div>
+          <input type="range" id="discoverRadiusSlider" min="1" max="50" value="25" oninput="updateDiscoverRadius(this.value)" style="width:100%; accent-color:#2d6a4f; cursor:pointer; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; font-size:.75rem; color:#9ca3af; margin-bottom:16px;"><span>1 mi</span><span>50 mi</span></div>
+          <button onclick="applyDiscoverRadius()" style="width:100%; padding:10px; background:#2d6a4f; color:#fff; border:none; border-radius:10px; font-weight:700; font-size:.875rem; cursor:pointer; font-family:inherit;">Apply</button>
+        </div>
       </div>
 
-      <div class="filter-tabs" id="trip-filters" role="tablist" aria-label="Filter trips by terrain">
-        <button type="button" class="filter-tab is-active" data-filter="all" role="tab" aria-selected="true">All</button>
-        <button type="button" class="filter-tab" data-filter="mountain" role="tab" aria-selected="false"><span aria-hidden="true">🏔️</span> Mountain</button>
-        <button type="button" class="filter-tab" data-filter="forest" role="tab" aria-selected="false"><span aria-hidden="true">🌲</span> Forest</button>
-        <button type="button" class="filter-tab" data-filter="desert" role="tab" aria-selected="false"><span aria-hidden="true">🏜️</span> Desert</button>
+      <!-- Filter Pills -->
+      <div style="display:flex; gap:8px; padding:16px 0; overflow-x:auto; scrollbar-width:none;">
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #111; background:#111; color:#fff; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">All Trails</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">🌲 Forest</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">⛰️ Mountain</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">🏖️ Beach / Lake</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">🏜️ Desert</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">Free Entry</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">Easy Difficulty</button>
+        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">Open Now</button>
       </div>
 
-      <div id="trips-container" class="trips-grid">
-        <!-- Trips rendered by app.js; enhanced below -->
+    </div>
+  </div>
+
+  <!-- ===== Discover home content (Hipcamp-style) =====
+       Quick action tiles, themed carousels, feature tiles, and SEO link
+       grid. Carousels are populated by renderDiscoverHome() in the
+       discover script block below. Hidden the first time the user runs
+       a real search (see fetchDiscoverTrails -> hides this, shows
+       #discoverResultsBlock). -->
+  <div id="discoverHomeContent" class="disc-home-wrap">
+
+    <!-- Quick action tiles -->
+    <div class="disc-section">
+      <div class="disc-section-head">
+        <div>
+          <h2 class="disc-section-title">Find your next adventure</h2>
+          <p class="disc-section-sub">One-tap shortcuts to popular searches</p>
+        </div>
+      </div>
+      <div class="disc-quick-tiles">
+        <button type="button" class="disc-quick-tile qt-1" onclick="useDiscoverNearby()">
+          <span class="qt-icon">📍</span>
+          <span class="qt-title">Trails near me</span>
+          <span class="qt-sub">Use my current location</span>
+        </button>
+        <button type="button" class="disc-quick-tile qt-2" onclick="discoverPickCity('Yosemite National Park, California',37.8651,-119.5383)">
+          <span class="qt-icon">🏔️</span>
+          <span class="qt-title">National parks</span>
+          <span class="qt-sub">America's wildest places</span>
+        </button>
+        <button type="button" class="disc-quick-tile qt-3" onclick="discoverPickCity('Great Smoky Mountains, Tennessee',35.6532,-83.5070)">
+          <span class="qt-icon">🥾</span>
+          <span class="qt-title">Easy day hikes</span>
+          <span class="qt-sub">Beginner-friendly trails</span>
+        </button>
+        <button type="button" class="disc-quick-tile qt-4" onclick="discoverPickCity('Shenandoah National Park, Virginia',38.5333,-78.3500)">
+          <span class="qt-icon">🧒</span>
+          <span class="qt-title">Family friendly</span>
+          <span class="qt-sub">Short, kid-safe loops</span>
+        </button>
+        <button type="button" class="disc-quick-tile qt-5" onclick="discoverPickCity('Acadia National Park, Maine',44.3386,-68.2733)">
+          <span class="qt-icon">🐾</span>
+          <span class="qt-title">Pet friendly</span>
+          <span class="qt-sub">Trails that welcome your dog</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Top National Parks -->
+    <div class="disc-section">
+      <div class="disc-section-head">
+        <div>
+          <h2 class="disc-section-title">Top National Parks</h2>
+          <p class="disc-section-sub">Iconic American landscapes worth the drive</p>
+        </div>
+        <a class="disc-section-link" onclick="useDiscoverNearby()">Search nearby →</a>
+      </div>
+      <div class="disc-row" id="discoverRowParks"></div>
+    </div>
+
+    <!-- ===== More to Discover (collapsible) =====
+         Wraps the four category rows (Forest favorites / Mountain
+         classics / Lake & waterfall / Desert adventures). Hidden by
+         default; the toggle button below expands the region with a
+         smooth max-height transition and rotates the chevron 180°.
+         The map + search at the top of the Discover section stay
+         outside this wrapper and are unaffected. The discover JS
+         still populates every row regardless of visibility — no new
+         API calls, just show/hide. -->
+    <div class="disc-more-wrap">
+      <button type="button" id="disc-more-toggle" class="disc-more-toggle"
+              aria-expanded="false" aria-controls="disc-more-region">
+        <span class="disc-more-label">More to Discover</span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="disc-more" id="disc-more-region" role="region"
+         aria-labelledby="disc-more-toggle">
+      <!-- Forest favorites -->
+      <div class="disc-section">
+        <div class="disc-section-head">
+          <div>
+            <h2 class="disc-section-title">Forest favorites</h2>
+            <p class="disc-section-sub">Old-growth groves and shaded trails</p>
+          </div>
+        </div>
+        <div class="disc-row" id="discoverRowForest"></div>
       </div>
 
-      <div id="empty-state" class="empty-state" style="display: none;">
-        <div class="empty-icon">🏕️</div>
-        <h3>No trips yet</h3>
-        <p>Create your first camping trip to get started!</p>
-        <button class="btn btn-primary" id="open-create-trip-empty">Create Trip</button>
+      <!-- Mountain classics -->
+      <div class="disc-section">
+        <div class="disc-section-head">
+          <div>
+            <h2 class="disc-section-title">Mountain classics</h2>
+            <p class="disc-section-sub">High passes, alpine lakes, and big views</p>
+          </div>
+        </div>
+        <div class="disc-row" id="discoverRowMountain"></div>
       </div>
-    </section>
 
-    <!-- Shared With Me Section -->
-    <section class="dashboard-section" id="shared-trips-section" style="display: none;">
-      <div class="section-header">
-        <h2>Shared With Me</h2>
+      <!-- Lake & waterfall -->
+      <div class="disc-section">
+        <div class="disc-section-head">
+          <div>
+            <h2 class="disc-section-title">Lake &amp; waterfall hikes</h2>
+            <p class="disc-section-sub">Cool down by the water</p>
+          </div>
+        </div>
+        <div class="disc-row" id="discoverRowLake"></div>
       </div>
-      <div id="shared-trips-container" class="trips-grid"></div>
-    </section>
+
+      <!-- Desert adventures -->
+      <div class="disc-section">
+        <div class="disc-section-head">
+          <div>
+            <h2 class="disc-section-title">Desert adventures</h2>
+            <p class="disc-section-sub">Slot canyons, dunes, and red rock country</p>
+          </div>
+        </div>
+        <div class="disc-row" id="discoverRowDesert"></div>
+      </div>
+    </div>
+
+    <!-- Trust strip -->
+    <div class="disc-section">
+      <div class="disc-promo">
+        <div class="disc-promo-icon">🎒</div>
+        <div>
+          <p class="disc-promo-title">Free packing checklists, generated for your trip</p>
+          <p class="disc-promo-sub">TrailPack tailors your gear list to terrain, season, and group size. No guesswork — just pack and go.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature tiles -->
+    <div class="disc-section">
+      <div class="disc-section-head">
+        <div>
+          <h2 class="disc-section-title">Plan smart. Pack light.</h2>
+          <p class="disc-section-sub">Tools to make your next trip easier</p>
+        </div>
+      </div>
+      <div class="disc-feat-grid">
+        <a class="disc-feat-tile" href="my-trips.html">
+          <span class="disc-feat-icon">⛺</span>
+          <p class="disc-feat-title">Plan a new trip</p>
+          <p class="disc-feat-sub">Generate a personalized packing checklist for your terrain and season.</p>
+        </a>
+        <button type="button" class="disc-feat-tile" onclick="useDiscoverNearby()">
+          <span class="disc-feat-icon">🗺️</span>
+          <p class="disc-feat-title">Live trail map</p>
+          <p class="disc-feat-sub">See real trails, parks, and campsites pulled from OpenStreetMap.</p>
+        </button>
+        <a class="disc-feat-tile" href="my-trips.html">
+          <span class="disc-feat-icon">📋</span>
+          <p class="disc-feat-title">My trips</p>
+          <p class="disc-feat-sub">Pick up where you left off. Track packing progress across every trip.</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- SEO link grid -->
+    <div class="disc-section">
+      <div class="disc-section-head">
+        <div>
+          <h2 class="disc-section-title">Browse by destination</h2>
+          <p class="disc-section-sub">Jump straight to a state, park, or city</p>
+        </div>
+      </div>
+      <div class="disc-link-cols">
+        <div>
+          <h4 class="disc-link-col-title">Top National Parks</h4>
+          <div class="disc-link-list" id="discoverLinksParks"></div>
+        </div>
+        <div>
+          <h4 class="disc-link-col-title">Popular states</h4>
+          <div class="disc-link-list" id="discoverLinksStates"></div>
+        </div>
+        <div>
+          <h4 class="disc-link-col-title">Cities</h4>
+          <div class="disc-link-list" id="discoverLinksCities"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Results + Map (hidden until first search; revealed by fetchDiscoverTrails). -->
+  <div id="discoverResultsBlock" style="display:none; max-width:1240px; margin:0 auto; padding:24px 28px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+      <div id="discoverResCount" style="font-size:.875rem; color:#6b7280;">
+        Click <strong style="color:#111;">Search Trails</strong> or choose <strong style="color:#111;">Nearby</strong> to discover trails
+      </div>
+      <div style="font-size:.8rem; color:#9ca3af;">Nearest first</div>
+      <button type="button" onclick="discoverHomeShow()" style="margin-left:14px; padding:7px 14px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit;">← Back to Discover</button>
+    </div>
+    <!-- Grid columns are switched to "1fr" while the map is hidden so the
+         results panel uses the full width; flipped back to "1fr 420px" the
+         first time fetchDiscoverTrails() runs (Nearby / city pick / Search). -->
+    <div id="discoverGrid" style="display:grid; grid-template-columns:1fr; gap:24px; align-items:start;">
+      <div id="discoverTrailResults" style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
+        <div style="grid-column:1/-1; display:flex; flex-direction:column; align-items:center; padding:70px 0; gap:14px; text-align:center;">
+          <div style="font-size:4.5rem;">🗺️</div>
+          <h3 style="font-size:1.1rem; font-weight:700;">Discover trails near you</h3>
+          <p style="font-size:.875rem; color:#6b7280; max-width:30ch;">Select a city or click Nearby to find real trails on the live map</p>
+        </div>
+      </div>
+      <div id="discoverMapWrap" style="position:sticky; top:80px; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.10); border:1px solid rgba(0,0,0,.08); display:none;">
+        <div id="discoverMap" style="height:580px;"></div>
+      </div>
+    </div>
+  </div>
+
+</section>
+<!-- ===== DISCOVER SECTION END ===== -->
+
   </main>
 
-  <!-- ================= Create Trip modal ================= -->
+  <!-- ================= Create Trip modal =================
+       Mirrors the modal in my-trips.html so "Plan This Trip" on Discover
+       trail cards can open the planner without leaving the dashboard.
+       Wiring + submit handler live in dashboard-light.js. -->
   <div class="tp-ct-overlay" id="tp-ct-overlay" aria-hidden="true" role="dialog" aria-labelledby="tp-ct-title">
     <div class="tp-ct-modal">
       <h3 id="tp-ct-title">Plan a new trip</h3>
@@ -942,7 +764,6 @@
             <input id="tp-ct-end" name="endDate" type="date">
           </div>
           <script>
-            // Block past dates: set min on both date inputs to today on every modal open.
             (function () {
               function todayISO() {
                 const d = new Date();
@@ -981,537 +802,456 @@
     </div>
   </div>
 
+  <!-- ================= Page footer ================= -->
+  <footer class="site-footer" role="contentinfo">
+    <p>© 2026 TrailPack — Plan smart. Pack light. Hike better.</p>
+  </footer>
+
   <script src="config.js"></script>
   <script src="ui.js"></script>
   <script src="app.js"></script>
-  <script>
-    // ---------- Boot ----------
-    document.addEventListener('DOMContentLoaded', () => {
-      checkAuth();
-      loadTrips();
-      loadStats();
-      if (typeof loadSharedTrips === 'function') loadSharedTrips();
+  <!-- Shared dashboard boot (hero greeting, theme, modal, trip-card enhancer).
+       Functions guard for missing elements so this is safe on pages that
+       don't render the trips section (e.g. dashboard after the move). -->
+  <script src="dashboard-light.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+          crossorigin=""></script>
 
-      if (window.currentUser) {
-        const userInfo = document.getElementById('user-info');
-        if (userInfo) {
-          userInfo.textContent = `${window.currentUser.name} (${window.currentUser.role || 'user'})`;
-        }
-
-        // Admin Panel + Organizer entries were removed from the dashboard
-        // navbar when the hamburger dropdown was standardised across pages.
-        // Keep the role-detection logic here as a no-op-safe lookup so any
-        // future re-introduction (or role-only feature) can re-attach.
-        const adminBtn = document.getElementById('admin-panel-btn');
-        if (adminBtn) {
-          adminBtn.style.display =
-            window.currentUser.role === 'admin' ? 'inline-block' : 'none';
-        }
-        if (window.currentUser.role === 'organizer' || window.currentUser.role === 'admin') {
-          const orgLink = document.getElementById('organizer-link');
-          if (orgLink) orgLink.style.display = 'inline-block';
-        }
-      }
-
-      wireCreateTripModal();
-      wireDestinationAutocomplete();
-      wireDateDurationSync();
-      wireTripCardEnhancer();
-      wireFilterTabs();
-      wireThemeToggle();
-    });
-
-    // ---------- Theme toggle ----------
-    function applyTheme(theme) {
-      const root = document.documentElement;
-      const btn = document.getElementById('theme-toggle');
-      if (theme === 'dark') {
-        root.setAttribute('data-theme', 'dark');
-        if (btn) { btn.textContent = '☀️'; btn.setAttribute('aria-label', 'Switch to light theme'); }
-      } else {
-        root.removeAttribute('data-theme');
-        if (btn) { btn.textContent = '🌙'; btn.setAttribute('aria-label', 'Switch to dark theme'); }
-      }
-    }
-    function wireThemeToggle() {
-      // Default to light. Existing users who explicitly chose 'dark' via the
-      // toggle keep their saved preference; we deliberately ignore the OS-level
-      // prefers-color-scheme so first-paint always matches the brand light theme.
-      const stored = localStorage.getItem('tp-theme');
-      applyTheme(stored === 'dark' ? 'dark' : 'light');
-      document.getElementById('theme-toggle')?.addEventListener('click', () => {
-        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        applyTheme(next);
-        localStorage.setItem('tp-theme', next);
-      });
-    }
-
-    // ---------- Filter tabs ----------
-    function wireFilterTabs() {
-      const tabs = document.querySelectorAll('#trip-filters .filter-tab');
-      tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-          tabs.forEach(t => {
-            t.classList.remove('is-active');
-            t.setAttribute('aria-selected', 'false');
-          });
-          tab.classList.add('is-active');
-          tab.setAttribute('aria-selected', 'true');
-          applyTripFilter(tab.dataset.filter || 'all');
-        });
-      });
-    }
-    function applyTripFilter(filter) {
-      const container = document.getElementById('trips-container');
-      if (!container) return;
-      const cards = container.querySelectorAll('.trip-card');
-      cards.forEach(card => {
-        if (filter === 'all') {
-          card.classList.remove('is-hidden-by-filter');
-          return;
-        }
-        const firstBadge = card.querySelector('.trip-meta .trip-badge');
-        const terrain = (firstBadge?.textContent || '').trim().toLowerCase();
-        const match = terrain === filter || terrain.startsWith(filter);
-        card.classList.toggle('is-hidden-by-filter', !match);
-      });
-    }
-
-    /* ============================================================
-       Date ↔ duration auto-sync for the Plan-a-new-trip modal
-       Keeps startDate, endDate and duration consistent without
-       ever showing a validation error. Re-entrancy is gated by
-       a `syncing` flag so programmatic .value writes don't
-       re-fire the cascading change listeners.
-       Convention: duration is the number of *nights*, so
-       endDate = startDate + duration days.
-       ============================================================ */
-    function wireDateDurationSync() {
-      const startEl = document.getElementById('tp-ct-start');
-      const endEl   = document.getElementById('tp-ct-end');
-      const durEl   = document.getElementById('tp-ct-duration');
-      const hint    = document.getElementById('tp-date-hint');
-      if (!startEl || !endEl || !durEl) return;
-
-      const DAY_MS = 86400000;
-      let syncing = false;
-
-      // Parse a YYYY-MM-DD <input type="date"> value as a UTC midnight
-      // Date so day-arithmetic is unaffected by the user's timezone.
-      function parseISO(s) {
-        if (!s) return null;
-        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (!m) return null;
-        const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-        return isNaN(d.getTime()) ? null : d;
-      }
-      function toISO(d) {
-        const y = d.getUTCFullYear();
-        const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const dd = String(d.getUTCDate()).padStart(2, '0');
-        return `${y}-${mo}-${dd}`;
-      }
-      function diffNights(a, b) { return Math.round((b - a) / DAY_MS); }
-      function fmt(d) {
-        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
-      }
-      function clampDur(n) { return Math.min(60, Math.max(1, n | 0)); }
-      function setSilently(el, v) { syncing = true; el.value = v; syncing = false; }
-
-      function refreshHint() {
-        const start = parseISO(startEl.value);
-        const end   = parseISO(endEl.value);
-        const dur   = parseInt(durEl.value, 10);
-        if (start && end && end > start) {
-          const n = diffNights(start, end);
-          hint.textContent = `\uD83D\uDCC5 ${n} ${n === 1 ? 'night' : 'nights'} \u00B7 ${fmt(start)} \u2013 ${fmt(end)}`;
-          hint.hidden = false;
-        } else if (start && dur > 0) {
-          const projEnd = new Date(start.getTime() + dur * DAY_MS);
-          hint.textContent = `\uD83D\uDCC5 ${dur} ${dur === 1 ? 'night' : 'nights'} \u00B7 ${fmt(start)} \u2013 ${fmt(projEnd)}`;
-          hint.hidden = false;
-        } else {
-          hint.hidden = true;
-          hint.textContent = '';
-        }
-      }
-
-      startEl.addEventListener('change', () => {
-        if (syncing) return;
-        const start = parseISO(startEl.value);
-        const end   = parseISO(endEl.value);
-        const dur   = clampDur(parseInt(durEl.value, 10) || 1);
-        if (start) {
-          // End date can't be before start date.
-          endEl.min = startEl.value;
-          // If end is missing or now <= start, project a fresh end from
-          // the current duration. Otherwise keep end and re-sync duration.
-          if (!end || end <= start) {
-            setSilently(endEl, toISO(new Date(start.getTime() + dur * DAY_MS)));
-          } else {
-            const n = clampDur(diffNights(start, end));
-            setSilently(durEl, String(n));
-          }
-        }
-        refreshHint();
-      });
-
-      endEl.addEventListener('change', () => {
-        if (syncing) return;
-        const start = parseISO(startEl.value);
-        const end   = parseISO(endEl.value);
-        if (start && end && end > start) {
-          setSilently(durEl, String(clampDur(diffNights(start, end))));
-        } else if (end && !start) {
-          // No start yet: back-fill start from current duration so the
-          // three fields stay consistent.
-          const dur = clampDur(parseInt(durEl.value, 10) || 1);
-          setSilently(startEl, toISO(new Date(end.getTime() - dur * DAY_MS)));
-        }
-        refreshHint();
-      });
-
-      durEl.addEventListener('input', () => {
-        if (syncing) return;
-        const dur   = parseInt(durEl.value, 10);
-        const start = parseISO(startEl.value);
-        if (dur > 0 && start) {
-          setSilently(endEl, toISO(new Date(start.getTime() + dur * DAY_MS)));
-        }
-        refreshHint();
-      });
-
-      refreshHint();
-    }
-
-    /* ============================================================
-       Destination autocomplete (Open-Meteo geocoding API, no key)
-       Wires the Plan-a-new-trip modal's location input to a
-       debounced city search. Picking a suggestion populates the
-       hidden #tp-ct-lat / #tp-ct-lon fields, which the submit
-       handler ships to POST /trips.
-       ============================================================ */
-    function wireDestinationAutocomplete() {
-      const input    = document.getElementById('tp-ct-location');
-      const dropdown = document.getElementById('tp-ac-dropdown');
-      const hint     = document.getElementById('tp-ac-hint');
-      const latEl    = document.getElementById('tp-ct-lat');
-      const lonEl    = document.getElementById('tp-ct-lon');
-      if (!input || !dropdown) return;
-
-      let debounceTimer = null;
-      let lastQuery = '';
-      let activeIdx = -1;
-      let suggestions = [];
-
-      const escapeHtml = (s) =>
-        String(s).replace(/[&<>"']/g, (c) =>
-          ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-
-      const formatLabel = (s) =>
-        [s.name, s.admin1, s.country].filter(Boolean).join(', ');
-
-      function clearCoords() {
-        latEl.value = '';
-        lonEl.value = '';
-        hint.hidden = true;
-        hint.classList.remove('is-confirmed');
-      }
-      function showHint(text, confirmed) {
-        hint.textContent = text;
-        hint.hidden = false;
-        hint.classList.toggle('is-confirmed', !!confirmed);
-      }
-      function hideDropdown() {
-        dropdown.hidden = true;
-        dropdown.innerHTML = '';
-        activeIdx = -1;
-        input.setAttribute('aria-expanded', 'false');
-      }
-      function renderItems(list) {
-        if (!list.length) {
-          dropdown.innerHTML = '<div class="tp-ac-empty">No matches found</div>';
-          dropdown.hidden = false;
-          input.setAttribute('aria-expanded', 'true');
-          return;
-        }
-        dropdown.innerHTML = list.map((s, i) => `
-          <div class="tp-ac-item" role="option" data-i="${i}">
-            <span class="ac-name">${escapeHtml(s.name)}</span>
-            <span class="ac-meta">${escapeHtml([s.admin1, s.country].filter(Boolean).join(', '))}</span>
-          </div>`).join('');
-        dropdown.hidden = false;
-        input.setAttribute('aria-expanded', 'true');
-      }
-
-      async function search(q) {
-        try {
-          const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=en&format=json`;
-          const res = await fetch(url);
-          const data = await res.json();
-          // Stale-response guard: bail if the user kept typing.
-          if (input.value.trim() !== q) return;
-          suggestions = (data.results || []).map((r) => ({
-            name:   r.name,
-            admin1: r.admin1 || '',
-            country: r.country || '',
-            lat:    r.latitude,
-            lon:    r.longitude,
-          }));
-          renderItems(suggestions);
-        } catch (e) {
-          console.warn('[autocomplete] search failed', e);
-          hideDropdown();
-        }
-      }
-
-      input.addEventListener('input', () => {
-        const q = input.value.trim();
-        // Any free-typing invalidates a previous selection's lat/lon.
-        clearCoords();
-        if (debounceTimer) clearTimeout(debounceTimer);
-        if (q.length < 2) { hideDropdown(); return; }
-        if (q === lastQuery) return;
-        lastQuery = q;
-        debounceTimer = setTimeout(() => search(q), 300);
-      });
-
-      // mousedown (not click) so it fires before input blur hides the dropdown.
-      dropdown.addEventListener('mousedown', (e) => {
-        const item = e.target.closest('.tp-ac-item');
-        if (!item) return;
-        e.preventDefault();
-        const i = parseInt(item.getAttribute('data-i'), 10);
-        const s = suggestions[i];
-        if (!s) return;
-        input.value = formatLabel(s);
-        latEl.value = s.lat;
-        lonEl.value = s.lon;
-        hint.hidden = true;
-        hint.textContent = '';
-        hint.classList.remove('is-confirmed');
-        hideDropdown();
-      });
-
-      input.addEventListener('keydown', (e) => {
-        if (dropdown.hidden) return;
-        const items = dropdown.querySelectorAll('.tp-ac-item');
-        if (!items.length) return;
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          activeIdx = Math.min(activeIdx + 1, items.length - 1);
-        } else if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          activeIdx = Math.max(activeIdx - 1, 0);
-        } else if (e.key === 'Enter' && activeIdx >= 0) {
-          e.preventDefault();
-          items[activeIdx].dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-          return;
-        } else if (e.key === 'Escape') {
-          hideDropdown();
-          return;
-        } else {
-          return;
-        }
-        items.forEach((el, i) => el.classList.toggle('is-active', i === activeIdx));
-        items[activeIdx]?.scrollIntoView({ block: 'nearest' });
-      });
-
-      input.addEventListener('blur', () => setTimeout(hideDropdown, 150));
-    }
-
-    // ---------- Create Trip modal ----------
-    function openCreateTripModal() {
-      const ov = document.getElementById('tp-ct-overlay');
-      ov.style.display = 'flex';
-      requestAnimationFrame(() => ov.classList.add('open'));
-      setTimeout(() => document.getElementById('tp-ct-name')?.focus(), 120);
-    }
-    function closeCreateTripModal() {
-      const ov = document.getElementById('tp-ct-overlay');
-      ov.classList.remove('open');
-      setTimeout(() => { ov.style.display = 'none'; }, 220);
-    }
-
-    function wireCreateTripModal() {
-      const open = () => openCreateTripModal();
-      document.getElementById('open-create-trip')?.addEventListener('click', open);
-      document.getElementById('open-create-trip-empty')?.addEventListener('click', open);
-
-      const ov = document.getElementById('tp-ct-overlay');
-      ov.addEventListener('click', (e) => { if (e.target === ov) closeCreateTripModal(); });
-      document.getElementById('tp-ct-cancel').addEventListener('click', closeCreateTripModal);
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && ov.classList.contains('open')) closeCreateTripModal();
-      });
-
-      document.getElementById('tp-ct-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const submitBtn = document.getElementById('tp-ct-confirm');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Creating…';
-
-        // Pull lat/lon set by the destination autocomplete (empty when the
-        // user typed a custom string without picking a suggestion).
-        const latVal = document.getElementById('tp-ct-lat').value;
-        const lonVal = document.getElementById('tp-ct-lon').value;
-        const body = {
-          name: document.getElementById('tp-ct-name').value.trim(),
-          terrain: document.getElementById('tp-ct-terrain').value,
-          season: document.getElementById('tp-ct-season').value,
-          duration: parseInt(document.getElementById('tp-ct-duration').value, 10) || 1,
-          groupSize: parseInt(document.getElementById('tp-ct-group-size').value, 10) || 1,
-          location: document.getElementById('tp-ct-location').value.trim() || null,
-          startDate: document.getElementById('tp-ct-start').value || null,
-          endDate: document.getElementById('tp-ct-end').value || null,
-        };
-        if (latVal && lonVal) {
-          body.lat = parseFloat(latVal);
-          body.lon = parseFloat(lonVal);
-        }
-
-        try {
-          // Reuse the shared helper from app.js so auth headers stay consistent.
-          const result = await apiCallWithAuth('/trips', {
-            method: 'POST',
-            body: JSON.stringify(body),
-          });
-          const tripId = result?.trip?.tripId || result?.tripId;
-          if (tripId) {
-            sessionStorage.setItem('tripJustCreated', '1');
-            window.location.href = `checklist.html?tripId=${tripId}`;
-            return;
-          }
-          closeCreateTripModal();
-          if (window.showToast) window.showToast('Trip created.', 'success');
-          loadTrips();
-          loadStats();
-        } catch (err) {
-          if (window.showToast) window.showToast(err?.message || 'Failed to create trip', 'error');
-          else alert('Failed to create trip: ' + (err?.message || err));
-        } finally {
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Trip';
-        }
-      });
-    }
-
-    // ---------- Trip card enhancer ----------
-    // app.js renders bare trip cards. We observe the containers and decorate
-    // each card with: (1) a top row (terrain emoji + created date) and
-    // (2) a progress bar + "X of Y items packed". No other files touched.
-    const TERRAIN_EMOJI = {
-      mountain: '🏔️', mountains: '🏔️', alpine: '🏔️', snow: '🏔️',
-      forest: '🌲', woods: '🌲', woodland: '🌲',
-      desert: '🏜️', dunes: '🏜️',
-      beach: '🏖️', coast: '🏖️', ocean: '🏖️',
-      lake: '🛶', river: '🏞️', canyon: '🏞️', valley: '🏞️',
-      tundra: '🥶', arctic: '🥶',
-      jungle: '🌴', rainforest: '🌴', tropical: '🌴',
-      plains: '🌾', prairie: '🌾', grassland: '🌾',
-    };
-    const itemCache = new Map(); // tripId -> { total, packed }
-
-    async function fetchItemStats(tripId) {
-      if (itemCache.has(tripId)) return itemCache.get(tripId);
-      try {
-        const items = await apiCallWithAuth(`/trips/${tripId}/items`);
-        const arr = Array.isArray(items) ? items : (items?.items || []);
-        const stats = {
-          total: arr.length,
-          packed: arr.filter(i => i.packed).length,
-        };
-        itemCache.set(tripId, stats);
-        return stats;
-      } catch (_) {
-        return { total: 0, packed: 0 };
-      }
-    }
-
-    function enhanceCard(card) {
-      if (!card || card.dataset.tpEnhanced === '1') return;
-      card.dataset.tpEnhanced = '1';
-
-      // Extract terrain from the first badge + original created-date text.
-      const firstBadge = card.querySelector('.trip-meta .trip-badge');
-      const terrain = (firstBadge?.textContent || '').trim();
-      const emoji = TERRAIN_EMOJI[terrain.toLowerCase()] || '⛺';
-      const dateEl = card.querySelector('.trip-date');
-      const dateText = (dateEl?.textContent || '').trim() || '';
-
-      // Emoji row, placed as the very first child so it sits above the
-      // trip name at the top-left of the card. Leave the original
-      // .trip-date in place (below the badges).
-      const top = document.createElement('div');
-      top.className = 'tp-card-top';
-      top.innerHTML = `<span class="tp-terrain-emoji" aria-hidden="true">${emoji}</span>`;
-      card.insertBefore(top, card.firstChild);
-      void dateText; // intentionally unused — we no longer move the date
-
-      // Extract tripId from the card's inline onclick (app.js renders: viewChecklist('<id>')).
-      const onclick = card.getAttribute('onclick') || '';
-      const m = onclick.match(/viewChecklist\('([^']+)'\)/);
-      const tripId = m ? m[1] : null;
-      if (!tripId) return;
-
-      // Insert progress block before .trip-actions
-      const actions = card.querySelector('.trip-actions');
-      const block = document.createElement('div');
-      block.className = 'tp-progress-block';
-      block.innerHTML = `
-        <div class="tp-progress-label">
-          <span><strong>0</strong> of <strong>0</strong> items packed</span>
-          <span>0%</span>
-        </div>
-        <div class="tp-progress-bar"><div class="tp-progress-fill"></div></div>
-      `;
-      if (actions) card.insertBefore(block, actions);
-      else card.appendChild(block);
-
-      fetchItemStats(tripId).then(({ total, packed }) => {
-        const pct = total > 0 ? Math.round((packed / total) * 100) : 0;
-        const label = block.querySelector('.tp-progress-label');
-        const fill  = block.querySelector('.tp-progress-fill');
-        if (label) label.innerHTML = `
-          <span><strong>${packed}</strong> of <strong>${total}</strong> items packed</span>
-          <span>${pct}%</span>
-        `;
-        if (fill) fill.style.width = pct + '%';
-      });
-    }
-
-    function wireTripCardEnhancer() {
-      const containers = [
-        document.getElementById('trips-container'),
-        document.getElementById('shared-trips-container'),
-      ].filter(Boolean);
-
-      const sweep = (root) => root.querySelectorAll('.trip-card').forEach(enhanceCard);
-
-      containers.forEach(c => {
-        sweep(c);
-        const obs = new MutationObserver(() => {
-          sweep(c);
-          // Re-apply the active filter to any newly rendered cards.
-          const activeTab = document.querySelector('#trip-filters .filter-tab.is-active');
-          if (activeTab) applyTripFilter(activeTab.dataset.filter || 'all');
-        });
-        obs.observe(c, { childList: true, subtree: false });
-      });
-
-      // Bust the per-trip cache whenever the user returns to the dashboard
-      // (e.g. after packing items on the checklist page).
-      window.addEventListener('pageshow', () => {
-        itemCache.clear();
-        containers.forEach(c => c.querySelectorAll('.trip-card').forEach(card => {
-          delete card.dataset.tpEnhanced;
-          card.querySelector('.tp-card-top')?.remove();
-          card.querySelector('.tp-progress-block')?.remove();
-          enhanceCard(card);
-        }));
-      });
-    }
-  </script>
   <script src="nav-menu.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+  // ===== DISCOVER TRAILS =====
+  let discoverMap, discoverUserLat, discoverUserLon, discoverRadiusMi = 25;
+  let discoverDDOpen = false, discoverRPOpen = false;
+  let discoverDiffIdx = 0, discoverDebT = null;
+  const DISCOVER_DIFFS = ['Any level','Easy','Moderate','Hard'];
+  const DISCOVER_PHOTOS = {
+    forest:   'https://picsum.photos/seed/greenforest99/600/450',
+    mountain: 'https://picsum.photos/seed/alpinepeak77/600/450',
+    lake:     'https://picsum.photos/seed/lakeshore55/600/450',
+    desert:   'https://picsum.photos/seed/canyonred33/600/450'
+  };
+  const DISCOVER_RT = [97,98,99,100,96,95,98,97,100,99,96,98];
+  const DISCOVER_RC = [419,671,890,234,543,128,765,312,456,189,623,334];
+
+  window.addEventListener('load', () => {
+    if (document.getElementById('discoverMap')) {
+      discoverMap = L.map('discoverMap').setView([41.8781, -87.6298], 9);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO', maxZoom: 19, subdomains: 'abcd'
+      }).addTo(discoverMap);
+    }
+    renderDiscoverHome();
+  });
+
+  /* ============================================================
+     Discover home content (Hipcamp-style)
+     Static destination data → rendered into the carousels and SEO
+     link grid. Card clicks reuse the existing discoverPickCity()
+     entry-point so they go through the same search → map flow.
+     ============================================================ */
+  const DISCOVER_HOME_PARKS = [
+    { name: 'Yosemite National Park',         region: 'California',     lat: 37.8651, lon: -119.5383, terrain: 'mountain' },
+    { name: 'Zion National Park',             region: 'Utah',           lat: 37.2982, lon: -113.0263, terrain: 'desert'   },
+    { name: 'Acadia National Park',           region: 'Maine',          lat: 44.3386, lon: -68.2733,  terrain: 'forest'   },
+    { name: 'Glacier National Park',          region: 'Montana',        lat: 48.7596, lon: -113.7870, terrain: 'mountain' },
+    { name: 'Yellowstone National Park',      region: 'Wyoming',        lat: 44.4280, lon: -110.5885, terrain: 'forest'   },
+    { name: 'Grand Canyon National Park',     region: 'Arizona',        lat: 36.1069, lon: -112.1129, terrain: 'desert'   },
+    { name: 'Olympic National Park',          region: 'Washington',     lat: 47.8021, lon: -123.6044, terrain: 'forest'   },
+    { name: 'Sequoia National Park',          region: 'California',     lat: 36.4864, lon: -118.5658, terrain: 'forest'   },
+  ];
+  const DISCOVER_HOME_FOREST = [
+    { name: 'Redwood National Park',          region: 'California',     lat: 41.2132, lon: -124.0046, terrain: 'forest' },
+    { name: 'Great Smoky Mountains',          region: 'Tennessee',      lat: 35.6532, lon: -83.5070,  terrain: 'forest' },
+    { name: 'Shenandoah National Park',       region: 'Virginia',       lat: 38.5328, lon: -78.3528,  terrain: 'forest' },
+    { name: 'Hoh Rainforest',                 region: 'Washington',     lat: 47.8606, lon: -123.9352, terrain: 'forest' },
+    { name: 'Muir Woods',                     region: 'California',     lat: 37.8965, lon: -122.5811, terrain: 'forest' },
+    { name: 'Congaree National Park',         region: 'South Carolina', lat: 33.7948, lon: -80.7821,  terrain: 'forest' },
+    { name: 'White Mountain National Forest', region: 'New Hampshire',  lat: 44.1004, lon: -71.5800,  terrain: 'forest' },
+    { name: 'Pisgah National Forest',         region: 'North Carolina', lat: 35.4140, lon: -82.7484,  terrain: 'forest' },
+  ];
+  const DISCOVER_HOME_MOUNTAIN = [
+    { name: 'Rocky Mountain National Park',   region: 'Colorado',       lat: 40.3428, lon: -105.6836, terrain: 'mountain' },
+    { name: 'Grand Teton National Park',      region: 'Wyoming',        lat: 43.7904, lon: -110.6818, terrain: 'mountain' },
+    { name: 'Mount Rainier National Park',    region: 'Washington',     lat: 46.8523, lon: -121.7603, terrain: 'mountain' },
+    { name: 'North Cascades National Park',   region: 'Washington',     lat: 48.7718, lon: -121.2985, terrain: 'mountain' },
+    { name: 'Mount Whitney',                  region: 'California',     lat: 36.5786, lon: -118.2920, terrain: 'mountain' },
+    { name: 'Mount Hood',                     region: 'Oregon',         lat: 45.3735, lon: -121.6960, terrain: 'mountain' },
+    { name: 'Pikes Peak',                     region: 'Colorado',       lat: 38.8409, lon: -105.0423, terrain: 'mountain' },
+    { name: 'Mount Washington',               region: 'New Hampshire',  lat: 44.2705, lon: -71.3033,  terrain: 'mountain' },
+  ];
+  const DISCOVER_HOME_LAKE = [
+    { name: 'Crater Lake National Park',      region: 'Oregon',         lat: 42.8684, lon: -122.1685, terrain: 'lake' },
+    { name: 'Lake Tahoe',                     region: 'California',     lat: 39.0968, lon: -120.0324, terrain: 'lake' },
+    { name: 'Niagara Falls',                  region: 'New York',       lat: 43.0962, lon: -79.0377,  terrain: 'lake' },
+    { name: 'Multnomah Falls',                region: 'Oregon',         lat: 45.5762, lon: -122.1158, terrain: 'lake' },
+    { name: 'Lake Powell',                    region: 'Arizona / Utah', lat: 36.9384, lon: -111.4837, terrain: 'lake' },
+    { name: 'Lake of the Ozarks',             region: 'Missouri',       lat: 38.1500, lon: -92.6333,  terrain: 'lake' },
+    { name: 'Voyageurs National Park',        region: 'Minnesota',      lat: 48.4839, lon: -92.8386,  terrain: 'lake' },
+    { name: 'Apostle Islands',                region: 'Wisconsin',      lat: 46.9692, lon: -90.6610,  terrain: 'lake' },
+  ];
+  const DISCOVER_HOME_DESERT = [
+    { name: 'Death Valley National Park',     region: 'California',     lat: 36.5054, lon: -117.0794, terrain: 'desert' },
+    { name: 'Joshua Tree National Park',      region: 'California',     lat: 33.8734, lon: -115.9010, terrain: 'desert' },
+    { name: 'Saguaro National Park',          region: 'Arizona',        lat: 32.2967, lon: -110.7282, terrain: 'desert' },
+    { name: 'Bryce Canyon National Park',     region: 'Utah',           lat: 37.5930, lon: -112.1871, terrain: 'desert' },
+    { name: 'Arches National Park',           region: 'Utah',           lat: 38.7331, lon: -109.5925, terrain: 'desert' },
+    { name: 'Big Bend National Park',         region: 'Texas',          lat: 29.1275, lon: -103.2425, terrain: 'desert' },
+    { name: 'Canyonlands National Park',      region: 'Utah',           lat: 38.3269, lon: -109.8783, terrain: 'desert' },
+    { name: 'White Sands National Park',      region: 'New Mexico',     lat: 32.7794, lon: -106.1714, terrain: 'desert' },
+  ];
+  const DISCOVER_HOME_STATES = [
+    { name: 'California',     lat: 36.7783, lon: -119.4179 },
+    { name: 'Colorado',       lat: 39.5501, lon: -105.7821 },
+    { name: 'Utah',           lat: 39.3210, lon: -111.0937 },
+    { name: 'Washington',     lat: 47.7511, lon: -120.7401 },
+    { name: 'Oregon',         lat: 43.8041, lon: -120.5542 },
+    { name: 'Wyoming',        lat: 43.0760, lon: -107.2903 },
+    { name: 'Montana',        lat: 46.8797, lon: -110.3626 },
+    { name: 'Arizona',        lat: 34.0489, lon: -111.0937 },
+    { name: 'New Mexico',     lat: 34.5199, lon: -105.8701 },
+    { name: 'North Carolina', lat: 35.7596, lon: -79.0193 },
+  ];
+  const DISCOVER_HOME_CITIES = [
+    { name: 'Denver, CO',         lat: 39.7392, lon: -104.9903 },
+    { name: 'Seattle, WA',        lat: 47.6062, lon: -122.3321 },
+    { name: 'Portland, OR',       lat: 45.5152, lon: -122.6784 },
+    { name: 'Phoenix, AZ',        lat: 33.4484, lon: -112.0740 },
+    { name: 'Salt Lake City, UT', lat: 40.7608, lon: -111.8910 },
+    { name: 'Boulder, CO',        lat: 40.0150, lon: -105.2705 },
+    { name: 'Asheville, NC',      lat: 35.5951, lon: -82.5515  },
+    { name: 'Boise, ID',          lat: 43.6150, lon: -116.2023 },
+    { name: 'Bozeman, MT',        lat: 45.6770, lon: -111.0429 },
+    { name: 'Albuquerque, NM',    lat: 35.0844, lon: -106.6504 },
+  ];
+
+  function discoverHomePhotoFor(terrain, idx) {
+    const pool = (typeof DISCOVER_PHOTO_POOL !== 'undefined' && DISCOVER_PHOTO_POOL[terrain])
+      ? DISCOVER_PHOTO_POOL[terrain]
+      : (typeof DISCOVER_PHOTO_POOL !== 'undefined' ? DISCOVER_PHOTO_POOL.forest : []);
+    if (!pool || !pool.length) return '';
+    return pool[idx % pool.length];
+  }
+
+  function discoverHomeCardHTML(item, idx) {
+    const photo = discoverHomePhotoFor(item.terrain || 'forest', idx);
+    const safeName = String(item.name).replace(/'/g, "\\'");
+    const safeRegion = String(item.region || '').replace(/'/g, "\\'");
+    return ''
+      + '<button type="button" class="disc-card" '
+      + 'onclick="discoverPickCity(\'' + safeName + (safeRegion ? ', ' + safeRegion : '') + '\',' + item.lat + ',' + item.lon + ')">'
+      +   '<div class="disc-card-photo" style="background-image:url(\'' + photo + '\')"></div>'
+      +   '<div class="disc-card-body">'
+      +     '<p class="disc-card-title">' + item.name + '</p>'
+      +     (item.region ? '<p class="disc-card-sub">📍 ' + item.region + '</p>' : '')
+      +   '</div>'
+      + '</button>';
+  }
+
+  function renderDiscoverRow(elId, list) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = list.map((it, i) => discoverHomeCardHTML(it, i)).join('');
+  }
+
+  function renderDiscoverLinkList(elId, list) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.innerHTML = list.map((it) => {
+      const safe = String(it.name).replace(/'/g, "\\'");
+      return '<button type="button" class="disc-link-item" '
+        + 'onclick="discoverPickCity(\'' + safe + '\',' + it.lat + ',' + it.lon + ')">'
+        + it.name + '</button>';
+    }).join('');
+  }
+
+  function renderDiscoverHome() {
+    renderDiscoverRow('discoverRowParks',    DISCOVER_HOME_PARKS);
+    renderDiscoverRow('discoverRowForest',   DISCOVER_HOME_FOREST);
+    renderDiscoverRow('discoverRowMountain', DISCOVER_HOME_MOUNTAIN);
+    renderDiscoverRow('discoverRowLake',     DISCOVER_HOME_LAKE);
+    renderDiscoverRow('discoverRowDesert',   DISCOVER_HOME_DESERT);
+    renderDiscoverLinkList('discoverLinksParks',  DISCOVER_HOME_PARKS);
+    renderDiscoverLinkList('discoverLinksStates', DISCOVER_HOME_STATES);
+    renderDiscoverLinkList('discoverLinksCities', DISCOVER_HOME_CITIES);
+  }
+
+  // Show the home content again (called by the "Back to Discover" button
+  // inside the results header). Hides the results block + map.
+  function discoverHomeShow() {
+    const home = document.getElementById('discoverHomeContent');
+    const res  = document.getElementById('discoverResultsBlock');
+    if (home) home.style.display = '';
+    if (res)  res.style.display  = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function setDiscoverTab(el) {
+    el.parentElement.querySelectorAll('button').forEach(b => {
+      b.style.borderColor = 'transparent'; b.style.background = 'none'; b.style.color = '#6b7280';
+    });
+    el.style.borderColor = '#374151'; el.style.background = '#fff'; el.style.color = '#111';
+  }
+
+  function setDiscoverPill(el) {
+    document.querySelectorAll('.disc-pill').forEach(p => {
+      p.style.background = '#fff'; p.style.color = '#374151'; p.style.borderColor = '#d1d5db';
+    });
+    el.style.background = '#111'; el.style.color = '#fff'; el.style.borderColor = '#111';
+  }
+
+  function cycleDiscoverDifficulty() {
+    discoverDiffIdx = (discoverDiffIdx + 1) % DISCOVER_DIFFS.length;
+    document.getElementById('discoverDiffDisplay').textContent = DISCOVER_DIFFS[discoverDiffIdx];
+  }
+
+  function toggleLocDropdown(e) {
+    e.stopPropagation();
+    closeDiscoverRP();
+    discoverDDOpen = !discoverDDOpen;
+    document.getElementById('discoverLocDropdown').style.display = discoverDDOpen ? 'block' : 'none';
+  }
+  function closeDiscoverDD() {
+    discoverDDOpen = false;
+    document.getElementById('discoverLocDropdown').style.display = 'none';
+  }
+  function toggleRadiusPopover(e) {
+    e.stopPropagation();
+    closeDiscoverDD();
+    discoverRPOpen = !discoverRPOpen;
+    document.getElementById('discoverRadiusPopover').style.display = discoverRPOpen ? 'block' : 'none';
+  }
+  function closeDiscoverRP() {
+    discoverRPOpen = false;
+    document.getElementById('discoverRadiusPopover').style.display = 'none';
+  }
+  document.addEventListener('click', () => { closeDiscoverDD(); closeDiscoverRP(); });
+
+  function updateDiscoverRadius(v) {
+    discoverRadiusMi = parseInt(v);
+    document.getElementById('discoverRadiusDisplay').textContent = v + ' miles';
+    document.getElementById('discoverRadiusBig').textContent = v + ' miles';
+  }
+  function applyDiscoverRadius() {
+    closeDiscoverRP();
+    if (discoverUserLat) fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi);
+  }
+
+  function discoverPickCity(name, lat, lon) {
+    document.getElementById('discoverLocInput').value = name;
+    discoverUserLat = lat; discoverUserLon = lon;
+    closeDiscoverDD();
+    fetchDiscoverTrails(lat, lon, discoverRadiusMi);
+  }
+
+  function useDiscoverNearby() {
+    closeDiscoverDD();
+    document.getElementById('discoverLocInput').value = '📍 Detecting...';
+    if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        discoverUserLat = pos.coords.latitude;
+        discoverUserLon = pos.coords.longitude;
+        document.getElementById('discoverLocInput').value = '📍 Current Location';
+        fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi);
+      },
+      () => {
+        document.getElementById('discoverLocInput').value = '';
+        alert('Location denied — please pick a city instead');
+      }
+    );
+  }
+
+  function triggerDiscoverSearch() {
+    const v = document.getElementById('discoverLocInput').value.trim();
+    if (discoverUserLat) { fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi); return; }
+    if (!v || v.startsWith('📍')) { useDiscoverNearby(); return; }
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(v) + '&format=json&limit=1&countrycodes=us')
+      .then(r => r.json()).then(d => {
+        if (d[0]) {
+          discoverUserLat = parseFloat(d[0].lat);
+          discoverUserLon = parseFloat(d[0].lon);
+          fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi);
+        }
+      });
+  }
+
+  function onDiscoverLocInput(v) {
+    discoverUserLat = null; discoverUserLon = null;
+    if (v.length < 2) return;
+    clearTimeout(discoverDebT);
+    discoverDebT = setTimeout(() => {
+      fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(v) + '&format=json&limit=5&countrycodes=us')
+        .then(r => r.json()).then(data => {
+          document.getElementById('discoverCityList').innerHTML = data.map(d => {
+            const p = d.display_name.split(',');
+            return '<div onclick="discoverPickCity(\'' + p[0].replace(/'/g, "\\'") + '\',' + d.lat + ',' + d.lon + ')" style="display:flex;align-items:center;gap:12px;padding:11px 16px;cursor:pointer;">'
+              + '<div style="width:40px;height:40px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>'
+              + '<div><div style="font-weight:600;font-size:.9rem;color:#111;">' + p[0] + '</div>'
+              + '<div style="font-size:.775rem;color:#9ca3af;">' + (p.slice(1,3).join(',').trim()) + '</div></div></div>';
+          }).join('');
+          document.getElementById('discoverLocDropdown').style.display = 'block';
+          discoverDDOpen = true;
+        });
+    }, 400);
+  }
+
+  function fetchDiscoverTrails(lat, lon, miles) {
+    // Swap the Hipcamp-style home content out for the results+map block on
+    // first search. The home content can be brought back via the
+    // "← Back to Discover" button (discoverHomeShow()).
+    const home = document.getElementById('discoverHomeContent');
+    const res  = document.getElementById('discoverResultsBlock');
+    if (home) home.style.display = 'none';
+    if (res)  res.style.display  = '';
+
+    showDiscoverSkeletons();
+    // Reveal the map column on first search (it's hidden by default so the
+    // dashboard isn't dominated by the map until the user opts in via
+    // Nearby / city pick / Search Trails). Leaflet needs invalidateSize()
+    // because the map was instantiated while display:none.
+    const mapWrap = document.getElementById('discoverMapWrap');
+    const grid    = document.getElementById('discoverGrid');
+    if (mapWrap && mapWrap.style.display === 'none') {
+      mapWrap.style.display = '';
+      if (grid) grid.style.gridTemplateColumns = '1fr 420px';
+      if (discoverMap) setTimeout(() => discoverMap.invalidateSize(), 0);
+    }
+    if (discoverMap) setTimeout(() => discoverMap.invalidateSize(), 0);
+    const meters = miles * 1609.34;
+    discoverMap.setView([lat, lon], miles > 35 ? 9 : miles > 20 ? 10 : 11);
+    discoverMap.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Circle) discoverMap.removeLayer(l); });
+    const uIcon = L.divIcon({ html: '<div style="background:#2d6a4f;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)">YOU</div>', className: '', iconSize: [30,30], iconAnchor: [15,15] });
+    L.marker([lat, lon], { icon: uIcon }).addTo(discoverMap).bindPopup('<b>Your Location</b>');
+    L.circle([lat, lon], { radius: meters, color: '#2d6a4f', fillColor: '#2d6a4f', fillOpacity: 0.05, weight: 1.5, dashArray: '6,4' }).addTo(discoverMap);
+    const q = `[out:json][timeout:25];(way["leisure"="nature_reserve"](around:${meters},${lat},${lon});relation["route"="hiking"](around:${meters},${lat},${lon});node["tourism"="camp_site"]["name"](around:${meters},${lat},${lon});way["leisure"="park"]["name"](around:${meters},${lat},${lon}););out body 30;>;out skel qt;`;
+    fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: 'data=' + encodeURIComponent(q) })
+      .then(r => r.json())
+      .then(data => {
+        const trails = data.elements
+          .filter(e => e.tags && e.tags.name)
+          .map(e => ({ id: e.id, name: e.tags.name, type: e.tags.leisure || e.tags.route || 'trail', op: e.tags.operator || '', lat: e.lat || e.center?.lat, lon: e.lon || e.center?.lon }))
+          .filter(t => t.lat && t.lon).slice(0, 12);
+        renderDiscoverCards(trails, lat, lon);
+        renderDiscoverPins(trails, lat, lon);
+        const loc = document.getElementById('discoverLocInput').value.replace('📍 ', '');
+        document.getElementById('discoverResCount').innerHTML = '<strong style="color:#111;">' + trails.length + ' trails</strong> found within <strong style="color:#111;">' + miles + ' miles</strong> of ' + loc;
+      })
+      .catch(() => {
+        document.getElementById('discoverTrailResults').innerHTML = discoverEmptyHTML(miles);
+        document.getElementById('discoverResCount').textContent = 'Could not load trails — check connection';
+      });
+  }
+
+  function discoverTerrain(name) {
+    const n = name.toLowerCase();
+    if (/mountain|peak|summit|hill|ridge|bluff/.test(n)) return { t: 'Mountain', b: 'rgba(37,99,235,.85)', p: 'mountain' };
+    if (/beach|shore|lake|river|creek|falls|bay/.test(n))  return { t: 'Lake / Water', b: 'rgba(8,145,178,.85)', p: 'lake' };
+    if (/desert|canyon|mesa|butte|rock|sand/.test(n))      return { t: 'Desert', b: 'rgba(234,88,12,.85)', p: 'desert' };
+    return { t: 'Forest', b: 'rgba(45,106,79,.88)', p: 'forest' };
+  }
+  function discoverFee(t) {
+    const n = (t.name + t.op).toLowerCase();
+    if (/national park|national forest/.test(n)) return '$25 / vehicle';
+    if (/state park|state forest/.test(n))       return '$10 / vehicle';
+    return 'Free';
+  }
+  function discoverDist(a, b, c, d) {
+    const R = 3958.8, dA = (c-a)*Math.PI/180, dB = (d-b)*Math.PI/180;
+    const x = Math.sin(dA/2)**2 + Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dB/2)**2;
+    return (R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x))).toFixed(1);
+  }
+
+  function renderDiscoverCards(trails, ulat, ulon) {
+    const g = document.getElementById('discoverTrailResults');
+    if (!trails.length) { g.innerHTML = discoverEmptyHTML(discoverRadiusMi); return; }
+    g.innerHTML = trails.map((t, i) => {
+      const { t: ter, b: bc, p: ph } = discoverTerrain(t.name);
+      const f = discoverFee(t), d = discoverDist(ulat, ulon, t.lat, t.lon);
+      const isFree = f === 'Free';
+      return `<div onclick="discoverZoom(${t.lat},${t.lon})" style="background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid rgba(0,0,0,.07);transition:box-shadow .18s,transform .18s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.10)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
+        <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:#e5e7eb;">
+          <img src="${DISCOVER_PHOTOS[ph]}" alt="${t.name}" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">
+          <button onclick="event.stopPropagation()" style="position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <span style="position:absolute;bottom:10px;left:10px;padding:4px 10px;border-radius:9999px;font-size:.72rem;font-weight:700;background:${bc};color:#fff;">${ter}</span>
+        </div>
+        <div style="padding:12px 14px 14px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+            <span style="font-size:.78rem;font-weight:700;color:#2d6a4f;">👍 ${DISCOVER_RT[i%12]}%</span>
+            <span style="font-size:.75rem;color:#9ca3af;">(${DISCOVER_RC[i%12]})</span>
+          </div>
+          <div style="font-weight:700;font-size:.9rem;line-height:1.3;margin-bottom:2px;">${t.name}</div>
+          <div style="font-size:.78rem;color:#9ca3af;margin-bottom:8px;">${t.type.replace(/_/g,' ')} · ${d} miles away</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:.85rem;font-weight:700;">${isFree ? '<span style="color:#2d6a4f;">Free</span>' : f}</span>
+            <span style="font-size:.75rem;color:#6b7280;background:#f3f4f6;padding:3px 8px;border-radius:9999px;">${d} mi</span>
+          </div>
+          <button data-trail-name="${(t.name||'').replace(/"/g,'&quot;')}" data-trail-terrain="${ter}" data-trail-lat="${t.lat||''}" data-trail-lon="${t.lon||''}" onclick="event.stopPropagation(); openPlanTripModal({name:this.dataset.trailName, terrain:this.dataset.trailTerrain, lat:this.dataset.trailLat, lon:this.dataset.trailLon})" style="width:100%;padding:9px;background:#2d6a4f;color:#fff;border:none;border-radius:10px;font-weight:600;font-size:.82rem;cursor:pointer;font-family:inherit;" onmouseover="this.style.background='#1b4332'" onmouseout="this.style.background='#2d6a4f'">Plan This Trip →</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderDiscoverPins(trails, ulat, ulon) {
+    const ico = L.divIcon({ html: '<div style="background:#2d6a4f;border-radius:50% 50% 50% 0;width:22px;height:22px;transform:rotate(-45deg);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)"></div>', className: '', iconSize: [22,22], iconAnchor: [11,22] });
+    trails.forEach(t => {
+      if (!t.lat || !t.lon) return;
+      const d = discoverDist(ulat, ulon, t.lat, t.lon);
+      const popupPayload = encodeURIComponent(JSON.stringify({ name: t.name, lat: t.lat, lon: t.lon }));
+      L.marker([t.lat, t.lon], { icon: ico }).addTo(discoverMap)
+        .bindPopup('<b>' + t.name + '</b><br>' + d + ' miles away<br>' + discoverFee(t) + '<br><a href="#" onclick="event.preventDefault(); openPlanTripModal(JSON.parse(decodeURIComponent(\'' + popupPayload + '\')))" style="color:#2d6a4f;font-weight:600;">Plan This Trip →</a>');
+    });
+  }
+
+  function discoverZoom(lat, lon) { discoverMap.setView([lat, lon], 14); }
+
+  function discoverEmptyHTML(m) {
+    return '<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center;color:#6b7280;">'
+      + '<div style="font-size:3.5rem;margin-bottom:14px;">🌿</div>'
+      + '<h3 style="font-size:1.05rem;font-weight:700;color:#111;margin-bottom:6px;">No trails found within ' + m + ' miles</h3>'
+      + '<p style="font-size:.875rem;max-width:30ch;margin-bottom:18px;">Try a larger radius or a different location</p>'
+      + '<button onclick="discoverExpandRadius()" style="padding:10px 22px;background:#2d6a4f;color:#fff;border:none;border-radius:9999px;font-weight:600;font-size:.875rem;cursor:pointer;font-family:inherit;">+ Expand to ' + Math.min(m+10,50) + ' miles</button></div>';
+  }
+  function discoverExpandRadius() {
+    discoverRadiusMi = Math.min(discoverRadiusMi + 10, 50);
+    document.getElementById('discoverRadiusSlider').value = discoverRadiusMi;
+    updateDiscoverRadius(discoverRadiusMi);
+    if (discoverUserLat) fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi);
+  }
+
+  function showDiscoverSkeletons() {
+    document.getElementById('discoverTrailResults').innerHTML = Array(6).fill(0).map(() =>
+      '<div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid rgba(0,0,0,.07);">'
+      + '<div style="height:190px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:discoverShimmer 1.4s ease-in-out infinite;"></div>'
+      + '<div style="padding:14px;display:flex;flex-direction:column;gap:8px;">'
+      + '<div style="height:11px;width:35%;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:discoverShimmer 1.4s ease-in-out infinite;border-radius:4px;"></div>'
+      + '<div style="height:15px;width:85%;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:discoverShimmer 1.4s ease-in-out infinite;border-radius:4px;"></div>'
+      + '<div style="height:11px;width:55%;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:discoverShimmer 1.4s ease-in-out infinite;border-radius:4px;"></div>'
+      + '<div style="height:33px;background:linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%);background-size:200% 100%;animation:discoverShimmer 1.4s ease-in-out infinite;border-radius:8px;margin-top:4px;"></div>'
+      + '</div></div>'
+    ).join('');
+  }
+
+  // ===== More to Discover toggle =====
+  // Shows/hides the four category sections (Forest / Mountain / Lake
+  // & Waterfall / Desert) as a single collapsible region. The discover
+  // renderer still populates every row regardless of visibility, so no
+  // new network requests are issued by toggling — we just flip a class.
+  (function () {
+    const btn    = document.getElementById('disc-more-toggle');
+    const region = document.getElementById('disc-more-region');
+    if (!btn || !region) return;
+    const label  = btn.querySelector('.disc-more-label');
+    btn.addEventListener('click', () => {
+      const open = region.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (label) label.textContent = open ? 'Less to Discover' : 'More to Discover';
+    });
+  })();
+  </script>
 </body>
 </html>

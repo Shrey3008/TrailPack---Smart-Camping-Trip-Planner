@@ -224,6 +224,7 @@ router.post('/', authenticate, async (req, res) => {
       startDate: startDate || null,
       endDate: endDate || null,
       status: 'planned',
+      photoIndex: Math.floor(Math.random() * 15),
       createdAt: new Date().toISOString()
     };
     
@@ -423,7 +424,7 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    const { name, terrain, season, duration, groupSize, status, location, lat, lon } = req.body;
+    const { name, terrain, season, duration, groupSize, status, location, lat, lon, startDate, endDate } = req.body;
     
     const updateExpressions = [];
     const expressionAttributeNames = {};
@@ -467,6 +468,14 @@ router.put('/:id', authenticate, async (req, res) => {
     if (lon !== undefined) {
       updateExpressions.push('lon = :lon');
       expressionAttributeValues[':lon'] = parseCoord(lon, 180);
+    }
+    if (startDate !== undefined) {
+      updateExpressions.push('startDate = :startDate');
+      expressionAttributeValues[':startDate'] = startDate || null;
+    }
+    if (endDate !== undefined) {
+      updateExpressions.push('endDate = :endDate');
+      expressionAttributeValues[':endDate'] = endDate || null;
     }
     
     if (updateExpressions.length === 0) {

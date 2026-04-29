@@ -279,9 +279,31 @@ async function loadUsers(page = 1) {
         <td>${new Date(user.createdAt).toLocaleDateString()}</td>
         <td>—</td>
         <td>
-          <button class="btn btn-small btn-edit" onclick="openRoleModal('${user.userId}', '${escapeHtml(user.name)}', '${user.role}')">Change Role</button>
-          <button class="btn btn-small ${user.isActive ? 'btn-danger' : 'btn-primary'}" onclick="toggleUserStatus('${user.userId}', ${!user.isActive})">
-            ${user.isActive ? 'Deactivate' : 'Activate'}
+          <span class="role-dd" data-role-dd>
+            <button type="button"
+                    class="btn btn-small btn-edit role-dd-trigger"
+                    aria-haspopup="menu"
+                    aria-expanded="false"
+                    onclick="toggleRolePopover(this, '${user.userId}', '${user.role}')">
+              Change Role <span class="role-dd-caret" aria-hidden="true">▾</span>
+            </button>
+            <div class="role-dd-menu" role="menu" hidden>
+              <button type="button" class="role-dd-item${user.role === 'user' ? ' is-current' : ''}" role="menuitem" data-role="user">
+                <span class="role-badge role-user">user</span>
+                ${user.role === 'user' ? '<span class="role-dd-check" aria-hidden="true">✓</span>' : ''}
+              </button>
+              <button type="button" class="role-dd-item${user.role === 'organizer' ? ' is-current' : ''}" role="menuitem" data-role="organizer">
+                <span class="role-badge role-organizer">organizer</span>
+                ${user.role === 'organizer' ? '<span class="role-dd-check" aria-hidden="true">✓</span>' : ''}
+              </button>
+              <button type="button" class="role-dd-item${user.role === 'admin' ? ' is-current' : ''}" role="menuitem" data-role="admin">
+                <span class="role-badge role-admin">admin</span>
+                ${user.role === 'admin' ? '<span class="role-dd-check" aria-hidden="true">✓</span>' : ''}
+              </button>
+            </div>
+          </span>
+          <button class="btn btn-small btn-danger" onclick="deleteUserAccount('${user.userId}', '${escapeHtml(user.name).replace(/'/g, "\\'")}')">
+            Deactivate
           </button>
         </td>
       </tr>
@@ -312,60 +334,117 @@ function generatePagination(currentPage, totalPages, callback) {
   return html;
 }
 
-// Open role edit modal
-function openRoleModal(userId, userName, currentRole) {
-  currentEditUserId = userId;
-  document.getElementById('role-modal-user').textContent = `Change role for: ${userName}`;
-  document.getElementById('new-role').value = currentRole;
-  document.getElementById('role-modal').style.display = 'block';
+/* ============================================================
+   Inline Change-Role popover
+   Replaces the old centered modal with a dropdown anchored to
+   each row's "Change Role" pill. Single popover open at a time.
+   Click-outside or Escape closes it. Selecting a role calls the
+   PUT /admin/users/:id/role endpoint and reloads the table.
+   ============================================================ */
+
+// Close any currently-open role popover.
+function closeAllRolePopovers() {
+  document.querySelectorAll('[data-role-dd] .role-dd-menu:not([hidden])').forEach(menu => {
+    menu.hidden = true;
+    const dd = menu.closest('[data-role-dd]');
+    dd?.classList.remove('is-open');
+    const trigger = dd?.querySelector('.role-dd-trigger');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  });
 }
 
-// Close role edit modal
-function closeRoleModal() {
-  document.getElementById('role-modal').style.display = 'none';
-  currentEditUserId = null;
+// Open or close the popover anchored to `triggerBtn`.
+function toggleRolePopover(triggerBtn, userId, currentRole) {
+  const dd = triggerBtn.closest('[data-role-dd]');
+  if (!dd) return;
+  const menu = dd.querySelector('.role-dd-menu');
+  if (!menu) return;
+
+  const isOpen = !menu.hidden;
+
+  // Close every other open popover first so only one is visible.
+  closeAllRolePopovers();
+
+  if (isOpen) return; // toggle off if it was already open
+
+  // Stash context on the menu so the delegated item handler knows what to PUT.
+  menu.dataset.userId = userId;
+  menu.dataset.currentRole = currentRole;
+
+  menu.hidden = false;
+  dd.classList.add('is-open');
+  triggerBtn.setAttribute('aria-expanded', 'true');
+
+  // Focus the current role for keyboard users.
+  const focusEl = menu.querySelector('.role-dd-item.is-current') || menu.querySelector('.role-dd-item');
+  setTimeout(() => focusEl?.focus(), 0);
 }
 
-// Save user role
-async function saveUserRole() {
-  if (!currentEditUserId) return;
-  
-  const newRole = document.getElementById('new-role').value;
-  
+// Apply the chosen role: PUT to backend, toast, reload.
+async function applyRoleChange(userId, newRole, currentRole) {
+  closeAllRolePopovers();
+  if (!userId || !newRole || newRole === currentRole) return;
+
   try {
-    await apiCallWithAuth(`/admin/users/${currentEditUserId}/role`, {
+    await apiCallWithAuth(`/admin/users/${userId}/role`, {
       method: 'PUT',
       body: JSON.stringify({ role: newRole })
     });
-    
-    closeRoleModal();
     loadUsers();
-    (window.showToast ? window.showToast('User role updated.', 'success', 2000) : alert('User role updated successfully'));
+    (window.showToast ? window.showToast(`Role updated to ${newRole}.`, 'success', 2000) : alert('User role updated successfully'));
   } catch (error) {
     console.error('Error updating role:', error);
-    (window.showToast ? window.showToast('Failed to update user role.', 'error') : alert('Failed to update user role'));
+    const msg = (error && error.message) ? error.message : 'Failed to update user role.';
+    (window.showToast ? window.showToast(msg, 'error') : alert(msg));
   }
 }
 
-// Toggle user active status
-async function toggleUserStatus(userId, isActive) {
-  const action = isActive ? 'activate' : 'deactivate';
+// Delegated handlers: one set for the whole document so we don't re-bind
+// every time the users table re-renders.
+document.addEventListener('click', (e) => {
+  const item = e.target.closest('.role-dd-item');
+  if (item) {
+    const menu = item.closest('.role-dd-menu');
+    if (menu) {
+      applyRoleChange(menu.dataset.userId, item.dataset.role, menu.dataset.currentRole);
+    }
+    return;
+  }
+  // Click outside any open popover closes it.
+  if (!e.target.closest('[data-role-dd]')) {
+    closeAllRolePopovers();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllRolePopovers();
+});
+
+// Permanently delete a user account.
+// Per product spec: "Deactivate" prompts for confirmation, then permanently
+// removes the account from DynamoDB so the user can no longer log in. The
+// user must sign up again to regain access.
+async function deleteUserAccount(userId, userName) {
+  const label = userName ? `"${userName}"` : 'this user';
   const confirmed = window.showConfirm
-    ? await window.showConfirm(`This will ${action} the user's account.`, { title: `${isActive ? 'Activate' : 'Deactivate'} user?`, confirmText: isActive ? 'Activate' : 'Deactivate', danger: !isActive })
-    : confirm(`Are you sure you want to ${action} this user?`);
+    ? await window.showConfirm(
+        `This permanently deletes ${label}'s account. They will no longer be able to log in and must sign up again to regain access.`,
+        { title: 'Deactivate user?', confirmText: 'Yes, deactivate', cancelText: 'No, cancel', danger: true }
+      )
+    : confirm(`Permanently delete ${label}? This cannot be undone.`);
   if (!confirmed) return;
 
   try {
-    await apiCallWithAuth(`/admin/users/${userId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ isActive })
+    await apiCallWithAuth(`/admin/users/${userId}`, {
+      method: 'DELETE'
     });
 
     loadUsers();
-    (window.showToast ? window.showToast(`User ${isActive ? 'activated' : 'deactivated'}.`, 'success', 2000) : alert(`User ${isActive ? 'activated' : 'deactivated'} successfully`));
+    (window.showToast ? window.showToast('User account deactivated and deleted.', 'success', 2500) : alert('User account deactivated and deleted'));
   } catch (error) {
-    console.error('Error updating user status:', error);
-    (window.showToast ? window.showToast('Failed to update user status.', 'error') : alert('Failed to update user status'));
+    console.error('Error deleting user:', error);
+    const msg = (error && error.message) ? error.message : 'Failed to deactivate user.';
+    (window.showToast ? window.showToast(msg, 'error') : alert(msg));
   }
 }
 

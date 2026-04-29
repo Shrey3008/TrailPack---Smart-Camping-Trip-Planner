@@ -39,8 +39,13 @@ router.put('/users/:userId/role', authenticate, authorize('admin'), async (req, 
     const { userId } = req.params;
     const { role } = req.body;
     
-    if (!['user', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Must be "user" or "admin"' });
+    if (!['user', 'organizer', 'admin'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role. Must be "user", "organizer", or "admin"' });
+    }
+
+    // Prevent admins from demoting themselves and locking out admin access.
+    if (userId === req.user.userId && role !== 'admin') {
+      return res.status(400).json({ message: 'You cannot change your own admin role.' });
     }
     
     const result = await docClient.send(new UpdateCommand({

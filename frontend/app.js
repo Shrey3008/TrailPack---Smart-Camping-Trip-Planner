@@ -143,7 +143,7 @@ async function loadTrips() {
     if (emptyState) emptyState.style.display = 'none';
     
     container.innerHTML = trips.map(trip => `
-      <div class="trip-card" onclick="viewChecklist('${trip.tripId}')">
+      <div class="trip-card" data-photo-index="${trip.photoIndex || 0}" onclick="viewChecklist('${trip.tripId}')">
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-meta">
           <span class="trip-badge">${escapeHtml(trip.terrain)}</span>
@@ -192,7 +192,7 @@ async function loadSharedTrips() {
       return;
     }
     container.innerHTML = trips.map(trip => `
-      <div class="trip-card" onclick="viewChecklist('${trip.tripId}')">
+      <div class="trip-card" data-photo-index="${trip.photoIndex || 0}" onclick="viewChecklist('${trip.tripId}')">
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-meta">
           <span class="trip-badge">${escapeHtml(trip.terrain || '')}</span>

@@ -2,11 +2,16 @@
  * TrailPack — Shared hamburger navigation menu
  * -------------------------------------------------------------
  * Replaces the existing pill-button row in `.nav-user` /
- * `.nav-links` with a single ☰ button that opens a themed
- * dropdown matching the dark-green navbar.
+ * `.nav-links` with a single ☰ button that opens a clean
+ * white-pill dropdown matching the navbar aesthetic.
+ *
+ * The menu automatically excludes the link for the page the
+ * user is currently on (e.g. on my-trips.html, the "My Trips"
+ * row is hidden) so the dropdown only offers navigation to
+ * other places.
  *
  * The script auto-detects what's already in the navbar so each
- * page can keep its own per-route handlers (logout, theme,
+ * page can keep its own per-route handlers (logout,
  * role-based links). Original elements are moved into a hidden
  * host so existing scripts that toggle their visibility (e.g.
  * `#admin-link.style.display = 'block'`) keep working — the
@@ -14,39 +19,40 @@
  *
  * Click handlers are preserved by proxying dropdown clicks to
  * the original elements (`originalEl.click()`).
- *
- * The Dark Mode toggle inside the menu is managed directly: it
- * writes `tp-theme` to localStorage, applies `data-theme` on
- * `<html>`, and toggles a `dark-mode` class on `<body>`.
  * ============================================================= */
 (function () {
   'use strict';
 
   /* ---------- Canonical navbar styles (shared across all pages) ----------
-     These mirror index.html's navbar CSS so every page that loads
-     nav-menu.js renders the same dark-green bar, Playfair brand,
-     pill buttons, and red-outlined Logout — without each page
-     having to maintain its own copy. The !important flags ensure
-     this wins over any leftover per-page navbar rules. */
+     Mirrors the dashboard (index.html via dashboard-light.css) reference
+     exactly so every page that loads nav-menu.js renders the same white
+     surface, 64px height, 1.45rem Playfair brand, and 38px logo. The
+     dashboard itself wins via the higher-specificity selector
+     `body.dash-light .navbar`, so these rules don't change the reference. */
   const NAVBAR_CSS = `
     .navbar {
-      background: #1B4332 !important;
-      color: #fff !important;
-      padding: 18px 32px !important;
+      background: #ffffff !important;
+      color: #1a1a1a !important;
+      padding: 0 32px !important;
+      min-height: 64px !important;
       display: flex !important;
       align-items: center !important;
       justify-content: space-between !important;
-      gap: 16px;
+      gap: 12px;
       flex-wrap: wrap;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+      border-bottom: 1px solid #e8e8e4 !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 100;
     }
     .navbar .nav-brand { display: flex !important; align-items: center !important; gap: 12px !important; }
     .navbar .nav-brand h1,
     .navbar .nav-brand .brand-text {
       font-family: 'Playfair Display', Georgia, serif !important;
       font-weight: 700 !important;
-      font-size: 1.55rem !important;
-      color: #fff !important;
+      font-size: 1.45rem !important;
+      color: #1a1a1a !important;
       letter-spacing: 0.005em;
       margin: 0 !important;
     }
@@ -57,7 +63,7 @@
       width: 38px !important;
       height: 38px !important;
       border-radius: 10px !important;
-      background: rgba(82, 183, 136, 0.15) !important;
+      background: #e6f2eb !important;
     }
     .navbar .nav-brand .logo-mark svg { display: block; }
 
@@ -69,9 +75,9 @@
       border-radius: 12px;
       transition: background 0.15s ease;
     }
-    .navbar .nav-brand.tp-brand-link:hover { background: rgba(255,255,255,0.06); }
+    .navbar .nav-brand.tp-brand-link:hover { background: rgba(45, 106, 79, 0.06); }
     .navbar .nav-brand.tp-brand-link:focus-visible {
-      outline: 2px solid rgba(255,255,255,0.7);
+      outline: 2px solid rgba(45, 106, 79, 0.6);
       outline-offset: 2px;
     }
 
@@ -79,21 +85,21 @@
     .navbar .nav-links {
       display: flex !important;
       align-items: center !important;
-      gap: 10px !important;
+      gap: 12px !important;
       flex-wrap: wrap;
     }
     .navbar .nav-user .user-name,
     .navbar .nav-user #user-info,
     .navbar .nav-links .user-greeting,
     .navbar .nav-links #user-name {
-      color: rgba(255,255,255,0.88) !important;
-      font-weight: 500 !important;
-      font-size: 0.92rem !important;
-      margin-right: 4px;
+      color: #1a1a1a !important;
+      font-weight: 600 !important;
+      font-size: 0.9rem !important;
+      margin: 0 !important;
     }
 
     @media (max-width: 900px) {
-      .navbar { padding: 16px 20px !important; }
+      .navbar { padding: 0 20px !important; }
       .navbar .nav-user .user-name,
       .navbar .nav-user #user-info,
       .navbar .nav-links .user-greeting,
@@ -102,18 +108,18 @@
   `;
 
   const CSS = `
-    /* Hamburger button — pill that matches the existing nav buttons. */
+    /* Hamburger button — pill that matches the white navbar. */
     .tp-hamburger {
       background: transparent;
-      border: 1px solid rgba(255,255,255,0.35);
+      border: 1px solid #e8e8e4;
       border-radius: 999px;
       padding: 8px 14px;
-      color: #fff;
+      color: #374151;
       font-size: 22px;
       line-height: 1;
       cursor: pointer;
       font-family: inherit;
-      transition: background 0.15s ease, border-color 0.15s ease;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -121,11 +127,12 @@
       height: 40px;
     }
     .tp-hamburger:hover {
-      background: rgba(255,255,255,0.10);
-      border-color: rgba(255,255,255,0.65);
+      background: #f3f4f6;
+      border-color: #d8d8d2;
+      color: #1a1a1a;
     }
     .tp-hamburger:focus-visible {
-      outline: 2px solid rgba(255,255,255,0.7);
+      outline: 2px solid rgba(45, 106, 79, 0.6);
       outline-offset: 2px;
     }
 
@@ -133,16 +140,17 @@
        per-page scripts that read/toggle them keep working. */
     #tp-nav-hidden-host { display: none !important; }
 
-    /* Dropdown */
+    /* Dropdown — clean white pill overlay matching the navbar. */
     .tp-menu {
       position: fixed;
       top: 60px;
       right: 16px;
       width: 240px;
-      background: #1e3d2f;
-      border: 1px solid rgba(255,255,255,0.20);
+      background: #ffffff;
+      color: #1a1a1a;
+      border: 1px solid #e8e8e4;
       border-radius: 14px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.30);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10), 0 2px 6px rgba(15, 23, 42, 0.06);
       padding: 6px 0;
       z-index: 10000;
       opacity: 0;
@@ -167,24 +175,25 @@
       padding: 12px 18px;
       background: transparent;
       border: 0;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      color: #fff;
+      border-bottom: 1px solid #f0f0ec;
+      color: #1a1a1a;
       font-size: 15px;
       font-weight: 500;
       font-family: inherit;
       letter-spacing: 0.005em;
       cursor: pointer;
       text-align: left;
+      text-decoration: none;
       transition: background 0.12s ease, color 0.12s ease;
     }
     .tp-menu-item:last-child { border-bottom: 0; }
-    .tp-menu-item:hover { background: rgba(255,255,255,0.06); }
+    .tp-menu-item:hover { background: #f3f4f6; color: #111; }
     .tp-menu-item:focus-visible {
-      outline: 2px solid rgba(255,255,255,0.7);
+      outline: 2px solid rgba(45, 106, 79, 0.55);
       outline-offset: -2px;
     }
-    .tp-menu-item.danger { color: #e87070; }
-    .tp-menu-item.danger:hover { background: rgba(232,112,112,0.10); }
+    .tp-menu-item.danger { color: #c0392b; }
+    .tp-menu-item.danger:hover { background: rgba(192, 57, 43, 0.08); color: #a32b20; }
     .tp-menu-emoji {
       width: 22px;
       flex-shrink: 0;
@@ -192,32 +201,8 @@
       font-size: 16px;
       line-height: 1;
     }
-    .tp-menu-emoji.gold { color: #f5c842; }
+    .tp-menu-emoji.gold { color: #c29a1a; }
     .tp-menu-label { flex: 1; }
-
-    /* iOS-style toggle for the dark-mode row */
-    .tp-toggle-switch {
-      position: relative;
-      width: 38px;
-      height: 22px;
-      background: #5a6470;
-      border-radius: 999px;
-      transition: background 0.2s ease;
-      flex-shrink: 0;
-    }
-    .tp-toggle-switch.is-on { background: #2ecc71; }
-    .tp-toggle-knob {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 18px;
-      height: 18px;
-      background: #fff;
-      border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.20);
-      transition: transform 0.2s ease;
-    }
-    .tp-toggle-switch.is-on .tp-toggle-knob { transform: translateX(16px); }
 
     @media (max-width: 540px) {
       .tp-menu { right: 10px; width: 220px; }
@@ -228,7 +213,6 @@
   const EMOJI_BY_KEYWORD = [
     [/admin/i,                    '🛡️'],
     [/organizer/i,                '🧭'],
-    [/history/i,                  '🕒'],
     [/profile/i,                  '👤'],
     [/dashboard|home|my trips/i,  '🏠'],
     [/back/i,                     '⬅️'],
@@ -262,24 +246,49 @@
     if (el.classList && (el.classList.contains('user-name') || el.classList.contains('user-greeting'))) return true;
     return false;
   }
+  // Some pages (e.g. organizer.html) ship a hardcoded "Admin" anchor
+  // that's hidden until per-page JS detects an admin user. Since
+  // getRoleItems() is the canonical source for role-gated rows, we
+  // strip those hardcoded anchors out of the per-page ingestion to
+  // avoid double entries in the dropdown.
+  function isRoleGatedLink(el) {
+    if (!el) return false;
+    if (el.id === 'admin-link' || el.id === 'organizer-link') return true;
+    const href = (el.getAttribute && el.getAttribute('href')) || '';
+    if (/(?:^|\/)admin\.html(?:[?#]|$)/i.test(href)) return true;
+    if (/(?:^|\/)organizer\.html(?:[?#]|$)/i.test(href)) return true;
+    return false;
+  }
   function isOriginallyVisible(el) {
     // Read inline style.display so per-page scripts that set
     // `el.style.display = 'none'` for role gating are respected.
     return (el.style && el.style.display) !== 'none';
   }
 
-  /* ---------- Theme management ---------- */
-  function applyTheme(t) {
-    try { localStorage.setItem('tp-theme', t); } catch (_) {}
-    document.documentElement.setAttribute('data-theme', t);
-    document.body.classList.toggle('dark-mode', t === 'dark');
-  }
-  function currentTheme() {
+  /* ---------- Current-page detection ----------
+     Used to suppress the dropdown row pointing at the page the
+     user is already on. Normalises both sides to a lowercased
+     filename (e.g. "my-trips.html") and treats an empty path as
+     the root dashboard ("index.html"). */
+  function currentPageBasename() {
     try {
-      return localStorage.getItem('tp-theme') || document.documentElement.getAttribute('data-theme') || 'light';
-    } catch (_) {
-      return document.documentElement.getAttribute('data-theme') || 'light';
-    }
+      const path = (window.location.pathname || '').split(/[?#]/)[0];
+      const last = path.split('/').filter(Boolean).pop() || '';
+      if (!last || !/\.html?$/i.test(last)) return 'index.html';
+      return last.toLowerCase();
+    } catch (_) { return ''; }
+  }
+  function hrefBasename(href) {
+    if (!href) return '';
+    const url = String(href).split(/[?#]/)[0];
+    const last = url.split('/').filter(Boolean).pop() || '';
+    if (!last) return 'index.html';
+    return last.toLowerCase();
+  }
+  function isCurrentPageHref(href) {
+    const cur = currentPageBasename();
+    const target = hrefBasename(href);
+    return !!cur && !!target && cur === target;
   }
 
   /* ---------- Role-based items (single source of truth) ----------
@@ -400,18 +409,24 @@
       // Keep username display in place — it stays on the left of the hamburger.
       if (isUserDisplayEl(el)) return;
 
-      // Theme toggle is replaced by the dark-mode switch inside the menu.
-      // We move the original button into the hidden host so any existing
-      // scripts that grab it via getElementById still work; we manage the
-      // theme directly so we don't double-toggle.
-      if (el.id === 'theme-toggle') {
-        hiddenHost.appendChild(el);
-        return;
-      }
+      // Page-level opt-out: elements marked with data-keep-in-nav="true"
+      // stay visible in the navbar (e.g. checklist page's Print + Export
+      // CSV buttons that should sit right next to the hamburger).
+      if (el.getAttribute && el.getAttribute('data-keep-in-nav') === 'true') return;
 
       // Logout is rendered as a fixed danger row at the bottom of the menu.
       if (isLogoutEl(el)) {
         logoutEl = el;
+        hiddenHost.appendChild(el);
+        return;
+      }
+
+      // Role-gated hardcoded links (e.g. organizer.html's
+      // <a id="admin-link" href="admin.html">Admin</a>) are owned
+      // exclusively by getRoleItems() to avoid duplicate rows in the
+      // dropdown. Move them to the hidden host so per-page JS that
+      // still toggles their visibility doesn't crash.
+      if (isRoleGatedLink(el)) {
         hiddenHost.appendChild(el);
         return;
       }
@@ -428,6 +443,9 @@
         label,
         originalEl: el,
         emoji: inferEmoji(rawText),
+        // Captured now because the element lives in the hidden host
+        // from this point on — used to filter out the current page.
+        href: (el.getAttribute && el.getAttribute('href')) || '',
       });
       hiddenHost.appendChild(el);
     });
@@ -453,9 +471,25 @@
     function buildMenu() {
       menu.innerHTML = '';
 
-      // Custom links (filter out role-gated items hidden by per-page JS).
+      // Core "My Trips" entry — every page can jump back to the
+      // trips view, except the page that IS the trips view.
+      if (!isCurrentPageHref('my-trips.html')) {
+        const tripsRow = document.createElement('a');
+        tripsRow.href = 'my-trips.html';
+        tripsRow.className = 'tp-menu-item';
+        tripsRow.setAttribute('role', 'menuitem');
+        tripsRow.innerHTML =
+          '<span class="tp-menu-emoji">🏠</span>' +
+          '<span class="tp-menu-label">My Trips</span>';
+        tripsRow.addEventListener('click', () => closeMenu());
+        menu.appendChild(tripsRow);
+      }
+
+      // Custom links (skip role-gated items hidden by per-page JS
+      // and anything that points at the current page).
       items.forEach((item) => {
         if (!isOriginallyVisible(item.originalEl)) return;
+        if (item.href && isCurrentPageHref(item.href)) return;
         const row = document.createElement('button');
         row.type = 'button';
         row.className = 'tp-menu-item';
@@ -476,7 +510,10 @@
 
       // Role-based rows (Organizer / Admin). Driven by
       // sessionStorage.currentUser.role — no per-page markup required.
+      // Current-page entries are filtered so e.g. admin.html's menu
+      // doesn't offer a link to itself.
       getRoleItems().forEach((roleItem) => {
+        if (isCurrentPageHref(roleItem.href)) return;
         const row = document.createElement('a');
         row.href = roleItem.href;
         row.className = 'tp-menu-item';
@@ -488,36 +525,6 @@
         row.addEventListener('click', () => closeMenu());
         menu.appendChild(row);
       });
-
-      // Dark Mode row
-      const darkRow = document.createElement('div');
-      darkRow.className = 'tp-menu-item tp-menu-darkrow';
-      darkRow.setAttribute('role', 'menuitemcheckbox');
-      darkRow.tabIndex = 0;
-      darkRow.innerHTML =
-        '<span class="tp-menu-emoji gold">🌙</span>' +
-        '<span class="tp-menu-label">Dark Mode</span>' +
-        '<span class="tp-toggle-switch" aria-hidden="true">' +
-          '<span class="tp-toggle-knob"></span>' +
-        '</span>';
-      const sw = darkRow.querySelector('.tp-toggle-switch');
-      const isDark = currentTheme() === 'dark';
-      sw.classList.toggle('is-on', isDark);
-      darkRow.setAttribute('aria-checked', isDark ? 'true' : 'false');
-      darkRow.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const next = sw.classList.contains('is-on') ? 'light' : 'dark';
-        applyTheme(next);
-        sw.classList.toggle('is-on', next === 'dark');
-        darkRow.setAttribute('aria-checked', next === 'dark' ? 'true' : 'false');
-      });
-      darkRow.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          darkRow.click();
-        }
-      });
-      menu.appendChild(darkRow);
 
       // Logout row (always present)
       const logoutRow = document.createElement('button');
@@ -592,16 +599,11 @@
     });
     window.addEventListener('resize', positionMenu);
 
-    // Apply current theme on load so freshly opened pages reflect
-    // the persisted dark-mode state (mirrors per-page pre-paint).
-    applyTheme(currentTheme());
-
     // Expose a small API so pages can drive the menu programmatically.
     window.tpNavMenu = Object.assign(window.tpNavMenu || {}, {
       open: openMenu,
       close: closeMenu,
       rebuild: buildMenu,
-      applyTheme,
     });
   }
 

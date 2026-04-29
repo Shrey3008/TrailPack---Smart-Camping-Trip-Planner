@@ -18,44 +18,50 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
   <style>
+    /* =========================================================================
+       Admin Panel — light design system (matches index.html dash-light tokens).
+       Selectors are scoped behind body.dash-light so we win against the
+       legacy admin/dashboard/styles.css cascade and against nav-menu.js's
+       runtime !important rules.
+       ========================================================================= */
     :root {
-      --beige:        #F5F0E8;
-      --surface:      #FFFFFF;
-      --ink:          #1B2422;
-      --ink-soft:     #5A6560;
-      --muted:        #8A938E;
-      --line:         #E3DDD0;
-      --line-soft:    #EDE7DA;
-      --row-alt:      #FAFAFA;
-      --row-hover:    #F5F0E8;
+      --bg-page:       #f8f7f4;
+      --bg-navbar:     #ffffff;
+      --bg-card:       #ffffff;
+      --bg-hero:       #d8eadf;
+      --border:        #e8e8e4;
+      --border-strong: #d8d8d2;
+      --green:         #2d6a4f;
+      --green-light:   #40916c;
+      --green-pale:    #e6f2eb;
+      --text-primary:  #1a1a1a;
+      --text-secondary:#6b7280;
+      --text-faint:    #9aa3af;
+      --text-white:    #ffffff;
+      --row-hover:     #f8faf9;
+      --row-header:    #f1f5f2;
 
-      --sage:         #7A9E7E;
-      --sage-dark:    #5C8A6E;
-      --terracotta:   #C4704F;
-      --dusty-blue:   #6B8FA6;
-      --golden:       #C4A84F;
-      --plum:         #9A6F8F;
+      --danger:        #dc2626;
+      --danger-soft:   #fef2f2;
 
-      --green:        #2D6A4F;
-      --green-dark:   #1B4332;
-      --green-pale:   #D8F3DC;
+      --accent-green:  #2d6a4f;
+      --accent-amber:  #d97706;
+      --accent-blue:   #2563eb;
+      --accent-purple: #7c3aed;
+      --accent-plum:   #9a6f8f;
 
-      --danger:       #C0392B;
-      --danger-soft:  #F9E2DE;
+      --shadow-sm:     0 1px 4px rgba(0,0,0,0.06);
+      --shadow-md:     0 4px 14px rgba(15,23,42,0.08), 0 10px 24px rgba(15,23,42,0.05);
 
-      --shadow-sm:    0 1px 2px rgba(15,36,28,0.04), 0 2px 8px rgba(15,36,28,0.06);
-      --shadow-md:    0 6px 20px rgba(15,36,28,0.10);
-      --shadow-lg:    0 12px 32px rgba(15,36,28,0.14);
-
-      --radius:       12px;
-      --radius-sm:    8px;
+      --radius:        12px;
+      --radius-sm:     8px;
     }
 
     /* ---- HARD RESETS so external stylesheets can't fight us ---- */
-    html, body { background: var(--beige) !important; }
-    body {
+    html, body.dash-light { background: var(--bg-page) !important; }
+    body.dash-light {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
-      color: var(--ink);
+      color: var(--text-primary);
       font-size: 14.5px;
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
@@ -63,184 +69,134 @@
       padding: 0;
     }
 
-    /* ---------- Navbar ---------- */
-    .navbar {
-      background: var(--green-dark) !important;
-      color: #fff;
-      padding: 18px 32px !important;
+    /* ---------- Navbar ----------
+       Page-local navbar overrides removed. nav-menu.js injects the
+       canonical navbar styling shared with the dashboard. */
+
+    /* ---------- Hero banner (sage green, matches index.html) ---------- */
+    body.dash-light .page-hero {
+      background: var(--bg-hero);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    body.dash-light .page-hero__inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 36px 32px;
+      min-height: 160px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+      gap: 24px;
+      box-sizing: border-box;
     }
-    .nav-brand { display: flex; align-items: center; gap: 14px; }
-    .nav-brand h1 {
+    body.dash-light .page-hero__copy { max-width: 65%; }
+    body.dash-light .page-hero__title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 2rem;
+      color: var(--text-primary);
+      margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+    body.dash-light .page-hero__sub {
+      color: var(--text-secondary);
       margin: 0;
-      font-family: 'Inter', sans-serif !important;
-      font-size: 22px !important;
-      font-weight: 700 !important;
-      letter-spacing: -0.02em;
-      color: #fff !important;
+      font-size: 0.98rem;
     }
-    .nav-brand .tagline {
-      font-size: 12.5px;
-      color: rgba(255,255,255,0.72);
-      padding: 3px 10px;
-      border: 1px solid rgba(255,255,255,0.20);
-      border-radius: 999px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      font-weight: 500;
-    }
-    .nav-links { display: flex; align-items: center; gap: 10px; }
-    .user-greeting {
-      font-size: 13.5px;
-      color: rgba(255,255,255,0.78);
-      margin-right: 6px;
-    }
-    .nav-links .btn,
-    .nav-links a.nav-link,
-    .nav-links button {
-      background: transparent !important;
-      color: #fff !important;
-      border: 1px solid rgba(255,255,255,0.18) !important;
-      padding: 7px 14px !important;
-      border-radius: 999px !important;
-      font-size: 13px !important;
-      font-weight: 500 !important;
-      cursor: pointer;
-      transition: background-color .15s ease, border-color .15s ease;
-      text-decoration: none !important;
-      font-family: inherit !important;
-      box-shadow: none !important;
-    }
-    .nav-links .btn:hover,
-    .nav-links a.nav-link:hover,
-    .nav-links button:hover {
-      background: rgba(255,255,255,0.10) !important;
-      border-color: rgba(255,255,255,0.32) !important;
-    }
-    .nav-links #logout-btn {
-      background: rgba(255,255,255,0.92) !important;
-      color: var(--green-dark) !important;
-      border-color: transparent !important;
-      font-weight: 600 !important;
-    }
-    .nav-links #logout-btn:hover { background: #fff !important; }
 
     /* ---------- Page container ---------- */
-    .container.admin-dashboard {
+    body.dash-light .container.admin-dashboard {
       max-width: 1280px !important;
       margin: 0 auto !important;
       padding: 28px 28px 60px !important;
       background: transparent !important;
     }
 
-    /* ---------- Header ---------- */
-    .admin-header {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
-      border-radius: var(--radius) !important;
-      padding: 26px 28px !important;
-      margin-bottom: 22px !important;
-      box-shadow: var(--shadow-sm) !important;
-      display: flex !important;
-      flex-wrap: wrap;
-      gap: 16px;
+    /* ---------- Toolbar (Promote action row) ---------- */
+    body.dash-light .admin-toolbar {
+      display: flex;
+      justify-content: flex-end;
       align-items: center;
-      justify-content: space-between;
+      gap: 12px;
+      margin: 4px 0 18px;
+      flex-wrap: wrap;
     }
-    .admin-header > * { margin: 0 !important; }
-    .admin-header h2 {
-      font-family: 'Playfair Display', serif !important;
-      font-size: 26px !important;
-      font-weight: 700 !important;
-      letter-spacing: -0.01em;
-      color: var(--ink);
-      flex: 1;
-      min-width: 220px;
-    }
-    .admin-header p {
-      color: var(--ink-soft);
-      font-size: 14px;
-      flex-basis: 100%;
-      order: 1;
-    }
-    .admin-header #promote-admin-btn {
-      order: 2;
+    body.dash-light #promote-admin-btn {
       background: var(--green) !important;
-      color: #fff !important;
-      border: none !important;
-      padding: 10px 18px !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+      padding: 10px 22px !important;
       border-radius: 999px !important;
-      font-size: 13.5px !important;
+      font-size: 0.88rem !important;
       font-weight: 600 !important;
       cursor: pointer;
-      transition: background-color .15s ease;
-      box-shadow: 0 4px 12px rgba(45,106,79,0.20) !important;
-      font-family: inherit !important;
+      box-shadow: 0 1px 2px rgba(45,106,79,0.16) !important;
+      transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease;
+      font-family: 'Inter', sans-serif !important;
     }
-    .admin-header #promote-admin-btn:hover { background: var(--green-dark) !important; }
+    body.dash-light #promote-admin-btn:hover {
+      background: var(--green-light) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45,106,79,0.22) !important;
+    }
 
-    /* ---------- Stat cards ---------- */
-    .admin-grid {
+    /* ---------- Stat cards (white card, 4px left accent) ---------- */
+    body.dash-light .admin-grid {
       display: grid !important;
       grid-template-columns: repeat(4, 1fr) !important;
       gap: 18px !important;
-      margin-bottom: 24px !important;
+      margin-bottom: 28px !important;
     }
-    .admin-grid .admin-card {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
-      border-left: 5px solid var(--sage) !important;
+    body.dash-light .admin-grid .admin-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      border-left: 4px solid var(--accent-green) !important;
       border-radius: var(--radius) !important;
-      padding: 22px 22px 20px !important;
+      padding: 22px !important;
       box-shadow: var(--shadow-sm) !important;
-      transition: transform .18s ease, box-shadow .18s ease !important;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
       position: relative;
     }
-    .admin-grid .admin-card:hover {
-      transform: translateY(-3px);
+    body.dash-light .admin-grid .admin-card:hover {
+      transform: translateY(-2px);
       box-shadow: var(--shadow-md) !important;
     }
-    /* Per-card accent colors keyed by source order. */
-    .admin-grid .admin-card:nth-child(1) { border-left-color: var(--sage); }
-    .admin-grid .admin-card:nth-child(2) { border-left-color: var(--terracotta); }
-    .admin-grid .admin-card:nth-child(3) { border-left-color: var(--dusty-blue); }
-    .admin-grid .admin-card:nth-child(4) { border-left-color: var(--golden); }
+    body.dash-light .admin-grid .admin-card:nth-child(1) { border-left-color: var(--accent-green); }
+    body.dash-light .admin-grid .admin-card:nth-child(2) { border-left-color: var(--accent-amber); }
+    body.dash-light .admin-grid .admin-card:nth-child(3) { border-left-color: var(--accent-blue); }
+    body.dash-light .admin-grid .admin-card:nth-child(4) { border-left-color: var(--accent-purple); }
 
-    .admin-grid .admin-card h3 {
-      font-size: 12.5px !important;
+    body.dash-light .admin-grid .admin-card h3 {
+      font-size: 0.7rem !important;
       font-weight: 600 !important;
-      color: var(--ink-soft) !important;
+      color: var(--text-secondary) !important;
       text-transform: uppercase;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.09em;
       margin: 0 0 14px 0 !important;
       font-family: 'Inter', sans-serif !important;
     }
-    .admin-grid .admin-stat-large {
-      font-family: 'Playfair Display', serif !important;
-      font-size: 3rem !important;
+    body.dash-light .admin-grid .admin-stat-large {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 2.2rem !important;
       font-weight: 700 !important;
-      color: var(--ink);
-      line-height: 1 !important;
+      color: var(--text-primary) !important;
+      line-height: 1.05 !important;
+      letter-spacing: -0.02em;
       margin: 0 !important;
     }
-    .admin-grid .admin-stat-label {
+    body.dash-light .admin-grid .admin-stat-label {
       font-size: 12px !important;
-      color: var(--muted) !important;
-      margin-top: 6px !important;
-      text-transform: lowercase;
+      color: var(--text-secondary) !important;
+      margin-top: 4px !important;
     }
-    /* The 4th card holds two side-by-side stats — tighten font sizes
-       so they fit cleanly without the inline override that admin.js
-       used to set. */
-    .admin-grid .admin-card:nth-child(4) .admin-stat-large {
-      font-size: 1.9rem !important;
+    body.dash-light .admin-grid .admin-card:nth-child(4) .admin-stat-large {
+      font-size: 1.7rem !important;
     }
 
     /* ---------- Section headers ---------- */
-    .section-header {
+    body.dash-light .section-header {
       display: flex !important;
       align-items: center !important;
       justify-content: space-between !important;
@@ -248,107 +204,105 @@
       flex-wrap: wrap;
       margin-bottom: 14px !important;
     }
-    .section-header h2 {
-      font-family: 'Playfair Display', serif !important;
-      font-size: 22px !important;
+    body.dash-light .section-header h2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-size: 1.5rem !important;
       font-weight: 700 !important;
-      letter-spacing: -0.01em;
-      color: var(--ink) !important;
+      letter-spacing: -0.005em;
+      color: var(--text-primary) !important;
       margin: 0 !important;
       padding: 0 !important;
     }
 
     /* ---------- Analytics cards (charts) ---------- */
-    .analytics-section { margin-bottom: 26px; }
-    .analytics-grid {
+    body.dash-light .analytics-section { margin-bottom: 28px; }
+    body.dash-light .analytics-grid {
       display: grid !important;
       grid-template-columns: 1fr 1fr !important;
       gap: 18px !important;
     }
-    .analytics-card {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
+    body.dash-light .analytics-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
       border-radius: var(--radius) !important;
       padding: 22px !important;
       box-shadow: var(--shadow-sm) !important;
+      transition: box-shadow .18s ease;
     }
-    .analytics-card h3 {
-      font-size: 13px !important;
+    body.dash-light .analytics-card:hover { box-shadow: var(--shadow-md) !important; }
+    body.dash-light .analytics-card h3 {
+      font-size: 0.78rem !important;
       font-weight: 600 !important;
-      color: var(--ink-soft) !important;
+      color: var(--text-secondary) !important;
       text-transform: uppercase;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.08em;
       margin: 0 0 16px 0 !important;
       font-family: 'Inter', sans-serif !important;
     }
-    .chart-wrap {
-      position: relative;
-      height: 240px;
-      width: 100%;
-    }
-    .chart-empty {
+    body.dash-light .chart-wrap { position: relative; height: 240px; width: 100%; }
+    body.dash-light .chart-empty {
       height: 240px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--muted);
+      color: var(--text-faint);
       font-size: 13px;
       font-style: italic;
     }
 
-    /* ---------- Tables / sections ---------- */
-    .trips-section { margin-bottom: 24px; }
-    .trips-section .admin-card {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
+    /* ---------- Tables ---------- */
+    body.dash-light .trips-section { margin-bottom: 28px; }
+    body.dash-light .trips-section .admin-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
       border-radius: var(--radius) !important;
       padding: 0 !important;
       box-shadow: var(--shadow-sm) !important;
       overflow: hidden;
     }
 
-    .users-table {
+    body.dash-light .users-table {
       width: 100%;
       border-collapse: collapse !important;
       font-size: 13.5px;
     }
-    .users-table thead th {
-      background: var(--row-alt) !important;
-      color: var(--ink-soft) !important;
-      font-size: 11.5px !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.06em;
+    body.dash-light .users-table thead th {
+      background: var(--row-header) !important;
+      color: var(--green) !important;
+      font-size: 0.72rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       text-align: left !important;
       padding: 12px 16px !important;
-      border-bottom: 1px solid var(--line) !important;
+      border-bottom: 1px solid var(--border) !important;
       white-space: nowrap;
     }
-    .users-table tbody td {
-      padding: 11px 16px !important;
-      border-bottom: 1px solid var(--line-soft) !important;
-      color: var(--ink) !important;
+    body.dash-light .users-table tbody td {
+      padding: 12px 16px !important;
+      border-bottom: 1px solid var(--border) !important;
+      color: var(--text-primary) !important;
       vertical-align: middle !important;
+      background: var(--bg-card);
     }
-    .users-table tbody tr:nth-child(even) { background: var(--row-alt); }
-    .users-table tbody tr:hover { background: var(--row-hover) !important; }
-    .users-table tbody tr:last-child td { border-bottom: none !important; }
-    .users-table td:first-child { font-weight: 500; }
+    body.dash-light .users-table tbody tr:hover td { background: var(--row-hover) !important; }
+    body.dash-light .users-table tbody tr:last-child td { border-bottom: none !important; }
+    body.dash-light .users-table td:first-child { font-weight: 500; }
 
     /* Avatar circle injected before user names by JS below. */
-    .users-table .avatar-cell {
+    body.dash-light .users-table .avatar-cell {
       display: inline-flex;
       align-items: center;
       gap: 10px;
     }
-    .avatar-circle {
+    body.dash-light .avatar-circle {
       width: 32px;
       height: 32px;
       border-radius: 50%;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: #fff;
+      color: var(--text-white);
       font-weight: 600;
       font-size: 13px;
       flex-shrink: 0;
@@ -356,8 +310,8 @@
       text-transform: uppercase;
     }
 
-    /* ---------- Role + status badges (override styles.css) ---------- */
-    .role-badge {
+    /* ---------- Role + status badges ---------- */
+    body.dash-light .role-badge {
       display: inline-block !important;
       padding: 3px 11px !important;
       border-radius: 999px !important;
@@ -368,22 +322,23 @@
       line-height: 1.5 !important;
       border: 1px solid transparent !important;
     }
-    .role-badge.role-admin {
-      background: var(--green-dark) !important;
-      color: #fff !important;
+    body.dash-light .role-badge.role-admin {
+      background: var(--green-pale) !important;
+      color: var(--green) !important;
+      border-color: rgba(45,106,79,0.20) !important;
     }
-    .role-badge.role-organizer {
-      background: rgba(154, 111, 143, 0.14) !important;
-      color: var(--plum) !important;
-      border-color: rgba(154,111,143,0.30) !important;
+    body.dash-light .role-badge.role-organizer {
+      background: #fff7ed !important;
+      color: #c2410c !important;
+      border-color: #fed7aa !important;
     }
-    .role-badge.role-user {
-      background: #ECEEEC !important;
-      color: var(--ink-soft) !important;
-      border-color: var(--line) !important;
+    body.dash-light .role-badge.role-user {
+      background: #f3f4f0 !important;
+      color: var(--text-secondary) !important;
+      border-color: var(--border) !important;
     }
-    .status-active,
-    .status-inactive {
+    body.dash-light .status-active,
+    body.dash-light .status-inactive {
       display: inline-block !important;
       padding: 3px 11px !important;
       border-radius: 999px !important;
@@ -391,27 +346,30 @@
       font-weight: 600 !important;
       letter-spacing: 0.02em !important;
       line-height: 1.5 !important;
+      border: 1px solid transparent !important;
     }
-    .status-active {
+    body.dash-light .status-active {
       background: var(--green-pale) !important;
-      color: var(--green-dark) !important;
+      color: var(--green) !important;
+      border-color: rgba(45,106,79,0.18) !important;
     }
-    .status-inactive {
+    body.dash-light .status-inactive {
       background: var(--danger-soft) !important;
       color: var(--danger) !important;
+      border-color: #fecaca !important;
     }
 
     /* ---------- Action buttons (in user table) ---------- */
-    .users-table .btn,
-    .users-table .btn-small {
+    body.dash-light .users-table .btn,
+    body.dash-light .users-table .btn-small {
       display: inline-block !important;
-      background: transparent !important;
-      color: var(--ink) !important;
-      border: 1px solid var(--line) !important;
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border) !important;
       padding: 5px 12px !important;
       border-radius: 999px !important;
       font-size: 12px !important;
-      font-weight: 500 !important;
+      font-weight: 600 !important;
       cursor: pointer;
       margin-right: 6px !important;
       transition: background-color .12s ease, border-color .12s ease, color .12s ease;
@@ -419,174 +377,228 @@
       line-height: 1.4 !important;
       box-shadow: none !important;
     }
-    .users-table .btn:hover {
+    body.dash-light .users-table .btn:hover {
       background: var(--row-hover) !important;
-      border-color: var(--ink-soft) !important;
+      border-color: var(--border-strong) !important;
     }
-    .users-table .btn-edit {
-      color: var(--green-dark) !important;
+    body.dash-light .users-table .btn-edit,
+    body.dash-light .users-table .btn-primary {
+      color: var(--green) !important;
       border-color: rgba(45,106,79,0.30) !important;
     }
-    .users-table .btn-edit:hover {
+    body.dash-light .users-table .btn-edit:hover,
+    body.dash-light .users-table .btn-primary:hover {
       background: var(--green-pale) !important;
       border-color: var(--green) !important;
     }
-    .users-table .btn-danger {
+    /* Delete = ghost red (border only, no fill). */
+    body.dash-light .users-table .btn-danger {
+      background: transparent !important;
       color: var(--danger) !important;
-      border-color: rgba(192,57,43,0.30) !important;
+      border-color: rgba(220,38,38,0.30) !important;
     }
-    .users-table .btn-danger:hover {
+    body.dash-light .users-table .btn-danger:hover {
       background: var(--danger-soft) !important;
       border-color: var(--danger) !important;
     }
-    .users-table .btn-primary {
-      color: var(--green-dark) !important;
-      border-color: rgba(45,106,79,0.30) !important;
-    }
-    .users-table .btn-primary:hover {
-      background: var(--green-pale) !important;
-      border-color: var(--green) !important;
-    }
 
     /* ---------- Filters / search row ---------- */
-    .filters-row {
+    body.dash-light .filters-row {
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
     }
-    .filters-row .form-select,
-    .filters-row .search-input {
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
-      border-radius: 999px !important;
+    body.dash-light .filters-row .form-select,
+    body.dash-light .filters-row .search-input {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-sm) !important;
       font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
       font-size: 14px !important;
-      color: var(--ink) !important;
-    }
-    .filters-row .search-input::placeholder {
-      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
-      color: var(--muted) !important;
-      opacity: 1;
-    }
-    .filters-row .search-input::-webkit-search-cancel-button {
-      -webkit-appearance: none;
-      appearance: none;
-      height: 14px;
-      width: 14px;
-      margin-left: 6px;
-      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'/%3E%3Cline x1='6' y1='6' x2='18' y2='18'/%3E%3C/svg%3E") center/contain no-repeat;
-      cursor: pointer;
-    }
-    .filters-row .form-select,
-    .filters-row .search-input {
-      padding: 8px 14px !important;
+      color: var(--text-primary) !important;
+      padding: 9px 14px !important;
       transition: border-color .12s ease, box-shadow .12s ease;
       box-shadow: none !important;
     }
-    .filters-row .form-select { min-width: 140px; }
-    .filters-row .search-input {
+    body.dash-light .filters-row .search-input::placeholder {
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
+      color: var(--text-faint) !important;
+      opacity: 1;
+    }
+    body.dash-light .filters-row .form-select { min-width: 140px; }
+    body.dash-light .filters-row .search-input {
       min-width: 240px;
-      background-color: var(--surface) !important;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%235A6560' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") !important;
       background-repeat: no-repeat !important;
       background-position: 12px center !important;
       background-size: 16px 16px !important;
       padding-left: 36px !important;
     }
-    .filters-row .form-select:focus,
-    .filters-row .search-input:focus {
+    body.dash-light .filters-row .form-select:focus,
+    body.dash-light .filters-row .search-input:focus {
       outline: none !important;
       border-color: var(--green) !important;
       box-shadow: 0 0 0 3px rgba(45,106,79,0.14) !important;
     }
 
-    /* ---------- Empty / loading rows ---------- */
-    .users-table .empty-row td {
+    body.dash-light .users-table .empty-row td {
       text-align: center !important;
       padding: 28px !important;
-      color: var(--muted);
+      color: var(--text-faint);
       font-style: italic;
+      background: var(--bg-card);
     }
 
-    /* ---------- Modal (style.css overrides) ---------- */
-    #role-modal.modal {
-      background: rgba(15, 36, 28, 0.45) !important;
-      backdrop-filter: blur(4px);
+    /* ---------- Inline Change-Role popover ----------
+       Replaces the centered modal with a dropdown anchored to each
+       row's "Change Role" pill. Stays aligned to the row, matches
+       the rest of the admin table styling. */
+    body.dash-light .role-dd {
+      position: relative;
+      display: inline-block;
     }
-    #role-modal .modal-content {
-      background: var(--surface) !important;
-      border-radius: var(--radius) !important;
-      box-shadow: var(--shadow-lg) !important;
-      padding: 26px !important;
-      max-width: 420px !important;
-      border: 1px solid var(--line) !important;
+    body.dash-light .role-dd-caret {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 0.7em;
+      transition: transform .15s ease;
     }
-    #role-modal h3 {
-      font-family: 'Playfair Display', serif !important;
-      font-size: 20px !important;
-      margin: 0 0 8px 0 !important;
+    body.dash-light .role-dd.is-open .role-dd-caret { transform: rotate(180deg); }
+    body.dash-light .role-dd.is-open .role-dd-trigger {
+      background: var(--green-pale) !important;
+      border-color: var(--green) !important;
     }
-    #role-modal .form-select {
+    body.dash-light .role-dd-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 50;
+      min-width: 180px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 12px 32px rgba(15,23,42,0.14);
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      animation: roleDdIn .12s ease-out;
+    }
+    /* The [hidden] attribute would normally set display:none, but our
+       display:flex above wins on specificity. Restore the expected
+       behavior so closed popovers actually disappear. */
+    body.dash-light .role-dd-menu[hidden] { display: none; }
+    @keyframes roleDdIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    body.dash-light .role-dd-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
       width: 100%;
-      background: var(--surface) !important;
-      border: 1px solid var(--line) !important;
-      border-radius: 8px !important;
-      padding: 10px 12px !important;
-      font-size: 14px !important;
-    }
-    #role-modal .btn-primary {
-      background: var(--green) !important;
-      color: #fff !important;
-      border: none !important;
-      padding: 10px 18px !important;
-      border-radius: 999px !important;
-      font-size: 13.5px !important;
-      font-weight: 600 !important;
+      padding: 8px 10px;
+      background: transparent;
+      border: 0;
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.85rem;
       cursor: pointer;
+      text-align: left;
+      transition: background-color .12s ease;
     }
-    #role-modal .btn-primary:hover { background: var(--green-dark) !important; }
-    #role-modal .close { font-size: 22px !important; cursor: pointer; }
+    body.dash-light .role-dd-item:hover,
+    body.dash-light .role-dd-item:focus-visible {
+      background: var(--row-hover);
+      outline: none;
+    }
+    body.dash-light .role-dd-item.is-current {
+      background: var(--green-pale);
+    }
+    body.dash-light .role-dd-item.is-current:hover {
+      background: var(--green-pale);
+      filter: brightness(0.97);
+    }
+    body.dash-light .role-dd-check {
+      color: var(--green);
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    /* Last row in the table needs the popover to flip upward so it
+       isn't clipped by the page bottom. */
+    body.dash-light .users-table tbody tr:last-child .role-dd-menu,
+    body.dash-light .users-table tbody tr:nth-last-child(2) .role-dd-menu {
+      top: auto;
+      bottom: calc(100% + 6px);
+    }
 
     /* ---------- Pagination ---------- */
-    .pagination { padding: 12px 16px; }
+    body.dash-light .pagination { padding: 12px 16px; color: var(--text-secondary); }
 
     /* ---------- Responsive ---------- */
     @media (max-width: 1024px) {
-      .admin-grid { grid-template-columns: repeat(2, 1fr) !important; }
-      .analytics-grid { grid-template-columns: 1fr !important; }
+      body.dash-light .admin-grid { grid-template-columns: repeat(2, 1fr) !important; }
+      body.dash-light .analytics-grid { grid-template-columns: 1fr !important; }
+      body.dash-light .page-hero__copy { max-width: 100%; }
     }
     @media (max-width: 640px) {
-      .container.admin-dashboard { padding: 18px 14px 50px !important; }
-      .admin-grid { grid-template-columns: 1fr !important; }
-      .navbar { padding: 14px 16px !important; }
-      .nav-brand .tagline { display: none; }
-      .user-greeting { display: none; }
-      .filters-row .search-input { min-width: 0; flex: 1; }
-      .users-table thead th,
-      .users-table tbody td { padding: 10px 12px !important; font-size: 12.5px; }
+      body.dash-light .container.admin-dashboard { padding: 18px 14px 50px !important; }
+      body.dash-light .admin-grid { grid-template-columns: 1fr !important; }
+      body.dash-light .nav-user-text { display: none !important; }
+      body.dash-light .page-hero__inner { padding: 26px 18px; min-height: 130px; }
+      body.dash-light .page-hero__title { font-size: 1.5rem; }
+      body.dash-light .filters-row .search-input { min-width: 0; flex: 1; }
+      body.dash-light .users-table thead th,
+      body.dash-light .users-table tbody td { padding: 10px 12px !important; font-size: 12.5px; }
     }
   </style>
 </head>
-<body>
+<body class="dash-light">
   <nav class="navbar">
     <div class="nav-brand">
-      <h1>⛺ TrailPack</h1>
-      <span class="tagline">Admin Dashboard</span>
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+        </svg>
+      </span>
+      <h1 class="brand-text">TrailPack</h1>
     </div>
     <div class="nav-links">
-      <span id="user-name" class="user-greeting"></span>
+      <!--
+        Avatar + name wrapper. The .user-greeting class is recognised by
+        nav-menu.js's isUserDisplayEl() so this stays in the navbar
+        instead of being moved into the hamburger dropdown. #user-name
+        is preserved verbatim for admin.js's textContent setter.
+      -->
+      <span class="user-greeting nav-user-block">
+        <span class="nav-avatar" id="nav-avatar" aria-hidden="true">•</span>
+        <span class="nav-user-text">
+          <span id="user-name" class="user-name"></span>
+        </span>
+      </span>
       <a href="index.html" class="nav-link">Dashboard</a>
       <button class="btn btn-secondary" id="logout-btn" onclick="logout()">Logout</button>
     </div>
   </nav>
 
+  <!-- Hero banner: page title + subtitle (matches index.html layout). -->
+  <section class="page-hero" aria-label="Admin panel">
+    <div class="page-hero__inner">
+      <div class="page-hero__copy">
+        <h2 class="page-hero__title">Admin Panel 🛠️</h2>
+        <p class="page-hero__sub">Manage users, trips, and system data.</p>
+      </div>
+    </div>
+  </section>
+
   <main class="container admin-dashboard">
-    <header class="admin-header">
-      <h2>📊 Admin Dashboard</h2>
-      <p>Manage users, view system statistics, and monitor activity</p>
+    <div class="admin-toolbar">
       <button id="promote-admin-btn" class="btn btn-primary" onclick="promoteToAdmin()">Promote Current User to Admin</button>
-    </header>
+    </div>
 
     <!-- Overview Stats -->
     <section class="admin-grid">
@@ -701,20 +713,9 @@
     </section>
   </main>
 
-  <!-- Role Edit Modal (unchanged structure — admin.js's openRoleModal/saveUserRole still work) -->
-  <div id="role-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-      <span class="close" onclick="closeRoleModal()">&times;</span>
-      <h3>Change User Role</h3>
-      <p id="role-modal-user"></p>
-      <select id="new-role" class="form-select">
-        <option value="user">User</option>
-        <option value="organizer">Organizer</option>
-        <option value="admin">Admin</option>
-      </select>
-      <button class="btn btn-primary" onclick="saveUserRole()" style="margin-top: 18px;">Save Changes</button>
-    </div>
-  </div>
+  <!-- Role change is now an inline popover anchored to each row's
+       "Change Role" pill (see admin.js: toggleRolePopover/applyRoleChange).
+       The previous centered modal was removed in favor of the dropdown. -->
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="config.js"></script>

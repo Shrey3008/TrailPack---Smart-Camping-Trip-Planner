@@ -1,0 +1,1732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>TrailPack — Smart Camping Trip Planner</title>
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Design-system fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+
+  <style>
+    /* =========================================================================
+       TrailPack Dashboard — light design system.
+       ----------------------------------------------------------------------------
+       Selectors are intentionally prefixed with `body.dash-light` so they win
+       against the !important rules nav-menu.js injects at runtime (since both
+       carry !important, the more-specific selector wins). All existing
+       app.js-rendered markup is untouched — only restyled.
+       ========================================================================= */
+    :root {
+      /* Light dashboard palette — exact tokens from spec. */
+      --bg-page:       #f8f7f4;
+      --bg-navbar:     #ffffff;
+      --bg-card:       #ffffff;
+      --bg-hero:       #d8eadf;
+      --border:        #e8e8e4;
+      --border-strong: #d8d8d2;
+      --green:         #2d6a4f;
+      --green-light:   #40916c;
+      --green-pale:    #e6f2eb;
+      --text-primary:  #1a1a1a;
+      --text-secondary:#6b7280;
+      --text-faint:    #9aa3af;
+      --text-white:    #ffffff;
+      --danger:        #dc2626;
+      --danger-soft:   #fef2f2;
+      --radius:        12px;
+      --radius-lg:     16px;
+      --shadow-sm:     0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
+      --shadow-md:     0 4px 14px rgba(15, 23, 42, 0.07), 0 10px 24px rgba(15, 23, 42, 0.05);
+      /* Terrain accents (top border on trip cards). */
+      --t-mountain:    #3b82f6;  /* blue   */
+      --t-forest:      #22c55e;  /* green  */
+      --t-desert:      #f97316;  /* orange */
+      --t-beach:       #06b6d4;  /* cyan   */
+      --t-lake:        #38bdf8;  /* sky    */
+    }
+
+    body.dash-light, body.dash-light html {
+      background: var(--bg-page) !important;
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      min-height: 100vh;
+    }
+    body.dash-light { margin: 0; }
+
+    /* ---------- Custom scrollbar (WebKit) ---------- */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: #2d6a4f;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #1b4332; }
+    /* Firefox fallback */
+    html { scrollbar-color: #2d6a4f transparent; scrollbar-width: thin; }
+
+    /* ---------- Site footer ---------- */
+    body.dash-light .site-footer {
+      border-top: 1px solid #e8e8e4;
+      padding: 22px 24px;
+      margin-top: 40px;
+      text-align: center;
+      background: var(--bg-page);
+    }
+    body.dash-light .site-footer p {
+      margin: 0;
+      color: #6b7280;
+      font-size: 0.82rem;
+      letter-spacing: 0.01em;
+    }
+
+    /* ---------- Navbar ----------
+       White, 60px tall, subtle bottom shadow + 1px border. Wins over
+       the NAVBAR_CSS injected by nav-menu.js via higher specificity. */
+    body.dash-light .navbar {
+      background: var(--bg-navbar) !important;
+      color: var(--text-primary) !important;
+      padding: 0 32px !important;
+      min-height: 64px;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      border-bottom: 1px solid var(--border) !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      /* Sticky so the navbar stays pinned during dashboard scroll. */
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 100;
+    }
+    body.dash-light .nav-brand { display: flex !important; align-items: center !important; gap: 12px !important; }
+    body.dash-light .nav-brand h1,
+    body.dash-light .nav-brand .brand-text {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.45rem !important;
+      color: var(--text-primary) !important;
+      letter-spacing: 0.005em;
+      margin: 0 !important;
+    }
+    body.dash-light .nav-brand .logo-mark {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 10px !important;
+      background: var(--green-pale) !important;
+    }
+
+    body.dash-light .nav-user {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+    }
+    /* User-greeting wrapper holds avatar + name. nav-menu.js's
+       isUserDisplayEl() detects .user-greeting and leaves it in place
+       (the rest of the nav-user buttons get vacuumed into the
+       hamburger dropdown). */
+    body.dash-light .nav-user .user-greeting {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 10px;
+      color: var(--text-primary) !important;
+      font-weight: 500 !important;
+      font-size: 0.92rem !important;
+    }
+    body.dash-light .nav-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--green);
+      color: var(--text-white);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    body.dash-light .nav-user-text {
+      display: inline-flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    body.dash-light .nav-user .user-name,
+    body.dash-light .nav-user #user-info {
+      color: var(--text-primary) !important;
+      font-weight: 600 !important;
+      font-size: 0.9rem !important;
+      margin: 0 !important;
+    }
+
+    /* Hamburger button override — dark gray on white navbar.
+       nav-menu.js renders `.tp-hamburger` with a white border + white
+       glyph (designed for a dark green navbar); here we recolor it to
+       fit the light navbar. */
+    body.dash-light .navbar .tp-hamburger,
+    body.dash-light .tp-hamburger {
+      background: transparent !important;
+      border: 1px solid var(--border) !important;
+      color: #374151 !important;
+    }
+    body.dash-light .navbar .tp-hamburger:hover,
+    body.dash-light .tp-hamburger:hover {
+      background: #f3f4f6 !important;
+      border-color: var(--border-strong) !important;
+      color: var(--text-primary) !important;
+    }
+
+    /* ---------- Hero banner ----------
+       Soft sage green panel below the navbar with greeting + count.
+       Populated by updateHero() in the boot block. */
+    body.dash-light .dash-hero {
+      background: var(--bg-hero);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      /* Smooth section-wide fade-in on page load. */
+      animation: dash-hero-fade 0.5s ease-out both;
+    }
+    @keyframes dash-hero-fade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    body.dash-light .dash-hero__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 36px 32px;
+      min-height: 180px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      position: relative;
+      z-index: 2;
+    }
+    body.dash-light .dash-hero__copy {
+      max-width: 60%;
+      animation: dash-fade-in 0.5s ease-out both;
+    }
+    body.dash-light .dash-hero__greeting {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
+      font-size: 2.1rem;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      margin: 0 0 6px;
+    }
+    body.dash-light .dash-hero__sub {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      margin: 0;
+      font-weight: 400;
+    }
+    body.dash-light .dash-hero__art {
+      width: 280px;
+      max-width: 35%;
+      height: auto;
+      flex-shrink: 0;
+      animation: dash-fade-in 0.7s ease-out 0.1s both;
+    }
+    @keyframes dash-fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Layout ---------- */
+    body.dash-light main.container {
+      max-width: 1200px;
+      margin: 28px auto 56px !important;
+      padding: 0 32px !important;
+    }
+
+    /* ---------- Stat cards ---------- */
+    body.dash-light .stats-bar {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 18px !important;
+      margin-bottom: 32px !important;
+    }
+    body.dash-light .stat-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      padding: 22px 22px 22px 28px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    body.dash-light .stat-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    body.dash-light .stat-card:hover {
+      transform: translateY(-3px);
+      /* Slightly deeper shadow than --shadow-md on hover. */
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10), 0 16px 32px rgba(15, 23, 42, 0.06) !important;
+      border-color: var(--border-strong) !important;
+    }
+    /* Left-border accent (4px), driven by data-accent attribute. */
+    body.dash-light .stat-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--green);
+    }
+    body.dash-light .stat-card[data-accent="green"]::before  { background: #2d6a4f; }
+    body.dash-light .stat-card[data-accent="orange"]::before { background: #d97706; }
+    body.dash-light .stat-card[data-accent="blue"]::before   { background: #2563eb; }
+    body.dash-light .stat-card[data-accent="purple"]::before { background: #7c3aed; }
+    body.dash-light .stat-card[data-accent="green"]  .stat-icon { background: rgba(45,106,79,0.10) !important;  color: #2d6a4f !important; }
+    body.dash-light .stat-card[data-accent="orange"] .stat-icon { background: rgba(217,119,6,0.10) !important;  color: #d97706 !important; }
+    body.dash-light .stat-card[data-accent="blue"]   .stat-icon { background: rgba(37,99,235,0.10) !important;  color: #2563eb !important; }
+    body.dash-light .stat-card[data-accent="purple"] .stat-icon { background: rgba(124,58,237,0.10) !important; color: #7c3aed !important; }
+
+    body.dash-light .stat-card .stat-content {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 2px;
+      order: 0;
+    }
+    body.dash-light .stat-card .stat-icon {
+      flex: 0 0 44px;
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: grid !important;
+      place-items: center !important;
+      font-size: 1.4rem !important;
+      order: 1;
+    }
+    body.dash-light .stat-card .stat-value {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 2.1rem !important;
+      font-weight: 700 !important;
+      line-height: 1.05 !important;
+      color: var(--text-primary) !important;
+      letter-spacing: -0.02em;
+    }
+    body.dash-light .stat-card .stat-label {
+      font-size: 0.7rem !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.09em !important;
+      text-transform: uppercase !important;
+      color: var(--text-secondary) !important;
+      margin-top: 2px;
+    }
+
+    /* ---------- Section header ---------- */
+    body.dash-light .section-header {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: space-between !important;
+      gap: 16px;
+      margin-bottom: 18px !important;
+    }
+    body.dash-light .section-header-left { display: flex; flex-direction: column; gap: 4px; }
+    body.dash-light .section-header h2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.5rem !important;
+      color: var(--text-primary) !important;
+      margin: 0 !important;
+      letter-spacing: -0.005em;
+    }
+    body.dash-light .section-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin: 0;
+      letter-spacing: 0.005em;
+    }
+
+    /* ---------- Filter pills ---------- */
+    body.dash-light .filter-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 22px;
+    }
+    body.dash-light .filter-tab {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    body.dash-light .filter-tab:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+      background: #fafaf7;
+    }
+    body.dash-light .filter-tab.is-active {
+      background: var(--green);
+      color: var(--text-white);
+      border-color: var(--green);
+    }
+    body.dash-light .filter-tab.is-active:hover {
+      background: var(--green-light);
+      border-color: var(--green-light);
+      color: var(--text-white);
+    }
+    body.dash-light .trip-card.is-hidden-by-filter { display: none !important; }
+
+    /* "+ Create New Trip" CTA — solid green pill */
+    body.dash-light .section-header .btn.btn-primary {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.88rem !important;
+      padding: 10px 22px !important;
+      border-radius: 999px !important;
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    body.dash-light .section-header .btn.btn-primary:hover {
+      background: var(--green-light) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+
+    body.dash-light .dashboard-section { margin-bottom: 40px; }
+
+    /* ---------- Trip grid & cards ----------
+       Markup is rendered by app.js. enhanceCard() injects a
+       data-terrain attribute used here for the top-border accent. */
+    body.dash-light .trips-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+      gap: 22px !important;
+    }
+    body.dash-light .trip-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius) !important;
+      padding: 22px !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 14px !important;
+      position: relative;
+      overflow: hidden;
+      animation: card-fade-up 0.5s ease-out both;
+    }
+    /* Larger translateY than the generic dash-fade-in so cards visibly
+       rise into place on load. */
+    @keyframes card-fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* Staggered entrance — 0.1s step per card, schedule for the first 12. */
+    body.dash-light .trips-grid > .trip-card:nth-child(1)  { animation-delay: 0.1s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(2)  { animation-delay: 0.2s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(3)  { animation-delay: 0.3s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(4)  { animation-delay: 0.4s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(5)  { animation-delay: 0.5s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(6)  { animation-delay: 0.6s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(7)  { animation-delay: 0.7s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(8)  { animation-delay: 0.8s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(9)  { animation-delay: 0.9s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(10) { animation-delay: 1.0s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(11) { animation-delay: 1.1s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(12) { animation-delay: 1.2s; }
+
+    /* Top border accent driven by data-terrain (set by enhanceCard). */
+    body.dash-light .trip-card::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 3px;
+      background: var(--green-light);
+    }
+    body.dash-light .trip-card[data-terrain="mountain"]::before,
+    body.dash-light .trip-card[data-terrain="mountains"]::before { background: var(--t-mountain); }
+    body.dash-light .trip-card[data-terrain="forest"]::before,
+    body.dash-light .trip-card[data-terrain="woods"]::before,
+    body.dash-light .trip-card[data-terrain="jungle"]::before    { background: var(--t-forest); }
+    body.dash-light .trip-card[data-terrain="desert"]::before,
+    body.dash-light .trip-card[data-terrain="dunes"]::before     { background: var(--t-desert); }
+    body.dash-light .trip-card[data-terrain="beach"]::before,
+    body.dash-light .trip-card[data-terrain="coast"]::before     { background: var(--t-beach); }
+    body.dash-light .trip-card[data-terrain="lake"]::before      { background: var(--t-lake); }
+
+    body.dash-light .trip-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md) !important;
+      border-color: var(--border-strong) !important;
+    }
+
+    body.dash-light .trip-card h3 {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 1.08rem !important;
+      font-weight: 700 !important;
+      color: var(--text-primary) !important;
+      margin: 0 !important;
+      letter-spacing: -0.005em;
+    }
+    body.dash-light .trip-meta {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    body.dash-light .trip-badge {
+      background: #f3f4f0 !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 999px !important;
+      padding: 4px 10px !important;
+      font-size: 0.72rem !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.01em;
+      text-transform: capitalize;
+    }
+    /* Tint the *first* badge (terrain) per data-terrain. app.js
+       renders Terrain → Season → Days, so :first-child is terrain. */
+    body.dash-light .trip-card[data-terrain="mountain"]  .trip-badge:first-child,
+    body.dash-light .trip-card[data-terrain="mountains"] .trip-badge:first-child {
+      background: #eff6ff !important; color: #1d4ed8 !important; border-color: #dbeafe !important;
+    }
+    body.dash-light .trip-card[data-terrain="forest"] .trip-badge:first-child,
+    body.dash-light .trip-card[data-terrain="woods"]  .trip-badge:first-child,
+    body.dash-light .trip-card[data-terrain="jungle"] .trip-badge:first-child {
+      background: #f0fdf4 !important; color: #15803d !important; border-color: #bbf7d0 !important;
+    }
+    body.dash-light .trip-card[data-terrain="desert"] .trip-badge:first-child,
+    body.dash-light .trip-card[data-terrain="dunes"]  .trip-badge:first-child {
+      background: #fff7ed !important; color: #c2410c !important; border-color: #fed7aa !important;
+    }
+    body.dash-light .trip-card[data-terrain="beach"] .trip-badge:first-child,
+    body.dash-light .trip-card[data-terrain="coast"] .trip-badge:first-child {
+      background: #ecfeff !important; color: #0e7490 !important; border-color: #a5f3fc !important;
+    }
+    body.dash-light .trip-card[data-terrain="lake"] .trip-badge:first-child {
+      background: #f0f9ff !important; color: #0369a1 !important; border-color: #bae6fd !important;
+    }
+
+    body.dash-light .trip-date {
+      font-size: 0.78rem !important;
+      color: var(--text-secondary) !important;
+      font-weight: 500 !important;
+    }
+
+    /* Terrain emoji row injected by enhanceCard. */
+    body.dash-light .tp-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: -4px;
+    }
+    body.dash-light .tp-card-top .tp-terrain-emoji {
+      font-size: 1.75rem !important;
+      line-height: 1;
+      display: inline-block;
+    }
+
+    /* Progress bar — green fill on light gray track */
+    body.dash-light .tp-progress-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    body.dash-light .tp-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    body.dash-light .tp-progress-label strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    body.dash-light .tp-progress-bar {
+      height: 8px;
+      width: 100%;
+      background: var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    body.dash-light .tp-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    /* Trip card buttons */
+    body.dash-light .trip-actions {
+      display: flex !important;
+      gap: 10px !important;
+      margin-top: auto !important;
+    }
+    body.dash-light .trip-card .trip-actions .btn {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.82rem !important;
+      padding: 9px 16px !important;
+      border-radius: 999px !important;
+      border: 0 !important;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+    body.dash-light .trip-card .trip-actions .btn.btn-primary {
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .trip-card .trip-actions .btn.btn-primary:hover {
+      background: var(--green-light) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+    /* Delete = red ghost (transparent, red text only) */
+    body.dash-light .trip-card .trip-actions .btn.btn-danger {
+      background: transparent !important;
+      color: var(--danger) !important;
+      border: 1px solid transparent !important;
+      box-shadow: none !important;
+    }
+    body.dash-light .trip-card .trip-actions .btn.btn-danger:hover {
+      background: var(--danger-soft) !important;
+      color: #b91c1c !important;
+    }
+
+    /* ---------- Empty state ---------- */
+    body.dash-light .empty-state {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      padding: 56px 24px;
+      text-align: center;
+      box-shadow: none;
+    }
+    body.dash-light .empty-state .empty-icon {
+      font-size: 64px;            /* spec — large emoji */
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    body.dash-light .empty-state h3 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #1a1a1a;
+      margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+    body.dash-light .empty-state p {
+      color: #6b7280;
+      margin: 0 0 20px;
+    }
+    body.dash-light .empty-state .btn.btn-primary {
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+      padding: 11px 24px !important;
+      border-radius: 999px !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .empty-state .btn.btn-primary:hover { background: var(--green-light) !important; }
+
+    /* ---------- Create Trip modal (light) ---------- */
+    body.dash-light .tp-ct-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.32);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1200;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    body.dash-light .tp-ct-overlay.open { opacity: 1; }
+    body.dash-light .tp-ct-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: min(520px, 92vw);
+      padding: 28px 28px 24px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+      transform: translateY(24px) scale(0.98);
+      opacity: 0;
+      transition: transform 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.22s ease;
+    }
+    body.dash-light .tp-ct-overlay.open .tp-ct-modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    body.dash-light .tp-ct-modal h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 4px;
+    }
+    body.dash-light .tp-ct-modal p.tp-ct-sub {
+      color: var(--text-secondary);
+      margin: 0 0 20px;
+      font-size: 0.92rem;
+    }
+    body.dash-light .tp-ct-modal .tp-field {
+      display: flex; flex-direction: column;
+      margin-bottom: 14px;
+    }
+    body.dash-light .tp-ct-modal .tp-field label {
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    body.dash-light .tp-ct-modal input,
+    body.dash-light .tp-ct-modal select {
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    body.dash-light .tp-ct-modal input::placeholder { color: var(--text-faint); }
+    body.dash-light .tp-ct-modal input:focus,
+    body.dash-light .tp-ct-modal select:focus {
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(64, 145, 108, 0.18);
+    }
+    body.dash-light .tp-ct-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    body.dash-light .tp-ct-actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 18px;
+    }
+    body.dash-light .tp-ct-actions button {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    body.dash-light .tp-ct-cancel {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border) !important;
+    }
+    body.dash-light .tp-ct-cancel:hover { background: #f3f4f0; color: var(--text-primary); }
+    body.dash-light .tp-ct-confirm {
+      background: var(--green);
+      color: var(--text-white);
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .tp-ct-confirm:hover { background: var(--green-light); transform: translateY(-1px); }
+    body.dash-light .tp-ct-confirm:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ---------- Destination autocomplete ---------- */
+    body.dash-light .tp-ac-wrap { position: relative; }
+    body.dash-light .tp-ac-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      max-height: 260px;
+      overflow-y: auto;
+      z-index: 50;
+      padding: 4px;
+    }
+    body.dash-light .tp-ac-item {
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background-color .12s ease;
+    }
+    body.dash-light .tp-ac-item:hover,
+    body.dash-light .tp-ac-item.is-active { background: var(--green-pale); color: var(--green); }
+    body.dash-light .tp-ac-item .ac-name { font-weight: 600; }
+    body.dash-light .tp-ac-item .ac-meta { font-size: 11.5px; color: var(--text-secondary); }
+    body.dash-light .tp-ac-empty {
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    body.dash-light .tp-ac-hint {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin: 4px 0 0 0;
+    }
+    body.dash-light .tp-ac-hint.is-confirmed { color: var(--green); font-weight: 500; }
+
+    /* ---------- Date ↔ duration sync hint ---------- */
+    body.dash-light .tp-date-hint {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 500;
+      margin: -4px 0 4px 2px;
+      letter-spacing: 0.005em;
+    }
+
+    /* ---------- ui.js confirm modal + toast ---------- */
+    body.dash-light .tp-modal-overlay {
+      background: rgba(15, 23, 42, 0.32) !important;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    body.dash-light .tp-modal {
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-lg) !important;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18) !important;
+      padding: 26px !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    body.dash-light .tp-modal-title {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.25rem !important;
+      color: var(--text-primary) !important;
+    }
+    body.dash-light .tp-modal-body {
+      color: var(--text-secondary) !important;
+      font-size: 0.95rem !important;
+    }
+    body.dash-light .tp-modal-actions .btn {
+      border-radius: 999px !important;
+      padding: 10px 20px !important;
+      font-weight: 600 !important;
+    }
+    body.dash-light .tp-modal-actions .tp-modal-cancel {
+      background: transparent !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    body.dash-light .tp-modal-actions .tp-modal-confirm {
+      background: var(--danger) !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+    }
+
+    /* Toasts — bottom-right, slide up */
+    body.dash-light .tp-toast-container {
+      bottom: 24px !important;
+      right: 24px !important;
+      left: auto !important;
+      top: auto !important;
+    }
+    body.dash-light .tp-toast {
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      border-radius: 12px !important;
+      padding: 12px 16px !important;
+      font-family: 'Inter', sans-serif !important;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18) !important;
+      animation: tp-toast-rise 0.25s ease-out both;
+    }
+    body.dash-light .tp-toast-success { background: var(--green-light) !important; }
+    body.dash-light .tp-toast-error   { background: var(--danger) !important; }
+    body.dash-light .tp-toast-warning { background: #d97706 !important; }
+    @keyframes tp-toast-rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    /* Hide the legacy "Shared With Me" section when JS leaves it
+       hidden — same trick the original CSS used. */
+    body.dash-light #shared-trips-section[style*="display: none"] { display: none !important; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1024px) {
+      body.dash-light .stats-bar { grid-template-columns: repeat(2, 1fr) !important; }
+      body.dash-light .trips-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (max-width: 900px) {
+      body.dash-light .navbar { padding: 0 20px !important; }
+      body.dash-light .nav-user-text { display: none !important; }
+      body.dash-light .dash-hero__inner { padding: 28px 20px; min-height: 150px; }
+      body.dash-light .dash-hero__greeting { font-size: 1.7rem; }
+      body.dash-light .dash-hero__art { width: 160px; }
+    }
+    @media (max-width: 640px) {
+      body.dash-light main.container { padding: 0 18px !important; margin-top: 22px !important; }
+      body.dash-light .stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+      body.dash-light .stat-card { padding: 18px !important; }
+      body.dash-light .stat-card .stat-value { font-size: 1.7rem !important; }
+      body.dash-light .trips-grid { grid-template-columns: 1fr !important; }
+      body.dash-light .section-header { flex-direction: column; align-items: stretch; gap: 12px; }
+      body.dash-light .section-header .btn.btn-primary { align-self: flex-start; }
+      body.dash-light .dash-hero__art { display: none; }
+      body.dash-light .dash-hero__copy { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      body.dash-light .trip-card .trip-actions { flex-direction: column; }
+      body.dash-light .trip-card .trip-actions .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body class="dash-light">
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+          <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+        </svg>
+      </span>
+      <h1 class="brand-text">TrailPack</h1>
+    </div>
+    <div class="nav-user">
+      <!--
+        Avatar + online indicator wrapper. The .user-greeting class is
+        recognised by nav-menu.js's isUserDisplayEl() so this block stays
+        in the navbar instead of being moved into the hamburger dropdown.
+        #user-info is preserved verbatim for app.js's textContent setter.
+      -->
+      <span class="user-greeting nav-user-block">
+        <span class="nav-avatar" id="nav-avatar" aria-hidden="true">•</span>
+        <span class="nav-user-text">
+          <span id="user-info" class="user-name"></span>
+        </span>
+      </span>
+      <a href="history.html" class="btn">History</a>
+      <a href="profile.html" class="btn">Profile</a>
+      <button id="theme-toggle" class="btn" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
+      <button class="btn btn-logout" id="logout-btn" type="button" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Hero banner: dynamic time-based greeting + upcoming-trip count.
+       Populated by updateHero() in the boot block. -->
+  <section class="dash-hero" aria-label="Welcome">
+    <div class="dash-hero__inner">
+      <div class="dash-hero__copy">
+        <h2 class="dash-hero__greeting" id="dash-greeting">Welcome back 🏕️</h2>
+        <p class="dash-hero__sub" id="dash-hero-sub">Loading your trips…</p>
+      </div>
+      <svg class="dash-hero__art" viewBox="0 0 320 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <!-- Muted, airy palette to match the soft sage hero panel. -->
+        <!-- Sun -->
+        <circle cx="230" cy="58" r="20" fill="#f5c842" opacity="0.55"/>
+        <circle cx="230" cy="58" r="30" fill="#f5c842" opacity="0.12"/>
+        <!-- Back mountain (lighter sage) -->
+        <path d="M0,180 L0,120 L70,55 L140,110 L200,70 L280,130 L320,100 L320,180 Z" fill="#b7d9c4"/>
+        <!-- Front mountain (deep green) with snow caps -->
+        <path d="M0,180 L0,150 L50,95 L110,140 L170,105 L250,160 L320,135 L320,180 Z" fill="#2d6a4f"/>
+        <path d="M44,103 L50,95 L56,103 L62,98 L66,103 L52,113 Z" fill="#ffffff" opacity="0.95"/>
+        <path d="M163,113 L170,105 L177,113 L181,109 L185,114 L172,122 Z" fill="#ffffff" opacity="0.95"/>
+        <!-- Trees -->
+        <g fill="#2d6a4f">
+          <polygon points="205,180 215,158 225,180"/>
+          <polygon points="218,180 228,150 238,180"/>
+          <polygon points="232,180 242,160 252,180"/>
+        </g>
+        <!-- Tent -->
+        <g>
+          <polygon points="258,175 280,140 302,175" fill="#40916c"/>
+          <polygon points="275,175 280,140 285,175" fill="#2d6a4f"/>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <main class="container">
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-card" data-accent="green">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-trips">0</div>
+          <div class="stat-label">Total Trips</div>
+        </div>
+        <div class="stat-icon">🗺️</div>
+      </div>
+      <div class="stat-card" data-accent="orange">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-items">0</div>
+          <div class="stat-label">Total Items</div>
+        </div>
+        <div class="stat-icon">📦</div>
+      </div>
+      <div class="stat-card" data-accent="blue">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-packed">0</div>
+          <div class="stat-label">Packed</div>
+        </div>
+        <div class="stat-icon">✅</div>
+      </div>
+      <div class="stat-card" data-accent="purple">
+        <div class="stat-content">
+          <div class="stat-value" id="stat-percentage">0%</div>
+          <div class="stat-label">Progress</div>
+        </div>
+        <div class="stat-icon">📊</div>
+      </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <section class="dashboard-section">
+      <div class="section-header">
+        <div class="section-header-left">
+          <h2>Your Trips</h2>
+          <p class="section-sub">Plan smart. Pack light. Hike better.</p>
+        </div>
+        <button class="btn btn-primary" id="open-create-trip">+ Create New Trip</button>
+      </div>
+
+      <div class="filter-tabs" id="trip-filters" role="tablist" aria-label="Filter trips by terrain">
+        <button type="button" class="filter-tab is-active" data-filter="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="filter-tab" data-filter="mountain" role="tab" aria-selected="false"><span aria-hidden="true">🏔️</span> Mountain</button>
+        <button type="button" class="filter-tab" data-filter="forest" role="tab" aria-selected="false"><span aria-hidden="true">🌲</span> Forest</button>
+        <button type="button" class="filter-tab" data-filter="desert" role="tab" aria-selected="false"><span aria-hidden="true">🏜️</span> Desert</button>
+        <button type="button" class="filter-tab" data-filter="beach" role="tab" aria-selected="false"><span aria-hidden="true">🏖️</span> Beach</button>
+      </div>
+
+      <div id="trips-container" class="trips-grid">
+        <!-- Trips rendered by app.js; enhanced below -->
+      </div>
+
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon" aria-hidden="true">🏕️</div>
+        <h3>No adventures yet</h3>
+        <p>Create your first trip to get started.</p>
+        <button class="btn btn-primary" id="open-create-trip-empty" type="button">+ Create New Trip</button>
+      </div>
+    </section>
+
+    <!-- Shared With Me Section -->
+    <section class="dashboard-section" id="shared-trips-section" style="display: none;">
+      <div class="section-header">
+        <h2>Shared With Me</h2>
+      </div>
+      <div id="shared-trips-container" class="trips-grid"></div>
+    </section>
+  </main>
+
+  <!-- ================= Page footer ================= -->
+  <footer class="site-footer" role="contentinfo">
+    <p>© 2026 TrailPack — Plan smart. Pack light. Hike better.</p>
+  </footer>
+
+  <!-- ================= Create Trip modal ================= -->
+  <div class="tp-ct-overlay" id="tp-ct-overlay" aria-hidden="true" role="dialog" aria-labelledby="tp-ct-title">
+    <div class="tp-ct-modal">
+      <h3 id="tp-ct-title">Plan a new trip</h3>
+      <p class="tp-ct-sub">We'll generate a personalized packing checklist for you.</p>
+      <form id="tp-ct-form" autocomplete="off">
+        <div class="tp-field">
+          <label for="tp-ct-name">Trip name</label>
+          <input id="tp-ct-name" name="name" required placeholder="e.g. Rocky Mountain Weekend">
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-terrain">Terrain</label>
+            <select id="tp-ct-terrain" name="terrain" required>
+              <option value="Mountain">Mountain</option>
+              <option value="Forest">Forest</option>
+              <option value="Desert">Desert</option>
+              <option value="Beach">Beach</option>
+              <option value="Lake">Lake</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-season">Season</label>
+            <select id="tp-ct-season" name="season" required>
+              <option value="Spring">Spring</option>
+              <option value="Summer" selected>Summer</option>
+              <option value="Fall">Fall</option>
+              <option value="Winter">Winter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-duration">Duration (days)</label>
+            <input id="tp-ct-duration" name="duration" type="number" min="1" max="60" value="3" required>
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-group-size">Number of people</label>
+            <input id="tp-ct-group-size" name="groupSize" type="number" min="1" max="50" value="1" placeholder="e.g. 4" required>
+          </div>
+        </div>
+
+        <div class="tp-ct-row">
+          <div class="tp-field">
+            <label for="tp-ct-start">Start date</label>
+            <input id="tp-ct-start" name="startDate" type="date">
+          </div>
+          <div class="tp-field">
+            <label for="tp-ct-end">End date</label>
+            <input id="tp-ct-end" name="endDate" type="date">
+          </div>
+          <script>
+            // Block past dates: set min on both date inputs to today on every modal open.
+            (function () {
+              function todayISO() {
+                const d = new Date();
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${y}-${m}-${dd}`;
+              }
+              const s = document.getElementById('tp-ct-start');
+              const e = document.getElementById('tp-ct-end');
+              if (s) s.min = todayISO();
+              if (e) e.min = todayISO();
+            })();
+          </script>
+        </div>
+        <p class="tp-date-hint" id="tp-date-hint" hidden></p>
+
+        <div class="tp-field">
+          <label for="tp-ct-location">Destination</label>
+          <div class="tp-ac-wrap">
+            <input id="tp-ct-location" name="location" placeholder="Search for a city or town"
+                   autocomplete="off" spellcheck="false" role="combobox"
+                   aria-autocomplete="list" aria-controls="tp-ac-dropdown" aria-expanded="false">
+            <div class="tp-ac-dropdown" id="tp-ac-dropdown" role="listbox" hidden></div>
+          </div>
+          <input type="hidden" id="tp-ct-lat" name="lat">
+          <input type="hidden" id="tp-ct-lon" name="lon">
+          <p class="tp-ac-hint" id="tp-ac-hint" hidden></p>
+        </div>
+
+        <div class="tp-ct-actions">
+          <button type="button" class="tp-ct-cancel" id="tp-ct-cancel">Cancel</button>
+          <button type="submit" class="tp-ct-confirm" id="tp-ct-confirm">Create Trip</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // ---------- Boot ----------
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadTrips();
+      loadStats();
+      if (typeof loadSharedTrips === 'function') loadSharedTrips();
+
+      if (window.currentUser) {
+        const userInfo = document.getElementById('user-info');
+        if (userInfo) {
+          userInfo.textContent = `${window.currentUser.name} (${window.currentUser.role || 'user'})`;
+        }
+
+        // Admin Panel + Organizer entries were removed from the dashboard
+        // navbar when the hamburger dropdown was standardised across pages.
+        // Keep the role-detection logic here as a no-op-safe lookup so any
+        // future re-introduction (or role-only feature) can re-attach.
+        const adminBtn = document.getElementById('admin-panel-btn');
+        if (adminBtn) {
+          adminBtn.style.display =
+            window.currentUser.role === 'admin' ? 'inline-block' : 'none';
+        }
+        if (window.currentUser.role === 'organizer' || window.currentUser.role === 'admin') {
+          const orgLink = document.getElementById('organizer-link');
+          if (orgLink) orgLink.style.display = 'inline-block';
+        }
+      }
+
+      wireCreateTripModal();
+      wireDestinationAutocomplete();
+      wireDateDurationSync();
+      wireTripCardEnhancer();
+      wireFilterTabs();
+      wireThemeToggle();
+      // Hero greeting + avatar — populated from sessionStorage user.
+      updateHero();
+    });
+
+    /* ============================================================
+       Hero greeting + navbar avatar
+       Time-based greeting ("Good morning/afternoon/evening, X") and
+       trip-count subtitle. Re-runs whenever the trips grid mutates,
+       wired alongside the existing trip-card enhancer below.
+       ============================================================ */
+    function getFirstName() {
+      try {
+        const u = window.currentUser || JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        const full = (u && u.name) || '';
+        return (full.split(/\s+/)[0] || 'there').trim();
+      } catch (_) { return 'there'; }
+    }
+    function getInitials() {
+      try {
+        const u = window.currentUser || JSON.parse(sessionStorage.getItem('currentUser') || 'null');
+        const full = (u && u.name) || '';
+        const parts = full.split(/\s+/).filter(Boolean).slice(0, 2);
+        if (!parts.length) return '•';
+        return parts.map(p => p[0]).join('').toUpperCase();
+      } catch (_) { return '•'; }
+    }
+    function timeOfDay() {
+      const h = new Date().getHours();
+      if (h < 12) return 'morning';
+      if (h < 18) return 'afternoon';
+      return 'evening';
+    }
+    function updateHero() {
+      const greetEl = document.getElementById('dash-greeting');
+      const subEl   = document.getElementById('dash-hero-sub');
+      const avEl    = document.getElementById('nav-avatar');
+      if (avEl) avEl.textContent = getInitials();
+      if (greetEl) greetEl.textContent = `Good ${timeOfDay()}, ${getFirstName()} 🏕️`;
+      if (subEl) {
+        const cards = document.querySelectorAll('#trips-container .trip-card');
+        const n = cards.length;
+        subEl.textContent = n === 0
+          ? 'Time to plan your next adventure.'
+          : `You have ${n} ${n === 1 ? 'trip' : 'trips'} planned.`;
+      }
+    }
+
+    // ---------- Theme toggle ----------
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      const btn = document.getElementById('theme-toggle');
+      if (theme === 'dark') {
+        root.setAttribute('data-theme', 'dark');
+        if (btn) { btn.textContent = '☀️'; btn.setAttribute('aria-label', 'Switch to light theme'); }
+      } else {
+        root.removeAttribute('data-theme');
+        if (btn) { btn.textContent = '🌙'; btn.setAttribute('aria-label', 'Switch to dark theme'); }
+      }
+    }
+    function wireThemeToggle() {
+      // Default to light. Existing users who explicitly chose 'dark' via the
+      // toggle keep their saved preference; we deliberately ignore the OS-level
+      // prefers-color-scheme so first-paint always matches the brand light theme.
+      const stored = localStorage.getItem('tp-theme');
+      applyTheme(stored === 'dark' ? 'dark' : 'light');
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        localStorage.setItem('tp-theme', next);
+      });
+    }
+
+    // ---------- Filter tabs ----------
+    function wireFilterTabs() {
+      const tabs = document.querySelectorAll('#trip-filters .filter-tab');
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => {
+            t.classList.remove('is-active');
+            t.setAttribute('aria-selected', 'false');
+          });
+          tab.classList.add('is-active');
+          tab.setAttribute('aria-selected', 'true');
+          applyTripFilter(tab.dataset.filter || 'all');
+        });
+      });
+    }
+    function applyTripFilter(filter) {
+      const container = document.getElementById('trips-container');
+      if (!container) return;
+      const cards = container.querySelectorAll('.trip-card');
+      cards.forEach(card => {
+        if (filter === 'all') {
+          card.classList.remove('is-hidden-by-filter');
+          return;
+        }
+        const firstBadge = card.querySelector('.trip-meta .trip-badge');
+        const terrain = (firstBadge?.textContent || '').trim().toLowerCase();
+        const match = terrain === filter || terrain.startsWith(filter);
+        card.classList.toggle('is-hidden-by-filter', !match);
+      });
+    }
+
+    /* ============================================================
+       Date ↔ duration auto-sync for the Plan-a-new-trip modal
+       Keeps startDate, endDate and duration consistent without
+       ever showing a validation error. Re-entrancy is gated by
+       a `syncing` flag so programmatic .value writes don't
+       re-fire the cascading change listeners.
+       Convention: duration is the number of *nights*, so
+       endDate = startDate + duration days.
+       ============================================================ */
+    function wireDateDurationSync() {
+      const startEl = document.getElementById('tp-ct-start');
+      const endEl   = document.getElementById('tp-ct-end');
+      const durEl   = document.getElementById('tp-ct-duration');
+      const hint    = document.getElementById('tp-date-hint');
+      if (!startEl || !endEl || !durEl) return;
+
+      const DAY_MS = 86400000;
+      let syncing = false;
+
+      // Parse a YYYY-MM-DD <input type="date"> value as a UTC midnight
+      // Date so day-arithmetic is unaffected by the user's timezone.
+      function parseISO(s) {
+        if (!s) return null;
+        const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (!m) return null;
+        const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+        return isNaN(d.getTime()) ? null : d;
+      }
+      function toISO(d) {
+        const y = d.getUTCFullYear();
+        const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(d.getUTCDate()).padStart(2, '0');
+        return `${y}-${mo}-${dd}`;
+      }
+      function diffNights(a, b) { return Math.round((b - a) / DAY_MS); }
+      function fmt(d) {
+        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+      }
+      function clampDur(n) { return Math.min(60, Math.max(1, n | 0)); }
+      function setSilently(el, v) { syncing = true; el.value = v; syncing = false; }
+
+      function refreshHint() {
+        const start = parseISO(startEl.value);
+        const end   = parseISO(endEl.value);
+        const dur   = parseInt(durEl.value, 10);
+        if (start && end && end > start) {
+          const n = diffNights(start, end);
+          hint.textContent = `\uD83D\uDCC5 ${n} ${n === 1 ? 'night' : 'nights'} \u00B7 ${fmt(start)} \u2013 ${fmt(end)}`;
+          hint.hidden = false;
+        } else if (start && dur > 0) {
+          const projEnd = new Date(start.getTime() + dur * DAY_MS);
+          hint.textContent = `\uD83D\uDCC5 ${dur} ${dur === 1 ? 'night' : 'nights'} \u00B7 ${fmt(start)} \u2013 ${fmt(projEnd)}`;
+          hint.hidden = false;
+        } else {
+          hint.hidden = true;
+          hint.textContent = '';
+        }
+      }
+
+      startEl.addEventListener('change', () => {
+        if (syncing) return;
+        const start = parseISO(startEl.value);
+        const end   = parseISO(endEl.value);
+        const dur   = clampDur(parseInt(durEl.value, 10) || 1);
+        if (start) {
+          // End date can't be before start date.
+          endEl.min = startEl.value;
+          // If end is missing or now <= start, project a fresh end from
+          // the current duration. Otherwise keep end and re-sync duration.
+          if (!end || end <= start) {
+            setSilently(endEl, toISO(new Date(start.getTime() + dur * DAY_MS)));
+          } else {
+            const n = clampDur(diffNights(start, end));
+            setSilently(durEl, String(n));
+          }
+        }
+        refreshHint();
+      });
+
+      endEl.addEventListener('change', () => {
+        if (syncing) return;
+        const start = parseISO(startEl.value);
+        const end   = parseISO(endEl.value);
+        if (start && end && end > start) {
+          setSilently(durEl, String(clampDur(diffNights(start, end))));
+        } else if (end && !start) {
+          // No start yet: back-fill start from current duration so the
+          // three fields stay consistent.
+          const dur = clampDur(parseInt(durEl.value, 10) || 1);
+          setSilently(startEl, toISO(new Date(end.getTime() - dur * DAY_MS)));
+        }
+        refreshHint();
+      });
+
+      durEl.addEventListener('input', () => {
+        if (syncing) return;
+        const dur   = parseInt(durEl.value, 10);
+        const start = parseISO(startEl.value);
+        if (dur > 0 && start) {
+          setSilently(endEl, toISO(new Date(start.getTime() + dur * DAY_MS)));
+        }
+        refreshHint();
+      });
+
+      refreshHint();
+    }
+
+    /* ============================================================
+       Destination autocomplete (Open-Meteo geocoding API, no key)
+       Wires the Plan-a-new-trip modal's location input to a
+       debounced city search. Picking a suggestion populates the
+       hidden #tp-ct-lat / #tp-ct-lon fields, which the submit
+       handler ships to POST /trips.
+       ============================================================ */
+    function wireDestinationAutocomplete() {
+      const input    = document.getElementById('tp-ct-location');
+      const dropdown = document.getElementById('tp-ac-dropdown');
+      const hint     = document.getElementById('tp-ac-hint');
+      const latEl    = document.getElementById('tp-ct-lat');
+      const lonEl    = document.getElementById('tp-ct-lon');
+      if (!input || !dropdown) return;
+
+      let debounceTimer = null;
+      let lastQuery = '';
+      let activeIdx = -1;
+      let suggestions = [];
+
+      const escapeHtml = (s) =>
+        String(s).replace(/[&<>"']/g, (c) =>
+          ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+      const formatLabel = (s) =>
+        [s.name, s.admin1, s.country].filter(Boolean).join(', ');
+
+      function clearCoords() {
+        latEl.value = '';
+        lonEl.value = '';
+        hint.hidden = true;
+        hint.classList.remove('is-confirmed');
+      }
+      function showHint(text, confirmed) {
+        hint.textContent = text;
+        hint.hidden = false;
+        hint.classList.toggle('is-confirmed', !!confirmed);
+      }
+      function hideDropdown() {
+        dropdown.hidden = true;
+        dropdown.innerHTML = '';
+        activeIdx = -1;
+        input.setAttribute('aria-expanded', 'false');
+      }
+      function renderItems(list) {
+        if (!list.length) {
+          dropdown.innerHTML = '<div class="tp-ac-empty">No matches found</div>';
+          dropdown.hidden = false;
+          input.setAttribute('aria-expanded', 'true');
+          return;
+        }
+        dropdown.innerHTML = list.map((s, i) => `
+          <div class="tp-ac-item" role="option" data-i="${i}">
+            <span class="ac-name">${escapeHtml(s.name)}</span>
+            <span class="ac-meta">${escapeHtml([s.admin1, s.country].filter(Boolean).join(', '))}</span>
+          </div>`).join('');
+        dropdown.hidden = false;
+        input.setAttribute('aria-expanded', 'true');
+      }
+
+      async function search(q) {
+        try {
+          const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=8&language=en&format=json`;
+          const res = await fetch(url);
+          const data = await res.json();
+          // Stale-response guard: bail if the user kept typing.
+          if (input.value.trim() !== q) return;
+          suggestions = (data.results || []).map((r) => ({
+            name:   r.name,
+            admin1: r.admin1 || '',
+            country: r.country || '',
+            lat:    r.latitude,
+            lon:    r.longitude,
+          }));
+          renderItems(suggestions);
+        } catch (e) {
+          console.warn('[autocomplete] search failed', e);
+          hideDropdown();
+        }
+      }
+
+      input.addEventListener('input', () => {
+        const q = input.value.trim();
+        // Any free-typing invalidates a previous selection's lat/lon.
+        clearCoords();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (q.length < 2) { hideDropdown(); return; }
+        if (q === lastQuery) return;
+        lastQuery = q;
+        debounceTimer = setTimeout(() => search(q), 300);
+      });
+
+      // mousedown (not click) so it fires before input blur hides the dropdown.
+      dropdown.addEventListener('mousedown', (e) => {
+        const item = e.target.closest('.tp-ac-item');
+        if (!item) return;
+        e.preventDefault();
+        const i = parseInt(item.getAttribute('data-i'), 10);
+        const s = suggestions[i];
+        if (!s) return;
+        input.value = formatLabel(s);
+        latEl.value = s.lat;
+        lonEl.value = s.lon;
+        hint.hidden = true;
+        hint.textContent = '';
+        hint.classList.remove('is-confirmed');
+        hideDropdown();
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (dropdown.hidden) return;
+        const items = dropdown.querySelectorAll('.tp-ac-item');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIdx = Math.min(activeIdx + 1, items.length - 1);
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIdx = Math.max(activeIdx - 1, 0);
+        } else if (e.key === 'Enter' && activeIdx >= 0) {
+          e.preventDefault();
+          items[activeIdx].dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+          return;
+        } else if (e.key === 'Escape') {
+          hideDropdown();
+          return;
+        } else {
+          return;
+        }
+        items.forEach((el, i) => el.classList.toggle('is-active', i === activeIdx));
+        items[activeIdx]?.scrollIntoView({ block: 'nearest' });
+      });
+
+      input.addEventListener('blur', () => setTimeout(hideDropdown, 150));
+    }
+
+    // ---------- Create Trip modal ----------
+    function openCreateTripModal() {
+      const ov = document.getElementById('tp-ct-overlay');
+      ov.style.display = 'flex';
+      requestAnimationFrame(() => ov.classList.add('open'));
+      setTimeout(() => document.getElementById('tp-ct-name')?.focus(), 120);
+    }
+    function closeCreateTripModal() {
+      const ov = document.getElementById('tp-ct-overlay');
+      ov.classList.remove('open');
+      setTimeout(() => { ov.style.display = 'none'; }, 220);
+    }
+
+    function wireCreateTripModal() {
+      const open = () => openCreateTripModal();
+      document.getElementById('open-create-trip')?.addEventListener('click', open);
+      document.getElementById('open-create-trip-empty')?.addEventListener('click', open);
+
+      const ov = document.getElementById('tp-ct-overlay');
+      ov.addEventListener('click', (e) => { if (e.target === ov) closeCreateTripModal(); });
+      document.getElementById('tp-ct-cancel').addEventListener('click', closeCreateTripModal);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && ov.classList.contains('open')) closeCreateTripModal();
+      });
+
+      document.getElementById('tp-ct-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = document.getElementById('tp-ct-confirm');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Creating…';
+
+        // Pull lat/lon set by the destination autocomplete (empty when the
+        // user typed a custom string without picking a suggestion).
+        const latVal = document.getElementById('tp-ct-lat').value;
+        const lonVal = document.getElementById('tp-ct-lon').value;
+        const body = {
+          name: document.getElementById('tp-ct-name').value.trim(),
+          terrain: document.getElementById('tp-ct-terrain').value,
+          season: document.getElementById('tp-ct-season').value,
+          duration: parseInt(document.getElementById('tp-ct-duration').value, 10) || 1,
+          groupSize: parseInt(document.getElementById('tp-ct-group-size').value, 10) || 1,
+          location: document.getElementById('tp-ct-location').value.trim() || null,
+          startDate: document.getElementById('tp-ct-start').value || null,
+          endDate: document.getElementById('tp-ct-end').value || null,
+        };
+        if (latVal && lonVal) {
+          body.lat = parseFloat(latVal);
+          body.lon = parseFloat(lonVal);
+        }
+
+        try {
+          // Reuse the shared helper from app.js so auth headers stay consistent.
+          const result = await apiCallWithAuth('/trips', {
+            method: 'POST',
+            body: JSON.stringify(body),
+          });
+          const tripId = result?.trip?.tripId || result?.tripId;
+          if (tripId) {
+            sessionStorage.setItem('tripJustCreated', '1');
+            window.location.href = `checklist.html?tripId=${tripId}`;
+            return;
+          }
+          closeCreateTripModal();
+          if (window.showToast) window.showToast('Trip created.', 'success');
+          loadTrips();
+          loadStats();
+        } catch (err) {
+          if (window.showToast) window.showToast(err?.message || 'Failed to create trip', 'error');
+          else alert('Failed to create trip: ' + (err?.message || err));
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Trip';
+        }
+      });
+    }
+
+    // ---------- Trip card enhancer ----------
+    // app.js renders bare trip cards. We observe the containers and decorate
+    // each card with: (1) a top row (terrain emoji + created date) and
+    // (2) a progress bar + "X of Y items packed". No other files touched.
+    const TERRAIN_EMOJI = {
+      mountain: '🏔️', mountains: '🏔️', alpine: '🏔️', snow: '🏔️',
+      forest: '🌲', woods: '🌲', woodland: '🌲',
+      desert: '🏜️', dunes: '🏜️',
+      beach: '🏖️', coast: '🏖️', ocean: '🏖️',
+      lake: '🛶', river: '🏞️', canyon: '🏞️', valley: '🏞️',
+      tundra: '🥶', arctic: '🥶',
+      jungle: '🌴', rainforest: '🌴', tropical: '🌴',
+      plains: '🌾', prairie: '🌾', grassland: '🌾',
+    };
+    const itemCache = new Map(); // tripId -> { total, packed }
+
+    async function fetchItemStats(tripId) {
+      if (itemCache.has(tripId)) return itemCache.get(tripId);
+      try {
+        const items = await apiCallWithAuth(`/trips/${tripId}/items`);
+        const arr = Array.isArray(items) ? items : (items?.items || []);
+        const stats = {
+          total: arr.length,
+          packed: arr.filter(i => i.packed).length,
+        };
+        itemCache.set(tripId, stats);
+        return stats;
+      } catch (_) {
+        return { total: 0, packed: 0 };
+      }
+    }
+
+    function enhanceCard(card) {
+      if (!card || card.dataset.tpEnhanced === '1') return;
+      card.dataset.tpEnhanced = '1';
+
+      // Extract terrain from the first badge + original created-date text.
+      const firstBadge = card.querySelector('.trip-meta .trip-badge');
+      const terrain = (firstBadge?.textContent || '').trim();
+      const emoji = TERRAIN_EMOJI[terrain.toLowerCase()] || '⛺';
+      // Mirror the terrain onto a data-attribute so CSS can drive the
+      // top-border accent + first-badge color (purely cosmetic hook).
+      if (terrain) card.setAttribute('data-terrain', terrain.toLowerCase());
+      const dateEl = card.querySelector('.trip-date');
+      const dateText = (dateEl?.textContent || '').trim() || '';
+
+      // Emoji row, placed as the very first child so it sits above the
+      // trip name at the top-left of the card. Leave the original
+      // .trip-date in place (below the badges).
+      const top = document.createElement('div');
+      top.className = 'tp-card-top';
+      top.innerHTML = `<span class="tp-terrain-emoji" aria-hidden="true">${emoji}</span>`;
+      card.insertBefore(top, card.firstChild);
+      void dateText; // intentionally unused — we no longer move the date
+
+      // Extract tripId from the card's inline onclick (app.js renders: viewChecklist('<id>')).
+      const onclick = card.getAttribute('onclick') || '';
+      const m = onclick.match(/viewChecklist\('([^']+)'\)/);
+      const tripId = m ? m[1] : null;
+      if (!tripId) return;
+
+      // Insert progress block before .trip-actions
+      const actions = card.querySelector('.trip-actions');
+      const block = document.createElement('div');
+      block.className = 'tp-progress-block';
+      block.innerHTML = `
+        <div class="tp-progress-label">
+          <span><strong>0</strong> of <strong>0</strong> items packed</span>
+          <span>0%</span>
+        </div>
+        <div class="tp-progress-bar"><div class="tp-progress-fill"></div></div>
+      `;
+      if (actions) card.insertBefore(block, actions);
+      else card.appendChild(block);
+
+      fetchItemStats(tripId).then(({ total, packed }) => {
+        const pct = total > 0 ? Math.round((packed / total) * 100) : 0;
+        const label = block.querySelector('.tp-progress-label');
+        const fill  = block.querySelector('.tp-progress-fill');
+        if (label) label.innerHTML = `
+          <span><strong>${packed}</strong> of <strong>${total}</strong> items packed</span>
+          <span>${pct}%</span>
+        `;
+        if (fill) fill.style.width = pct + '%';
+      });
+    }
+
+    function wireTripCardEnhancer() {
+      const containers = [
+        document.getElementById('trips-container'),
+        document.getElementById('shared-trips-container'),
+      ].filter(Boolean);
+
+      const sweep = (root) => root.querySelectorAll('.trip-card').forEach(enhanceCard);
+
+      containers.forEach(c => {
+        sweep(c);
+        const obs = new MutationObserver(() => {
+          sweep(c);
+          // Re-apply the active filter to any newly rendered cards.
+          const activeTab = document.querySelector('#trip-filters .filter-tab.is-active');
+          if (activeTab) applyTripFilter(activeTab.dataset.filter || 'all');
+          // Refresh the hero subtitle whenever trips re-render.
+          if (typeof updateHero === 'function') updateHero();
+        });
+        obs.observe(c, { childList: true, subtree: false });
+      });
+
+      // Bust the per-trip cache whenever the user returns to the dashboard
+      // (e.g. after packing items on the checklist page).
+      window.addEventListener('pageshow', () => {
+        itemCache.clear();
+        containers.forEach(c => c.querySelectorAll('.trip-card').forEach(card => {
+          delete card.dataset.tpEnhanced;
+          card.querySelector('.tp-card-top')?.remove();
+          card.querySelector('.tp-progress-block')?.remove();
+          enhanceCard(card);
+        }));
+      });
+    }
+  </script>
+  <script src="nav-menu.js"></script>
+</body>
+</html>

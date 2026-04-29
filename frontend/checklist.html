@@ -37,20 +37,6 @@
       --radius-sm:    10px;
       --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
     }
-    html[data-theme="dark"] {
-      --cream:        #0F1A15;
-      --surface:      #152219;
-      --ink:          #E8F1EA;
-      --ink-soft:     #C8D4CC;
-      --muted:        #8FA397;
-      --line:         #24332B;
-      --dashed:       #2E3F35;
-      --green-pale:   #1F3C2C;
-      --row:          #1A2620;
-      --row-checked:  #234332;
-      --row-checked-ink: #9BC8A4;
-      --shadow-card:  0 2px 12px rgba(0,0,0,0.4);
-    }
 
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -132,58 +118,8 @@
     }
 
     /* ---------- Navbar ----------
-       Floats absolutely over the hero image with a transparent
-       background. The hero's built-in dark overlay keeps nav text
-       readable without needing a nav background. */
-    .navbar {
-      background: transparent;
-      padding: 18px 32px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 10;
-    }
-    .nav-brand { display: flex; align-items: center; gap: 10px; }
-    .nav-brand .logo-mark {
-      display: inline-flex;
-      width: 34px; height: 34px;
-      border-radius: 10px;
-      background: rgba(82,183,136,0.15);
-      align-items: center; justify-content: center;
-    }
-    .nav-brand .brand-text {
-      font-family: 'Playfair Display', Georgia, serif;
-      font-weight: 700;
-      font-size: 1.45rem;
-      color: #fff;
-      margin: 0;
-      letter-spacing: -0.01em;
-    }
-    .nav-user { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .nav-user .btn {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.35);
-      color: #fff;
-      padding: 7px 14px;
-      border-radius: 9999px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      transition: background 0.15s, border-color 0.15s;
-      font-family: inherit;
-    }
-    .nav-user .btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.6); }
-    .nav-user .btn-logout { border-color: rgba(231,76,60,0.55); color: #ffd2cc; }
-    .nav-user .btn-logout:hover { background: rgba(231,76,60,0.15); border-color: rgba(231,76,60,0.85); color: #fff; }
-    .nav-user .btn-theme { padding: 6px 10px; font-size: 1rem; }
+       Page-local navbar overrides removed. nav-menu.js injects the
+       canonical, full-bleed navbar styling shared with the dashboard. */
 
     /* ---------- Container ---------- */
     .container {
@@ -254,7 +190,6 @@
       align-items: center;
       gap: 4px;
     }
-    html[data-theme="dark"] .trip-badge { color: #C8E6C9; }
     /* season-badge carries its own palette via inline style */
 
     /* ---------- Progress ---------- */
@@ -267,7 +202,6 @@
       margin-bottom: 8px;
     }
     .progress-row .pct { color: var(--green); font-weight: 700; }
-    html[data-theme="dark"] .progress-row .pct { color: var(--green-light); }
     .progress-track {
       height: 10px;
       background: var(--green-pale);
@@ -339,7 +273,6 @@
       color: var(--green-dark);
       transform: translateY(-1px);
     }
-    html[data-theme="dark"] .btn-export:hover { color: var(--green-light); }
 
     /* ---------- Category cards ---------- */
     .category {
@@ -426,7 +359,6 @@
       width: 8px; height: 2px;
       background: #fff;
     }
-    html[data-theme="dark"] .cat-select-all input[type="checkbox"] { background: #101A14; border-color: #4a574e; }
 
     .category-divider {
       border: none;
@@ -478,19 +410,11 @@
       color: transparent;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    html[data-theme="dark"] .item-check {
-      background: var(--surface);
-      border-color: var(--green-light);
-    }
     .item.packed .item-check {
       background: var(--green);
       color: #fff;
     }
     .item.packed .item-check::before { content: '✓'; }
-    html[data-theme="dark"] .item.packed .item-check {
-      background: var(--green-light);
-      color: var(--green-dark);
-    }
     .item-name {
       flex: 1;
       font-size: 0.95rem;
@@ -625,7 +549,6 @@
       color: var(--green);
       white-space: nowrap;
     }
-    html[data-theme="dark"] .provisions-list .qty { color: var(--green-light); }
 
     /* Risk */
     .risk-top {
@@ -695,9 +618,7 @@
       letter-spacing: 0.05em; text-transform: uppercase;
       padding: 3px 10px; border-radius: 9999px;
     }
-    html[data-theme="dark"] .collab-role { color: #C8E6C9; }
     .collab-role.owner { background: var(--green); color: #fff; }
-    html[data-theme="dark"] .collab-role.owner { background: var(--green-light); color: var(--green-dark); }
 
     .invite-form {
       display: flex; gap: 8px; flex-wrap: wrap;
@@ -852,16 +773,6 @@
       outline: 2px solid var(--green, #2D6A4F);
       outline-offset: 2px;
     }
-    /* Dark mode tweaks */
-    html[data-theme="dark"] .tp-modal-btn-secondary {
-      color: var(--ink, #E2E8F0);
-      border-color: #5B9BFF;
-    }
-    html[data-theme="dark"] .tp-modal-btn-secondary:hover {
-      background: rgba(91,155,255,0.10);
-      border-color: #87B6FF;
-    }
-    html[data-theme="dark"] .tp-modal { background: rgba(0,0,0,0.65); }
 
     @media (max-width: 540px) {
       .tp-modal-card { padding: 18px 18px 16px; border-radius: 14px; max-width: 100%; }
@@ -905,7 +816,6 @@
       border-bottom: 1.5px dashed #d4d1ca;
       margin: 4px 0 14px;
     }
-    html[data-theme="dark"] .ins-card-divider { border-bottom-color: var(--dashed); }
 
     /* ========== Card 1: Weather ========== */
     .wx-hero {
@@ -971,7 +881,6 @@
       grid-template-columns: repeat(5, 1fr);
       gap: 6px;
     }
-    html[data-theme="dark"] .wx-forecast { background: var(--surface); }
     .wx-day {
       text-align: center;
       padding: 6px 2px;
@@ -1000,7 +909,6 @@
       border-radius: 12px;
       padding: 14px 16px;
     }
-    html[data-theme="dark"] .cw-tile { background: var(--row); }
     .cw-tile .cw-tile-top {
       display: flex; align-items: center; gap: 6px;
       font-size: 0.85rem; color: var(--muted);
@@ -1027,7 +935,6 @@
       border-radius: 9999px;
       overflow: hidden;
     }
-    html[data-theme="dark"] .cw-bar-track { background: #24332B; }
     .cw-bar-fill {
       height: 100%;
       border-radius: 9999px;
@@ -1051,7 +958,6 @@
       text-align: center;
       font-size: 0.85rem;
     }
-    html[data-theme="dark"] .cw-pill { background: var(--row); }
     .cw-pill .cw-pill-label { color: var(--muted); font-weight: 500; margin-right: 4px; }
     .cw-pill .cw-pill-val   { color: var(--ink); font-weight: 700; }
 
@@ -1124,7 +1030,6 @@
       user-select: none;
       transition: background 0.15s;
     }
-    html[data-theme="dark"] .sg-item { background: var(--row); }
     .sg-item:hover { background: var(--green-pale); }
     .sg-item.essential    { border-left-color: #EF4444; }
     .sg-item.recommended  { border-left-color: #F59E0B; }
@@ -1141,10 +1046,8 @@
       flex-shrink: 0;
       transition: background 0.15s, color 0.15s;
     }
-    html[data-theme="dark"] .sg-check { background: var(--surface); border-color: var(--green-light); }
     .sg-item.packed .sg-check { background: #2D6A4F; color: #fff; }
     .sg-item.packed .sg-check::before { content: '✓'; }
-    html[data-theme="dark"] .sg-item.packed .sg-check { background: var(--green-light); color: var(--green-dark); }
     .sg-name { flex: 1; font-weight: 500; color: var(--ink); }
     .sg-prio {
       font-size: 0.7rem; font-weight: 700;
@@ -1174,8 +1077,6 @@
 
     /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
-      .navbar { padding: 14px 18px; flex-wrap: wrap; gap: 10px; }
-      .nav-user { justify-content: flex-end; flex-wrap: wrap; }
       .container { padding: 20px 14px 40px; }
       .trip-header { padding: 20px 18px; }
       .trip-name { font-size: 1.3rem; }
@@ -1201,7 +1102,7 @@
       #btn-print-pdf, #btn-export-csv, #btn-export-json,
       .sidebar, .smart-gear-card,
       .checklist-hero, .ins-card,
-      #theme-toggle, #logout-btn {
+      #logout-btn {
         display: none !important;
       }
       html, body { background: #fff !important; color: #000 !important; }
@@ -1508,12 +1409,6 @@
     }
     .wx-hero .wx-day.is-today .wx-day-name { color: var(--green, #2D6A4F); font-weight: 700; }
     .wx-hero .wx-day.is-today .wx-day-hi   { color: var(--green-dark, #1B4332); }
-    html[data-theme="dark"] .wx-hero .wx-day.is-today {
-      background: linear-gradient(180deg, rgba(82,183,136,0.18), rgba(82,183,136,0.06));
-      box-shadow: inset 0 0 0 1px rgba(82,183,136,0.40);
-    }
-    html[data-theme="dark"] .wx-hero .wx-day.is-today .wx-day-name,
-    html[data-theme="dark"] .wx-hero .wx-day.is-today .wx-day-hi { color: var(--green-light, #52B788); }
 
     /* ----- FX: stars ----- */
     .wx-hero .wx-star {
@@ -1580,17 +1475,786 @@
       main.container { padding: 14px 14px 28px !important; }
       .category, .info-card, .ins-card-white { padding: 12px 14px !important; }
     }
+
+    /* =========================================================================
+       Hipcamp-style overlay (final pass) — re-skins existing markup to match
+       the dashboard's editorial design language. Append-only: every existing
+       ID, class, and JS handler is preserved. Nothing in the body changed.
+       ========================================================================= */
+
+    :root {
+      --hc-ink:        #111;
+      --hc-ink-soft:   #374151;
+      --hc-muted:      #6b7280;
+      --hc-line:       rgba(0,0,0,.08);
+      --hc-bg:         #f7f5f0;
+      --hc-shadow:     0 2px 12px rgba(0,0,0,.06);
+      --hc-shadow-hi:  0 6px 20px rgba(0,0,0,.10);
+      --hc-radius:     14px;
+    }
+
+    /* ---------- Body + container width (matches dashboard's 1240px) ---------- */
+    body { background: var(--hc-bg) !important; }
+    main.container {
+      max-width: 1240px !important;
+      padding: 28px 28px 60px !important;
+    }
+
+    /* ---------- Hero: full-bleed photo + dark gradient + left-aligned ---------- */
+    .checklist-hero {
+      height: 360px !important;
+      background-image:
+        linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.20) 55%, rgba(0,0,0,.55) 100%),
+        url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1800&q=80') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      align-items: stretch !important;
+      justify-content: flex-start !important;
+    }
+    .checklist-hero .hero-inner {
+      max-width: 1240px !important;
+      width: 100% !important;
+      margin: 0 auto !important;
+      padding: 90px 28px 36px !important;
+      text-align: left !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: flex-end !important;
+      align-items: flex-start !important;
+    }
+    .checklist-hero .hero-brand {
+      font-size: .72rem !important;
+      font-weight: 700 !important;
+      letter-spacing: .14em !important;
+      text-transform: uppercase !important;
+      opacity: .92 !important;
+      margin-bottom: 12px !important;
+    }
+    .checklist-hero .hero-name {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 2.4rem !important;
+      font-weight: 700 !important;
+      line-height: 1.1 !important;
+      letter-spacing: -0.01em !important;
+      max-width: 24ch !important;
+      margin: 0 0 14px !important;
+      text-shadow: 0 2px 16px rgba(0,0,0,.35) !important;
+      text-align: left !important;
+    }
+    .checklist-hero .hero-badges {
+      justify-content: flex-start !important;
+      gap: 8px !important;
+    }
+    .checklist-hero .hero-badge {
+      background: rgba(255,255,255,.16) !important;
+      border: 1px solid rgba(255,255,255,.22) !important;
+      padding: 6px 12px !important;
+      font-size: .78rem !important;
+      font-weight: 500 !important;
+      letter-spacing: .01em !important;
+      backdrop-filter: blur(6px) !important;
+      -webkit-backdrop-filter: blur(6px) !important;
+    }
+    @media (max-width: 720px) {
+      .checklist-hero { height: 320px !important; }
+      .checklist-hero .hero-inner { padding: 80px 20px 24px !important; }
+      .checklist-hero .hero-name { font-size: 1.7rem !important; }
+    }
+
+    /* ---------- Export row: ghost pills, right-aligned ---------- */
+    .export-row {
+      margin: 22px 0 18px !important;
+      gap: 8px !important;
+    }
+    .btn-export {
+      padding: 8px 16px !important;
+      font-size: .82rem !important;
+      font-weight: 600 !important;
+      border: 1px solid var(--hc-line) !important;
+      background: #fff !important;
+      color: var(--hc-ink-soft) !important;
+      box-shadow: var(--hc-shadow) !important;
+    }
+    .btn-export:hover {
+      border-color: var(--green) !important;
+      color: var(--green-dark) !important;
+      background: #fff !important;
+      transform: translateY(-1px) !important;
+    }
+
+    /* ---------- Action buttons: pill, centered row, green primary ---------- */
+    .actions {
+      gap: 10px !important;
+      margin: 0 0 22px !important;
+      justify-content: center !important;
+    }
+    .btn-action {
+      min-width: 0 !important;
+      padding: 12px 24px !important;
+      font-size: .9rem !important;
+      font-weight: 600 !important;
+      border-radius: 9999px !important;
+    }
+    .btn-start  { background: var(--green) !important; }
+    .btn-start:hover:not(:disabled)  { background: var(--green-dark) !important; }
+
+    /* ---------- Category cards: clean white, Inter title ---------- */
+    .category {
+      background: #fff !important;
+      border: 1px solid var(--hc-line) !important;
+      border-radius: var(--hc-radius) !important;
+      box-shadow: var(--hc-shadow) !important;
+      padding: 20px 22px !important;
+      margin-bottom: 14px !important;
+      transition: box-shadow .18s ease !important;
+    }
+    .category:hover { box-shadow: var(--hc-shadow-hi) !important; }
+    .category-head {
+      align-items: center !important;
+      margin-bottom: 6px !important;
+      padding-bottom: 12px !important;
+      border-bottom: 1px solid #f3f3ef !important;
+    }
+    .category-title {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 700 !important;
+      font-size: 1.02rem !important;
+      letter-spacing: -0.005em !important;
+      color: var(--hc-ink) !important;
+    }
+    .category-count {
+      background: #f3f4f6 !important;
+      color: var(--hc-muted) !important;
+      font-size: .72rem !important;
+      font-weight: 600 !important;
+      padding: 3px 10px !important;
+      letter-spacing: .02em !important;
+    }
+    .category-divider { display: none !important; }
+    .cat-select-all {
+      border-color: var(--hc-line) !important;
+      color: var(--hc-muted) !important;
+    }
+
+    /* ---------- Items: airy rows, subtle done state (no green flood) ---------- */
+    .items-list {
+      gap: 0 !important;
+      padding: 4px 0 0 !important;
+    }
+    .item {
+      background: transparent !important;
+      padding: 12px 6px !important;
+      border-radius: 8px !important;
+      gap: 14px !important;
+      border-bottom: 1px solid #f3f3ef !important;
+      transition: background .15s ease !important;
+    }
+    .item:last-of-type { border-bottom: 0 !important; }
+    .item:hover:not(.packed) { background: #fafaf6 !important; }
+    .item.packed {
+      background: transparent !important;
+      color: var(--hc-muted) !important;
+    }
+    .item.packed .item-name {
+      color: var(--hc-muted) !important;
+      text-decoration: line-through !important;
+      text-decoration-thickness: 1px !important;
+    }
+    .item-check {
+      width: 20px !important;
+      height: 20px !important;
+      border-radius: 6px !important;
+      border-width: 2px !important;
+      border-color: #d1d5db !important;
+    }
+    .item.packed .item-check {
+      background: var(--green) !important;
+      border-color: var(--green) !important;
+      color: #fff !important;
+    }
+    .item-name {
+      font-size: .92rem !important;
+      color: var(--hc-ink) !important;
+    }
+
+    /* ---------- Add-item: ghost pill (cleaner) ---------- */
+    .add-item-btn {
+      margin-top: 10px !important;
+      padding: 10px !important;
+      border: 1.5px dashed #d1d5db !important;
+      background: transparent !important;
+      color: var(--hc-muted) !important;
+      font-size: .85rem !important;
+      border-radius: 10px !important;
+    }
+    .add-item-btn:hover {
+      border-color: var(--green) !important;
+      color: var(--green) !important;
+      background: rgba(45,106,79,.04) !important;
+    }
+    .add-item-form input {
+      padding: 10px 16px !important;
+      border-color: var(--hc-line) !important;
+    }
+    .add-item-form button {
+      padding: 10px 18px !important;
+      font-weight: 600 !important;
+    }
+
+    /* ---------- Info cards (risk, collab) ---------- */
+    .info-card {
+      background: #fff !important;
+      border: 1px solid var(--hc-line) !important;
+      border-radius: var(--hc-radius) !important;
+      box-shadow: var(--hc-shadow) !important;
+      padding: 20px 22px !important;
+      margin-bottom: 14px !important;
+    }
+    .info-card .category-head {
+      border-bottom: 1px solid #f3f3ef !important;
+      padding-bottom: 12px !important;
+      margin-bottom: 14px !important;
+    }
+    .info-card .category-divider { display: none !important; }
+
+    /* ---------- Calorie & Water + Smart Gear: align to system ---------- */
+    .ins-card-white {
+      background: #fff !important;
+      border: 1px solid var(--hc-line) !important;
+      border-radius: var(--hc-radius) !important;
+      box-shadow: var(--hc-shadow) !important;
+      padding: 20px 22px !important;
+      margin-bottom: 14px !important;
+    }
+    .ins-card-title {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 1.02rem !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.005em !important;
+    }
+    .ins-card-divider { display: none !important; }
+    .ins-card-head {
+      padding-bottom: 12px !important;
+      border-bottom: 1px solid #f3f3ef !important;
+      margin-bottom: 14px !important;
+    }
+
+    /* ---------- Provisions / collab rows: cleaner surfaces ---------- */
+    .provisions-list li,
+    .collab-row {
+      background: #fafaf6 !important;
+      border: 1px solid #f3f3ef !important;
+    }
+
+    /* ---------- Floating start button: dashboard primary green ---------- */
+    .floating-start {
+      background: var(--green) !important;
+      box-shadow: 0 8px 24px rgba(45, 106, 79, 0.30), 0 2px 6px rgba(15, 36, 28, 0.16) !important;
+      padding: 13px 22px !important;
+      font-size: .9rem !important;
+    }
+    .floating-start:hover { background: var(--green-dark) !important; }
+
+    /* ---------- Edit Trip Dates modal ----------
+       Lightweight form dialog reusing the .tp-modal overlay aesthetic.
+       The Edit pencil pill sits inside #ts-dates-row in the sidebar. */
+    .ed-edit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-left: auto;
+      padding: 2px 8px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--hc-muted, #6b7280);
+      background: transparent;
+      border: 1px solid var(--hc-line, rgba(0,0,0,0.08));
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: inherit;
+      line-height: 1.4;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .ed-edit-btn:hover {
+      color: var(--green, #2d6a4f);
+      border-color: var(--green, #2d6a4f);
+      background: rgba(45, 106, 79, 0.05);
+    }
+    .ed-edit-btn:focus-visible {
+      outline: 2px solid rgba(45, 106, 79, 0.6);
+      outline-offset: 2px;
+    }
+
+    .ed-modal {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9000;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    .ed-modal.show { opacity: 1; pointer-events: auto; }
+    .ed-modal-card {
+      background: #fff;
+      color: var(--hc-ink, #111);
+      border: 1px solid var(--hc-line, rgba(0,0,0,0.08));
+      border-radius: 16px;
+      width: 100%;
+      max-width: 380px;
+      padding: 22px 24px 20px;
+      box-shadow: 0 24px 60px rgba(15, 36, 70, 0.28), 0 8px 20px rgba(15, 36, 70, 0.16);
+      transform: scale(0.96) translateY(6px);
+      transition: transform 0.20s cubic-bezier(0.2, 0.8, 0.3, 1);
+    }
+    .ed-modal.show .ed-modal-card { transform: scale(1) translateY(0); }
+    .ed-modal-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.005em;
+      margin: 0 0 14px;
+      color: var(--hc-ink, #111);
+    }
+    .ed-field { display: block; margin-bottom: 12px; }
+    .ed-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--hc-muted, #6b7280);
+      margin-bottom: 4px;
+      letter-spacing: 0.01em;
+    }
+    .ed-field input[type="date"] {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 9px 12px;
+      font-family: inherit;
+      font-size: 0.92rem;
+      color: var(--hc-ink, #111);
+      background: #fff;
+      border: 1px solid var(--hc-line, rgba(0,0,0,0.12));
+      border-radius: 10px;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .ed-field input[type="date"]:focus {
+      outline: none;
+      border-color: var(--green, #2d6a4f);
+      box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+    }
+    .ed-error {
+      color: var(--danger, #dc2626);
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin: -2px 0 10px;
+      min-height: 1em;
+    }
+    .ed-error:empty { display: none; }
+    .ed-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .ed-btn {
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 9999px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background .15s, border-color .15s, color .15s, transform .08s;
+    }
+    .ed-btn-cancel {
+      background: #fff;
+      color: var(--hc-ink-soft, #374151);
+      border-color: var(--hc-line, rgba(0,0,0,0.12));
+    }
+    .ed-btn-cancel:hover { border-color: var(--hc-ink-soft, #374151); }
+    .ed-btn-save {
+      background: var(--green, #2d6a4f);
+      color: #fff;
+    }
+    .ed-btn-save:hover { background: var(--green-dark, #1b4332); }
+    .ed-btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ---------- Toast / Modal: drop Playfair from titles ---------- */
+    .tp-toast { font-weight: 600 !important; }
+    .tp-modal-title {
+      font-family: 'Inter', sans-serif !important;
+      letter-spacing: -0.005em !important;
+    }
+
+    /* ---------- Mobile tightening ---------- */
+    @media (max-width: 720px) {
+      main.container { padding: 20px 18px 40px !important; }
+      .checklist-hero .hero-name { font-size: 1.6rem !important; }
+      .actions { flex-direction: column !important; }
+      .btn-action { width: 100% !important; }
+      .export-row { justify-content: flex-start !important; flex-wrap: wrap !important; }
+    }
+
+    /* =========================================================================
+       Hipcamp redesign — Phase 2 (structural).
+       Overrides nav-menu.js's green nav to white on this page, adds the
+       sticky tabs strip, two-column grid, and Trip Summary sidebar card.
+       ========================================================================= */
+
+    /* Navbar styling for checklist.html is inherited from nav-menu.js's
+       canonical NAVBAR_CSS so the height/padding/font/logo size match
+       the dashboard exactly. Per-page overrides removed. */
+
+    /* Hero — nav is now sticky above (not absolute over), reduce top padding */
+    body.checklist-page .checklist-hero .hero-inner {
+      padding: 60px 24px 36px !important;
+    }
+
+    /* Sticky tabs strip */
+    .checklist-tabs {
+      position: sticky;
+      top: 64px;
+      z-index: 40;
+      background: #fff;
+      border: 1px solid var(--hc-line, rgba(0,0,0,.08));
+      border-radius: 14px;
+      box-shadow: var(--hc-shadow, 0 2px 12px rgba(0,0,0,.06));
+      margin-bottom: 18px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .ct-prog { display: flex; align-items: center; gap: 12px; min-width: 240px; }
+    .ct-prog-label { font-size: .82rem; color: var(--hc-ink-soft, #374151); white-space: nowrap; }
+    .ct-prog-label b { color: var(--green, #2d6a4f); font-weight: 700; }
+    .ct-prog-bar {
+      flex: 1; height: 6px; background: #eef0ec;
+      border-radius: 9999px; overflow: hidden; min-width: 80px;
+    }
+    .ct-prog-fill {
+      height: 100%; background: var(--green, #2d6a4f);
+      border-radius: 9999px; transition: width .4s ease;
+    }
+    .ct-prog-pct { font-size: .82rem; color: var(--hc-muted, #6b7280); white-space: nowrap; }
+    .ct-tabs {
+      display: flex; gap: 0; flex: 1;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .ct-tabs::-webkit-scrollbar { display: none; }
+    .ct-tab {
+      padding: 10px 0; margin-right: 22px;
+      font-size: .87rem; font-weight: 600;
+      color: var(--hc-muted, #6b7280);
+      background: none; border: 0;
+      border-bottom: 2px solid transparent;
+      cursor: pointer; font-family: inherit;
+      white-space: nowrap;
+      transition: color .15s, border-color .15s;
+    }
+    .ct-tab.is-active { color: var(--hc-ink, #111); border-color: var(--green, #2d6a4f); }
+    .ct-tab:hover:not(.is-active) { color: var(--hc-ink, #111); }
+
+    /* Tab filtering: panels carrying this attribute are hidden by the
+       current tab selection. Using a dedicated attribute (rather than
+       the global [hidden]) keeps the rule scoped + easy to debug. */
+    .category[data-hidden-by-tab="true"] { display: none !important; }
+
+    /* Two-column body */
+    .checklist-body {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 28px;
+      align-items: start;
+    }
+    .checklist-main { min-width: 0; }
+    .checklist-side {
+      display: flex; flex-direction: column; gap: 14px;
+      position: sticky; top: 144px;
+    }
+    .checklist-side .info-card { margin-bottom: 0 !important; }
+    @media (max-width: 1024px) {
+      .checklist-body { grid-template-columns: 1fr; }
+      .checklist-side { position: static; }
+    }
+
+    /* Trip Summary sidebar card */
+    .trip-summary-card {
+      background: #fff;
+      border: 1px solid var(--hc-line, rgba(0,0,0,.08));
+      border-radius: 14px;
+      box-shadow: var(--hc-shadow, 0 2px 12px rgba(0,0,0,.06));
+      overflow: hidden;
+    }
+    .ts-photo {
+      height: 130px;
+      background: #ddd center/cover no-repeat;
+      background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80');
+    }
+    .ts-body { padding: 14px 16px; }
+    .ts-name {
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem; font-weight: 700;
+      color: var(--hc-ink, #111);
+      margin: 0 0 4px;
+      letter-spacing: -0.005em;
+    }
+    .ts-loc { font-size: .8rem; color: var(--hc-muted, #6b7280); margin: 0 0 12px; }
+    /* Hero date range: sits between the trip title and the badge row. */
+    .checklist-hero .hero-dates {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: rgba(255,255,255,0.92);
+      letter-spacing: 0.01em;
+      margin: 0 0 10px;
+      text-shadow: 0 1px 10px rgba(0,0,0,0.35);
+    }
+    .checklist-hero .hero-dates:empty { display: none; }
+    .ts-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; border-top: 1px solid #f3f3ef;
+      font-size: .85rem;
+    }
+    .ts-row:first-of-type { border-top: 0; }
+    .ts-row .k { color: var(--hc-muted, #6b7280); width: 80px; font-size: .76rem; flex-shrink: 0; }
+    .ts-row .v { color: var(--hc-ink, #111); font-weight: 500; flex: 1; }
+
+    @media (max-width: 720px) {
+      .checklist-tabs { top: 56px; padding: 10px 14px; gap: 14px; }
+      .ct-prog { min-width: 0; }
+    }
+
+    /* ---------- Quick-add bar + suggestion chips ---------- */
+    .qa-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      border: 1px solid var(--hc-line, rgba(0,0,0,.08));
+      border-radius: 9999px;
+      padding: 8px 8px 8px 22px;
+      box-shadow: var(--hc-shadow, 0 2px 12px rgba(0,0,0,.06));
+      margin-bottom: 18px;
+    }
+    .qa-bar input,
+    .qa-bar select {
+      border: 0; outline: 0;
+      background: transparent;
+      font-family: inherit;
+      font-size: .92rem;
+      padding: 10px 0;
+      color: var(--hc-ink, #111);
+    }
+    .qa-bar input { flex: 1; min-width: 0; }
+    .qa-bar input::placeholder { color: var(--hc-muted, #6b7280); }
+    .qa-divider {
+      width: 1px; align-self: stretch;
+      background: var(--hc-line, rgba(0,0,0,.08));
+      margin: 6px 4px;
+    }
+    .qa-bar select {
+      color: var(--hc-ink-soft, #374151);
+      padding-right: 8px;
+      cursor: pointer;
+      max-width: 160px;
+    }
+    .qa-add-btn {
+      background: var(--green, #2d6a4f);
+      color: #fff;
+      border: 0;
+      border-radius: 9999px;
+      padding: 10px 22px;
+      font-weight: 600;
+      font-size: .85rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .qa-add-btn:hover { background: var(--green-dark, #1b4332); }
+    .qa-add-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .qa-suggest { margin-bottom: 22px; }
+    .qa-suggest-h {
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--hc-muted, #6b7280);
+      margin-bottom: 10px;
+    }
+    .qa-chips {
+      display: flex; gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .qa-chips::-webkit-scrollbar { display: none; }
+    .qa-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border-radius: 9999px;
+      background: #fff;
+      border: 1px solid var(--hc-line, rgba(0,0,0,.08));
+      font-size: .85rem;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--hc-ink, #111);
+      transition: border-color .18s, color .18s, background .18s;
+    }
+    .qa-chip:hover {
+      border-color: var(--green, #2d6a4f);
+      color: var(--green, #2d6a4f);
+      background: rgba(45,106,79,.04);
+    }
+    .qa-chip .plus {
+      font-size: 1.05rem;
+      color: var(--green, #2d6a4f);
+      line-height: 1;
+      margin-right: -2px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .qa-bar { flex-wrap: wrap; padding: 10px; border-radius: 14px; }
+      .qa-bar input { width: 100%; padding: 6px 10px; }
+      .qa-divider { display: none; }
+    }
+
+    /* =========================================================================
+       Final layout pass — nav moved above hero, weather/sidebar rebalanced.
+       Loaded last so these rules win over the earlier redesign blocks.
+       ========================================================================= */
+
+    /* Hero no longer needs space cleared for an absolutely-positioned nav.
+       Pull the inner padding back so the hero feels right-sized. */
+    body.checklist-page .checklist-hero {
+      height: 280px !important;
+    }
+    body.checklist-page .checklist-hero .hero-inner {
+      padding: 28px 28px 30px !important;
+    }
+    body.checklist-page .checklist-hero .hero-name {
+      font-size: 2rem !important;
+    }
+    @media (max-width: 720px) {
+      body.checklist-page .checklist-hero { height: 220px !important; }
+      body.checklist-page .checklist-hero .hero-inner { padding: 22px 18px 24px !important; }
+      body.checklist-page .checklist-hero .hero-name { font-size: 1.5rem !important; }
+    }
+
+    /* Sticky tabs strip should sit flush under the 64px dashboard nav. */
+    body.checklist-page .checklist-tabs { top: 64px !important; }
+    body.checklist-page .checklist-side  { top: 136px !important; }
+
+    /* Slightly slimmer sidebar so the main column gets more room. */
+    body.checklist-page .checklist-body {
+      grid-template-columns: 1fr 320px !important;
+      gap: 24px !important;
+    }
+    @media (max-width: 1024px) {
+      body.checklist-page .checklist-body {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    /* ---------- Weather card: more compact "bar" sizing ----------
+       Trim the gradient padding, big icon, hero temperature, pills, and
+       forecast strip so the card no longer dominates the viewport. */
+    body.checklist-page .wx-hero .wx-gradient {
+      padding: 16px 22px 18px !important;
+    }
+    body.checklist-page .wx-hero .wx-loc {
+      font-size: 13px !important;
+      margin-bottom: 4px !important;
+    }
+    body.checklist-page .wx-hero .wx-icon-wrap {
+      width: 64px !important;
+      height: 64px !important;
+      margin: 2px 0 2px !important;
+    }
+    body.checklist-page .wx-hero .wx-emoji {
+      font-size: 52px !important;
+    }
+    body.checklist-page .wx-hero .wx-temp {
+      font-size: 44px !important;
+      margin-top: 0 !important;
+    }
+    body.checklist-page .wx-hero .wx-cond {
+      font-size: 15px !important;
+      margin-top: 2px !important;
+    }
+    body.checklist-page .wx-hero .wx-hilo {
+      font-size: 13px !important;
+      margin-top: 4px !important;
+    }
+    body.checklist-page .wx-hero .wx-pills {
+      gap: 8px !important;
+      margin-top: 12px !important;
+      max-width: 480px !important;
+    }
+    body.checklist-page .wx-hero .wx-pill {
+      padding: 7px 10px !important;
+      font-size: 12px !important;
+    }
+    body.checklist-page .wx-hero .wx-forecast {
+      padding: 10px 12px !important;
+    }
+    body.checklist-page .wx-hero .wx-day {
+      padding: 6px 4px !important;
+    }
+    body.checklist-page .wx-hero .wx-day .wx-day-emoji {
+      font-size: 18px !important;
+      margin: 1px 0 4px !important;
+    }
+    body.checklist-page .wx-hero .wx-day .wx-day-hi { font-size: 13px !important; }
+    body.checklist-page .wx-hero .wx-day .wx-day-lo { font-size: 11px !important; }
+
+    /* Trip actions moved to the bottom: add separation above so it
+       reads as a final step rather than a tag-along of the last card. */
+    body.checklist-page .actions.actions-bottom {
+      margin-top: 28px !important;
+      padding-top: 22px !important;
+      border-top: 1px solid var(--hc-line, rgba(0,0,0,.08)) !important;
+      justify-content: center !important;
+    }
+
+    /* In-navbar export buttons (Print + Export CSV). Sit just before
+       the hamburger and adopt the white-navbar styling. */
+    body.checklist-page .navbar .btn-nav-export {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      padding: 8px 14px !important;
+      font-size: .82rem !important;
+      font-weight: 600 !important;
+      font-family: inherit !important;
+      color: var(--hc-ink, #111) !important;
+      background: #fff !important;
+      border: 1px solid var(--hc-line, rgba(0,0,0,.08)) !important;
+      border-radius: 9999px !important;
+      box-shadow: var(--hc-shadow, 0 2px 12px rgba(0,0,0,.06)) !important;
+      cursor: pointer !important;
+      transition: border-color .15s, color .15s, transform .15s !important;
+    }
+    body.checklist-page .navbar .btn-nav-export:hover {
+      border-color: var(--green, #2d6a4f) !important;
+      color: var(--green-dark, #1b4332) !important;
+      transform: translateY(-1px) !important;
+    }
+    @media (max-width: 720px) {
+      /* Compact on small screens: keep icons, hide labels. */
+      body.checklist-page .navbar .btn-nav-export .btn-nav-export-label {
+        display: none !important;
+      }
+      body.checklist-page .navbar .btn-nav-export {
+        padding: 8px 10px !important;
+      }
+    }
   </style>
 </head>
-<body>
-  <section class="checklist-hero" id="checklist-hero" aria-label="Trip hero">
-    <div class="hero-inner">
-      <div class="hero-brand">🏕️ TrailPack</div>
-      <h1 class="hero-name" id="hero-trip-name">Loading trip…</h1>
-      <div class="hero-badges" id="hero-trip-badges"></div>
-    </div>
-  </section>
-
+<body class="checklist-page">
   <nav class="navbar" aria-label="Main">
     <div class="nav-brand">
       <span class="logo-mark" aria-hidden="true">
@@ -1605,22 +2269,52 @@
       <a href="index.html" class="btn">← Back to Dashboard</a>
       <a href="profile.html" class="btn">Profile</a>
       <a href="organizer.html" class="btn">Organizer</a>
-      <button id="theme-toggle" class="btn btn-theme" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
       <button id="logout-btn" class="btn btn-logout" type="button">Logout</button>
+      <!-- Page-specific export buttons. data-keep-in-nav="true" tells
+           nav-menu.js to leave them in the navbar instead of moving
+           them into the hamburger dropdown. They render to the right
+           of the user info and just before the hamburger. -->
+      <button type="button" class="btn btn-nav-export" data-keep-in-nav="true"
+              onclick="exportChecklist('print')" title="Print this checklist"
+              aria-label="Print checklist">
+        🖨️ <span class="btn-nav-export-label">Print</span>
+      </button>
+      <button type="button" class="btn btn-nav-export" data-keep-in-nav="true"
+              onclick="exportChecklist('csv')" title="Download as CSV"
+              aria-label="Export as CSV">
+        📥 <span class="btn-nav-export-label">Export CSV</span>
+      </button>
     </div>
   </nav>
 
+  <section class="checklist-hero" id="checklist-hero" aria-label="Trip hero">
+    <div class="hero-inner">
+      <div class="hero-brand">🏕️ TrailPack</div>
+      <h1 class="hero-name" id="hero-trip-name">Loading trip…</h1>
+      <p class="hero-dates" id="hero-trip-dates" aria-label="Trip dates"></p>
+      <div class="hero-badges" id="hero-trip-badges"></div>
+    </div>
+  </section>
+
   <main class="container">
-    <div class="export-row" id="export-row">
-      <button type="button" class="btn-export" onclick="exportChecklist('print')" title="Print this checklist">🖨️ Print</button>
-      <button type="button" class="btn-export" onclick="exportChecklist('csv')" title="Download as CSV">📥 Export CSV</button>
-      <button type="button" class="btn-export" onclick="exportChecklist('json')" title="Download as JSON">📥 Export JSON</button>
+    <!-- Export buttons live in the navbar now (data-keep-in-nav).
+         The Export JSON button has been removed per product spec. -->
+
+    <!-- ===== Sticky tabs strip (Hipcamp redesign) ===== -->
+    <div class="checklist-tabs" id="checklist-tabs">
+      <div class="ct-prog">
+        <span class="ct-prog-label"><b id="ct-prog-packed">0</b> / <span id="ct-prog-total">0</span> packed</span>
+        <div class="ct-prog-bar"><div class="ct-prog-fill" id="ct-prog-fill" style="width:0%"></div></div>
+        <span class="ct-prog-pct" id="ct-prog-pct">0%</span>
+      </div>
+      <div class="ct-tabs" id="ct-tabs" role="tablist">
+        <button class="ct-tab is-active" type="button" data-filter="all">All</button>
+      </div>
     </div>
 
-    <div class="actions">
-      <button class="btn-action btn-start" id="start-trip-btn" type="button" disabled>🚀 Start Trip</button>
-      <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
-    </div>
+    <!-- ===== Two-column body (main + sidebar) ===== -->
+    <div class="checklist-body">
+      <div class="checklist-main">
 
     <!-- ======== Inserted Card 1: Weather (iPhone-style dynamic) ======== -->
     <section class="ins-card wx-hero" id="wx-hero" aria-label="Weather forecast">
@@ -1731,7 +2425,49 @@
       </div>
     </section>
 
+    <!-- ===== Quick-add bar + suggestion chips (Hipcamp redesign) ===== -->
+    <div class="qa-bar" id="qa-bar">
+      <input id="qa-input" type="text" placeholder="Add an item to your list…" autocomplete="off">
+      <div class="qa-divider"></div>
+      <select id="qa-category" aria-label="Category">
+        <!-- Populated dynamically from #categories headings -->
+      </select>
+      <button type="button" id="qa-add-btn" class="qa-add-btn">Add item</button>
+    </div>
+
+    <div class="qa-suggest" id="qa-suggest">
+      <div class="qa-suggest-h" id="qa-suggest-title">Suggested for your trip</div>
+      <div class="qa-chips" id="qa-chips"></div>
+    </div>
+
     <div id="categories"><div class="loading">Loading your checklist…</div></div>
+
+    <!-- Trip actions: moved to the bottom of the main column so they
+         live below the full checklist instead of above it. Same class,
+         IDs, and event wiring as before. -->
+    <div class="actions actions-bottom">
+      <button class="btn-action btn-start" id="start-trip-btn" type="button" disabled>🚀 Start Trip</button>
+      <button class="btn-action btn-cancel" id="cancel-trip-btn" type="button">✕ Cancel Trip</button>
+    </div>
+
+      </div><!-- /.checklist-main -->
+      <aside class="checklist-side">
+        <!-- Trip summary card (Hipcamp redesign) -->
+        <div class="trip-summary-card">
+          <div class="ts-photo" id="ts-photo"></div>
+          <div class="ts-body">
+            <h3 class="ts-name" id="ts-name">—</h3>
+            <p class="ts-loc" id="ts-loc">—</p>
+            <div class="ts-row"><span class="k">Terrain</span><span class="v" id="ts-terrain">—</span></div>
+            <div class="ts-row"><span class="k">Season</span><span class="v" id="ts-season">—</span></div>
+            <div class="ts-row"><span class="k">Duration</span><span class="v" id="ts-duration">—</span></div>
+            <div class="ts-row" id="ts-dates-row" hidden>
+              <span class="k">Dates</span>
+              <span class="v" id="ts-dates">—</span>
+              <button type="button" id="ed-edit-btn" class="ed-edit-btn" aria-label="Edit trip dates" title="Edit trip dates">✏️ Edit</button>
+            </div>
+          </div>
+        </div>
 
     <!-- Risk -->
     <section class="info-card" id="risk-card">
@@ -1754,6 +2490,8 @@
         <div class="muted-note">Loading collaborators…</div>
       </div>
     </section>
+      </aside><!-- /.checklist-side -->
+    </div><!-- /.checklist-body -->
 
     <div class="tp-toast" id="tp-toast" role="status" aria-live="polite"></div>
 
@@ -1766,24 +2504,32 @@
         <div class="tp-modal-actions" id="tp-modal-actions"></div>
       </div>
     </div>
+
+    <!-- Edit Trip Dates modal -->
+    <div class="ed-modal" id="ed-modal" role="dialog" aria-modal="true" aria-labelledby="ed-modal-title" hidden>
+      <div class="ed-modal-card">
+        <h3 class="ed-modal-title" id="ed-modal-title">Edit trip dates</h3>
+        <form id="ed-form" novalidate>
+          <div class="ed-field">
+            <label for="ed-start">Start date</label>
+            <input type="date" id="ed-start" name="startDate" required>
+          </div>
+          <div class="ed-field">
+            <label for="ed-end">End date</label>
+            <input type="date" id="ed-end" name="endDate" required>
+          </div>
+          <div class="ed-error" id="ed-error" role="alert" aria-live="polite"></div>
+          <div class="ed-actions">
+            <button type="button" class="ed-btn ed-btn-cancel" id="ed-cancel">Cancel</button>
+            <button type="submit" class="ed-btn ed-btn-save" id="ed-save">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
   <script>
     (function () {
-      /* ---------- Theme (pre-paint to avoid flash) ---------- */
-      const root = document.documentElement;
-      const THEME_KEY = 'tp-theme';
-      const applyTheme = (t) => {
-        root.setAttribute('data-theme', t);
-        const btn = document.getElementById('theme-toggle');
-        if (btn) btn.textContent = t === 'dark' ? '☀️' : '🌙';
-      };
-      // Default to light. Existing users who explicitly chose 'dark' via the
-      // toggle keep their saved preference; we deliberately ignore the OS-level
-      // prefers-color-scheme so first-paint always matches the brand light theme.
-      const savedTheme = localStorage.getItem(THEME_KEY);
-      applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
-
       /* ---------- Emoji maps ---------- */
       const TERRAIN_EMOJI = {
         mountain: '🏔️', mountains: '🏔️', alpine: '🏔️',
@@ -1860,6 +2606,73 @@
       let trip = null;
       let items = [];
 
+      /* ---------- Date helpers ---------- */
+      // Shared formatter so the hero, sidebar, and CSV export all speak
+      // the same language ("May 15, 2026").
+      // formatTripDateRange collapses to "May 15–20, 2026"
+      // when start and end share the same month + year, falls back to
+      // "May 15, 2026 – Jun 2, 2026" otherwise, and degrades gracefully
+      // when only one side is present.
+      // parseTripDate — accept either a plain YYYY-MM-DD string (what the
+      // date pickers emit) OR any Date-parseable value. The plain form is
+      // intentionally interpreted in the LOCAL timezone to avoid the
+      // off-by-one that happens when the browser parses "2026-05-15" as
+      // UTC midnight and then renders it west of UTC as May 14.
+      function parseTripDate(raw) {
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+          const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+        }
+        const dt = new Date(raw);
+        return Number.isNaN(dt.getTime()) ? null : dt;
+      }
+      function formatTripDate(d) {
+        const dt = parseTripDate(d);
+        if (!dt) return null;
+        return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+      }
+      // Convert any trip-date value into the YYYY-MM-DD form that
+      // <input type="date"> expects. Reuses parseTripDate so the same
+      // local-timezone interpretation is applied.
+      function toIsoDate(raw) {
+        const dt = parseTripDate(raw);
+        if (!dt) return '';
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+      }
+      // Today as YYYY-MM-DD in the user's local timezone (matches the
+      // values produced by <input type="date">, so direct string
+      // comparison works correctly).
+      function todayIsoDate() {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+      }
+
+      function formatTripDateRange(startRaw, endRaw) {
+        const start = parseTripDate(startRaw);
+        const end   = parseTripDate(endRaw);
+        const validStart = start && !Number.isNaN(start.getTime());
+        const validEnd   = end   && !Number.isNaN(end.getTime());
+        if (validStart && validEnd) {
+          // Collapse same-month + same-year ranges: "May 15–20, 2026".
+          if (start.getFullYear() === end.getFullYear() &&
+              start.getMonth()    === end.getMonth()) {
+            const month = start.toLocaleDateString(undefined, { month: 'short' });
+            return month + ' ' + start.getDate() + '–' + end.getDate() + ', ' + start.getFullYear();
+          }
+          return formatTripDate(start) + ' – ' + formatTripDate(end);
+        }
+        if (validStart) return formatTripDate(start);
+        if (validEnd)   return formatTripDate(end);
+        return '';
+      }
+
       /* ---------- Hero (terrain-based Unsplash photo) ---------- */
       // Keys are lowercased trip.terrain values. Default falls back
       // to the mountain photo per spec.
@@ -1901,6 +2714,18 @@
           badges.push('<span class="hero-badge">' + d + ' ' + (d === 1 ? 'day' : 'days') + '</span>');
         }
         document.getElementById('hero-trip-badges').innerHTML = badges.join('');
+
+        // Surface the trip's date range in the hero (below the title)
+        // AND in the sidebar trip-summary-card. Both elements share the
+        // same formatted string so the printed PDF (which snapshots the
+        // sidebar) and the on-screen hero stay in sync.
+        const rangeText = formatTripDateRange(trip && trip.startDate, trip && trip.endDate);
+        const heroDatesEl = document.getElementById('hero-trip-dates');
+        if (heroDatesEl) heroDatesEl.textContent = rangeText;
+        const tsDatesRow = document.getElementById('ts-dates-row');
+        const tsDatesVal = document.getElementById('ts-dates');
+        if (tsDatesVal) tsDatesVal.textContent = rangeText || '—';
+        if (tsDatesRow) tsDatesRow.hidden = !rangeText;
       }
 
       /* ---------- Renderers ---------- */
@@ -1912,8 +2737,22 @@
       }
 
       function updateProgress() {
-        const total = items.length;
-        const packed = items.filter(i => i.packed).length;
+        // Recompute totals from the live items array on every call so
+        // newly added items (including AI suggestions) are reflected
+        // immediately. Never use a cached count.
+        const total = Array.isArray(items) ? items.length : 0;
+        const packed = Array.isArray(items) ? items.filter(i => i && i.packed).length : 0;
+        const pct = total ? Math.round((packed / total) * 100) : 0;
+
+        const lbT = document.getElementById('ct-prog-total');
+        const lbP = document.getElementById('ct-prog-packed');
+        const lbPct = document.getElementById('ct-prog-pct');
+        const fill = document.getElementById('ct-prog-fill');
+        if (lbT) lbT.textContent = total;
+        if (lbP) lbP.textContent = packed;
+        if (lbPct) lbPct.textContent = pct + '%';
+        if (fill) fill.style.width = pct + '%';
+
         const startBtn = document.getElementById('start-trip-btn');
         if (startBtn) startBtn.disabled = !(total > 0 && packed === total);
       }
@@ -1936,10 +2775,22 @@
         });
       }
 
+      // Lowercased, dash-joined slug used to match tabs (data-filter)
+      // to category panels (data-category). "Food & Water" -> "food-water".
+      function categorySlug(name) {
+        return String(name || '')
+          .toLowerCase()
+          .replace(/&/g, ' and ')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'general';
+      }
       function buildCategoryCard(category, catItems) {
         const card = document.createElement('section');
         card.className = 'category';
-        card.dataset.category = category;
+        // data-category holds the slug used for tab filtering.
+        // data-category-name preserves the human-readable label.
+        card.dataset.category = categorySlug(category);
+        card.dataset.categoryName = category;
 
         const head = document.createElement('div');
         head.className = 'category-head';
@@ -2179,7 +3030,13 @@
           // shows the browser's native print dialog with the full
           // styled layout (no @media print transformation needed) and
           // — critically — no new tab opens.
-          const element = document.querySelector('.checklist-main')
+          //
+          // We snapshot .checklist-body (main + sidebar) so the trip
+          // summary panel on the right is included in the printout.
+          // Falls back to .checklist-main / main / #categories for
+          // older markup or partially-rendered states.
+          const element = document.querySelector('.checklist-body')
+            || document.querySelector('.checklist-main')
             || document.querySelector('main')
             || document.getElementById('categories');
           if (!element) {
@@ -2208,6 +3065,42 @@
           const restoreHidden = () => hideEls.forEach((el) => { el.style.visibility = ''; });
           hideEls.forEach((el) => { el.style.visibility = 'hidden'; });
 
+          // Temporarily flatten the two-column grid so the sidebar
+          // stacks below the main column in the PDF (rather than
+          // shrinking into a narrow strip on letter-size paper).
+          // Also un-stick the sidebar so it flows in the snapshot.
+          const body = document.querySelector('.checklist-body');
+          const side = document.querySelector('.checklist-side');
+          const prevBody = body ? {
+            gridTemplateColumns: body.style.gridTemplateColumns,
+            gap: body.style.gap
+          } : null;
+          const prevSide = side ? {
+            position: side.style.position,
+            top: side.style.top,
+            marginTop: side.style.marginTop
+          } : null;
+          if (body) {
+            body.style.setProperty('grid-template-columns', '1fr', 'important');
+            body.style.setProperty('gap', '18px', 'important');
+          }
+          if (side) {
+            side.style.setProperty('position', 'static', 'important');
+            side.style.setProperty('top', 'auto', 'important');
+            side.style.setProperty('margin-top', '8px', 'important');
+          }
+          const restoreLayout = () => {
+            if (body && prevBody) {
+              body.style.gridTemplateColumns = prevBody.gridTemplateColumns;
+              body.style.gap = prevBody.gap;
+            }
+            if (side && prevSide) {
+              side.style.position = prevSide.position;
+              side.style.top = prevSide.top;
+              side.style.marginTop = prevSide.marginTop;
+            }
+          };
+
           html2pdf()
             .set(opt)
             .from(element)
@@ -2215,6 +3108,7 @@
             .then((blob) => {
               // Restore the UI as soon as the snapshot is done.
               restoreHidden();
+              restoreLayout();
               const blobUrl = URL.createObjectURL(blob);
               const printWin = window.open(blobUrl, '_blank');
               if (!printWin) {
@@ -2234,6 +3128,7 @@
             })
             .catch((err) => {
               restoreHidden();
+              restoreLayout();
               console.error('html2pdf failed:', err);
               (window.showToast ? window.showToast('PDF generation failed: ' + (err.message || err), 'error') : tpAlert('PDF generation failed.', { variant: 'danger' }));
             });
@@ -2269,9 +3164,18 @@
             it.packed ? 'Yes' : 'No',
             it.source || 'standard'
           ]);
-          const csv = [header, ...rows]
+          const body = [header, ...rows]
             .map(r => r.map(esc).join(','))
             .join('\r\n');
+          // Prepend a single-cell "Trip Dates" line (and a blank row
+          // separator) before the gear header so the dates are clearly
+          // visible at the top of the CSV without colliding with the
+          // tabular gear rows. Omitted when the trip has no dates.
+          const rangeText = formatTripDateRange(exportTrip.startDate, exportTrip.endDate);
+          const preamble = rangeText
+            ? esc('Trip Dates: ' + rangeText) + '\r\n\r\n'
+            : '';
+          const csv = preamble + body;
           // Prepend UTF-8 BOM so Excel renders accents/emoji correctly.
           downloadBlob('\uFEFF' + csv, 'text/csv;charset=utf-8', baseName + '_checklist.csv');
           return;
@@ -2438,6 +3342,138 @@
       }
       window.tpAlert = tpAlert;
       window.tpConfirm = tpConfirm;
+
+      /* ---------- Edit Trip Dates ---------- */
+      // Opens the #ed-modal prefilled with trip.startDate/endDate, runs
+      // basic end>=start validation, PUTs the new dates to the existing
+      // /trips/:id update endpoint, and re-renders the hero + sidebar in
+      // place. The CSV/print exporters read straight from the live `trip`
+      // object (and window.currentTrip), so updating those keeps them in
+      // sync without any extra plumbing.
+      function closeEditDatesModal() {
+        const m = document.getElementById('ed-modal');
+        if (!m) return;
+        m.classList.remove('show');
+        m.hidden = true;
+        const errEl = document.getElementById('ed-error');
+        if (errEl) errEl.textContent = '';
+      }
+      function openEditDatesModal() {
+        const m       = document.getElementById('ed-modal');
+        let startEl   = document.getElementById('ed-start');
+        let endEl     = document.getElementById('ed-end');
+        const errEl   = document.getElementById('ed-error');
+        if (!m || !startEl || !endEl) return;
+
+        // Reset listeners by cloning so re-opening the modal doesn't
+        // stack duplicate change handlers on the date inputs.
+        const freshStart = startEl.cloneNode(true);
+        startEl.parentNode.replaceChild(freshStart, startEl);
+        startEl = freshStart;
+        const freshEnd = endEl.cloneNode(true);
+        endEl.parentNode.replaceChild(freshEnd, endEl);
+        endEl = freshEnd;
+
+        const today = todayIsoDate();
+        const prefStart = toIsoDate(trip && trip.startDate);
+        const prefEnd   = toIsoDate(trip && trip.endDate);
+
+        // Block past-date selection: today is the floor for start, and
+        // end must also be ≥ start.
+        startEl.min = today;
+        startEl.value = (prefStart && prefStart >= today) ? prefStart : '';
+        const endFloor = (startEl.value && startEl.value > today) ? startEl.value : today;
+        endEl.min = endFloor;
+        endEl.value = (prefEnd && prefEnd >= endFloor) ? prefEnd : '';
+
+        // Whenever the user changes the start date, bump end's floor and
+        // clear any now-invalid end value so the user must reselect.
+        startEl.addEventListener('change', () => {
+          const t = todayIsoDate();
+          if (startEl.value && startEl.value < t) startEl.value = t;
+          const floor = (startEl.value && startEl.value > t) ? startEl.value : t;
+          endEl.min = floor;
+          if (endEl.value && endEl.value < floor) endEl.value = '';
+        });
+        endEl.addEventListener('change', () => {
+          const t = todayIsoDate();
+          if (endEl.value && endEl.value < t) endEl.value = '';
+        });
+
+        if (errEl) errEl.textContent = '';
+        m.hidden = false;
+        // Force a reflow before adding .show so the transition runs.
+        // eslint-disable-next-line no-unused-expressions
+        m.offsetHeight;
+        m.classList.add('show');
+        setTimeout(() => startEl.focus(), 60);
+      }
+      async function saveTripDates(ev) {
+        if (ev && ev.preventDefault) ev.preventDefault();
+        const startEl = document.getElementById('ed-start');
+        const endEl   = document.getElementById('ed-end');
+        const errEl   = document.getElementById('ed-error');
+        const saveBtn = document.getElementById('ed-save');
+        if (!startEl || !endEl || !errEl || !saveBtn) return;
+
+        const startVal = startEl.value || null;
+        const endVal   = endEl.value   || null;
+        const today    = todayIsoDate();
+
+        // Reject manually entered past dates (the picker already blocks
+        // them via min, but a user could still paste a value).
+        if (startVal && startVal < today) {
+          errEl.textContent = 'Start date cannot be in the past.';
+          startEl.focus();
+          return;
+        }
+        if (endVal && endVal < today) {
+          errEl.textContent = 'End date cannot be in the past.';
+          endEl.focus();
+          return;
+        }
+        // Basic validation: end >= start when both present.
+        if (startVal && endVal && endVal < startVal) {
+          errEl.textContent = 'End date must be on or after the start date.';
+          endEl.focus();
+          return;
+        }
+        if (!startVal && !endVal) {
+          errEl.textContent = 'Please enter at least one date.';
+          startEl.focus();
+          return;
+        }
+        errEl.textContent = '';
+
+        saveBtn.disabled = true;
+        const prevLabel = saveBtn.textContent;
+        saveBtn.textContent = 'Saving…';
+        try {
+          await api('/trips/' + tripId, {
+            method: 'PUT',
+            body: JSON.stringify({ startDate: startVal, endDate: endVal }),
+          });
+          // Mutate the in-scope trip object so renderHero(), the CSV
+          // exporter, and the html2pdf snapshot all see the new dates.
+          if (trip) {
+            trip.startDate = startVal;
+            trip.endDate   = endVal;
+          }
+          if (window.currentTrip) {
+            window.currentTrip.startDate = startVal;
+            window.currentTrip.endDate   = endVal;
+          }
+          renderHero();
+          closeEditDatesModal();
+          (window.showToast ? window.showToast('Dates updated!', 'success')
+                             : showToast('Dates updated!', 'success'));
+        } catch (err) {
+          errEl.textContent = 'Could not save dates: ' + (err.message || err);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = prevLabel;
+        }
+      }
 
       /* ---------- Weather card ---------- */
       // Backend lives at GET /weather?location=&startDate=&endDate= (Open-Meteo).
@@ -3165,11 +4201,6 @@
 
       /* ---------- Boot ---------- */
       document.addEventListener('DOMContentLoaded', async () => {
-        document.getElementById('theme-toggle').addEventListener('click', () => {
-          const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-          localStorage.setItem(THEME_KEY, next);
-          applyTheme(next);
-        });
         document.getElementById('logout-btn').addEventListener('click', () => {
           sessionStorage.removeItem('authToken');
           sessionStorage.removeItem('currentUser');
@@ -3177,6 +4208,27 @@
         });
         document.getElementById('start-trip-btn').addEventListener('click', startTrip);
         document.getElementById('cancel-trip-btn').addEventListener('click', cancelTrip);
+
+        // Edit-dates modal wiring: pencil pill opens it, form submit /
+        // Save button posts via saveTripDates, Cancel + overlay click +
+        // Escape close it.
+        const edBtn    = document.getElementById('ed-edit-btn');
+        const edModal  = document.getElementById('ed-modal');
+        const edForm   = document.getElementById('ed-form');
+        const edCancel = document.getElementById('ed-cancel');
+        if (edBtn)    edBtn.addEventListener('click', openEditDatesModal);
+        if (edForm)   edForm.addEventListener('submit', saveTripDates);
+        if (edCancel) edCancel.addEventListener('click', closeEditDatesModal);
+        if (edModal) {
+          edModal.addEventListener('click', (e) => {
+            if (e.target === edModal) closeEditDatesModal();
+          });
+        }
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && edModal && edModal.classList.contains('show')) {
+            closeEditDatesModal();
+          }
+        });
 
         try {
           const [tripData, itemsData] = await Promise.all([
@@ -3265,6 +4317,278 @@
       io.observe(original);
     })();
   </script>
+
+  <!-- ===== Hipcamp redesign wiring (tabs, sidebar summary, progress) =====
+       Mirrors the existing hero-trip-* fields into the new sidebar Trip
+       Summary card, builds tabs from rendered category headings, and
+       computes packing progress from .item.packed states. No existing
+       handlers touched. -->
+  <script>
+    (function () {
+      function mirrorSummary() {
+        const heroName = document.getElementById('hero-trip-name');
+        const tsName = document.getElementById('ts-name');
+        if (heroName && tsName) tsName.textContent = heroName.textContent || '—';
+
+        const heroBadges = document.getElementById('hero-trip-badges');
+        if (!heroBadges) return;
+        const badges = Array.from(heroBadges.querySelectorAll('.hero-badge'))
+          .map(b => (b.textContent || '').trim())
+          .filter(Boolean);
+        // Convention from existing JS: [terrain, season, "X Days", optional]
+        const fields = ['ts-terrain', 'ts-season', 'ts-duration'];
+        fields.forEach((id, i) => {
+          const el = document.getElementById(id);
+          if (el && badges[i]) el.textContent = badges[i];
+        });
+        // Use weather location if available for ts-loc
+        const wxLoc = document.getElementById('wx-loc-text');
+        const tsLoc = document.getElementById('ts-loc');
+        if (tsLoc && wxLoc && wxLoc.textContent && wxLoc.textContent.trim() !== '—') {
+          tsLoc.textContent = wxLoc.textContent.trim();
+        }
+      }
+
+      // Hide every .category panel whose data-category slug doesn't
+      // match the active filter. Pass `null` (or 'all') to reveal them
+      // all again. Toggling a single attribute is cheap and keeps the
+      // rest of the category card markup/state untouched.
+      function filterCategories(filter) {
+        const cats = document.querySelectorAll('#categories .category');
+        const showAll = !filter || filter === 'all';
+        cats.forEach((cat) => {
+          if (showAll) {
+            cat.removeAttribute('data-hidden-by-tab');
+          } else if (cat.dataset.category === filter) {
+            cat.removeAttribute('data-hidden-by-tab');
+          } else {
+            cat.setAttribute('data-hidden-by-tab', 'true');
+          }
+        });
+      }
+
+      function buildTabs() {
+        const tabsHost = document.getElementById('ct-tabs');
+        if (!tabsHost) return;
+        const cats = document.querySelectorAll('#categories .category');
+        if (!cats.length) return;
+
+        // Skip rebuild if already in sync (count matches)
+        const existing = tabsHost.querySelectorAll('.ct-tab').length;
+        if (existing === cats.length + 1) return;
+
+        // Reset, keep "All"
+        tabsHost.innerHTML = '';
+        const setActive = (btn) => {
+          tabsHost.querySelectorAll('.ct-tab').forEach(t => t.classList.remove('is-active'));
+          btn.classList.add('is-active');
+        };
+        const scrollToCategories = () => {
+          const cont = document.getElementById('categories');
+          if (!cont) return;
+          const top = cont.getBoundingClientRect().top + window.scrollY - 140;
+          window.scrollTo({ top, behavior: 'smooth' });
+        };
+
+        const all = document.createElement('button');
+        all.type = 'button';
+        all.className = 'ct-tab is-active';
+        all.dataset.filter = 'all';
+        all.textContent = 'All';
+        all.addEventListener('click', () => {
+          setActive(all);
+          filterCategories('all');
+          scrollToCategories();
+        });
+        tabsHost.appendChild(all);
+
+        cats.forEach((cat, i) => {
+          const titleEl = cat.querySelector('.category-title');
+          let title = (titleEl?.textContent || `Category ${i+1}`).trim();
+          // Strip leading emoji + space for cleaner tabs
+          title = title.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+\s*/u, '');
+          if (!cat.id) cat.id = `cat-${i}`;
+          const slug = cat.dataset.category || categorySlug(title);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'ct-tab';
+          btn.dataset.filter = slug;
+          btn.textContent = title;
+          btn.addEventListener('click', () => {
+            setActive(btn);
+            filterCategories(slug);
+            scrollToCategories();
+          });
+          tabsHost.appendChild(btn);
+        });
+      }
+
+      function computeProgress() {
+        // Recalculate totals dynamically every run, including AI-generated
+        // items rendered as .sg-item rows in the Smart Gear card. Using
+        // the live DOM (rather than a cached count) keeps this in sync
+        // with updateProgress() after Generate Suggestions adds items.
+        const items  = document.querySelectorAll('#categories .item, #sg-items .sg-item');
+        const packed = document.querySelectorAll('#categories .item.packed, #sg-items .sg-item.packed');
+        const total = items.length;
+        const p = packed.length;
+        const pct = total ? Math.round((p / total) * 100) : 0;
+        const lbP = document.getElementById('ct-prog-packed');
+        const lbT = document.getElementById('ct-prog-total');
+        const lbPct = document.getElementById('ct-prog-pct');
+        const fill = document.getElementById('ct-prog-fill');
+        if (lbP) lbP.textContent = p;
+        if (lbT) lbT.textContent = total;
+        if (lbPct) lbPct.textContent = pct + '%';
+        if (fill) fill.style.width = pct + '%';
+      }
+
+      let scheduled = false;
+      function refresh() {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(() => {
+          scheduled = false;
+          mirrorSummary();
+          buildTabs();
+          computeProgress();
+          syncCategoryDropdown();
+          renderSuggestChips();
+        });
+      }
+
+      const obs = new MutationObserver(refresh);
+
+      // ---------- Quick-add bar + suggestion chips ----------
+      const TERRAIN_SUGGESTIONS = {
+        mountain: ['Down jacket', 'Trekking poles', 'Microspikes', 'Hand warmers', 'Trail map', 'Insulated bottle'],
+        forest:   ['Bug spray', 'Trail map', 'Headlamp', 'Rain shell', 'Pocket knife', 'Hammock'],
+        desert:   ['Sun hat', 'Electrolytes', 'Sunscreen SPF 50', 'Lip balm', 'Extra water', 'Cooling towel'],
+        beach:    ['Reef-safe sunscreen', 'Beach towel', 'Sandals', 'Dry bag', 'Sun hat', 'Snorkel'],
+        lake:     ['Water shoes', 'Dry bag', 'Towel', 'Insect repellent', 'Cooler', 'Life vest'],
+        river:    ['Water shoes', 'Dry bag', 'Towel', 'Insect repellent', 'Quick-dry shorts', 'Life vest'],
+        snow:     ['Down jacket', 'Microspikes', 'Hand warmers', 'Wool socks', 'Insulated boots', 'Goggles'],
+        tropical: ['Bug spray', 'Reef-safe sunscreen', 'Light rain shell', 'Quick-dry shirt', 'Sandals', 'Electrolytes'],
+        default:  ['Headlamp', 'First aid kit', 'Trail map', 'Sunscreen', 'Snacks', 'Reusable bottle'],
+      };
+
+      function detectTerrainKey() {
+        const heroBadges = document.getElementById('hero-trip-badges');
+        if (!heroBadges) return 'default';
+        const first = heroBadges.querySelector('.hero-badge');
+        const txt = ((first?.textContent || '').trim().toLowerCase());
+        if (!txt) return 'default';
+        const keys = Object.keys(TERRAIN_SUGGESTIONS);
+        return keys.find(k => txt.includes(k)) || 'default';
+      }
+
+      function syncCategoryDropdown() {
+        const sel = document.getElementById('qa-category');
+        if (!sel) return;
+        const cats = document.querySelectorAll('#categories .category');
+        if (!cats.length) return;
+        const prev = sel.value;
+        const opts = Array.from(cats).map((cat, i) => {
+          if (!cat.id) cat.id = `cat-${i}`;
+          let title = (cat.querySelector('.category-title')?.textContent || `Category ${i+1}`).trim();
+          title = title.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+\s*/u, '');
+          return { id: cat.id, title };
+        });
+        // Skip rebuild if unchanged
+        const sig = opts.map(o => o.id + ':' + o.title).join('|');
+        if (sel.dataset.sig === sig) return;
+        sel.dataset.sig = sig;
+        sel.innerHTML = opts.map(o => `<option value="${o.id}">${o.title}</option>`).join('');
+        if (prev && opts.some(o => o.id === prev)) sel.value = prev;
+      }
+
+      function renderSuggestChips() {
+        const host = document.getElementById('qa-chips');
+        const titleEl = document.getElementById('qa-suggest-title');
+        if (!host) return;
+        const key = detectTerrainKey();
+        const items = TERRAIN_SUGGESTIONS[key] || TERRAIN_SUGGESTIONS.default;
+        if (host.dataset.terrain === key) return;
+        host.dataset.terrain = key;
+        if (titleEl) {
+          const label = key === 'default' ? 'your trip' : `${key.charAt(0).toUpperCase()}${key.slice(1)} trips`;
+          titleEl.textContent = `Suggested for ${label}`;
+        }
+        host.innerHTML = '';
+        items.forEach(name => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'qa-chip';
+          chip.innerHTML = `<span class="plus">+</span> ${name}`;
+          chip.addEventListener('click', () => {
+            const input = document.getElementById('qa-input');
+            if (input) {
+              input.value = name;
+              input.focus();
+            }
+          });
+          host.appendChild(chip);
+        });
+      }
+
+      function submitQuickAdd() {
+        const input = document.getElementById('qa-input');
+        const sel = document.getElementById('qa-category');
+        const btn = document.getElementById('qa-add-btn');
+        if (!input || !sel || !btn) return;
+        const name = (input.value || '').trim();
+        if (!name) { input.focus(); return; }
+        const cat = document.getElementById(sel.value);
+        if (!cat) return;
+        const form = cat.querySelector('.add-item-form');
+        const formInput = form?.querySelector('input[name="itemName"]');
+        if (!form || !formInput) return;
+        // Reuse the existing per-category add-item flow so the backend
+        // POST + UI insertion handlers stay the single source of truth.
+        formInput.value = name;
+        if (!form.classList.contains('open')) form.classList.add('open');
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        input.value = '';
+        input.focus();
+      }
+
+      function wireQuickAddOnce() {
+        const btn = document.getElementById('qa-add-btn');
+        const input = document.getElementById('qa-input');
+        if (btn && !btn.dataset.wired) {
+          btn.dataset.wired = '1';
+          btn.addEventListener('click', submitQuickAdd);
+        }
+        if (input && !input.dataset.wired) {
+          input.dataset.wired = '1';
+          input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); submitQuickAdd(); }
+          });
+        }
+      }
+
+      function init() {
+        const cats = document.getElementById('categories');
+        const heroBadges = document.getElementById('hero-trip-badges');
+        const heroName = document.getElementById('hero-trip-name');
+        const wxLoc = document.getElementById('wx-loc-text');
+        if (cats) obs.observe(cats, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+        if (heroBadges) obs.observe(heroBadges, { childList: true, subtree: true, characterData: true });
+        if (heroName) obs.observe(heroName, { childList: true, characterData: true });
+        if (wxLoc) obs.observe(wxLoc, { childList: true, characterData: true });
+        wireQuickAddOnce();
+        refresh();
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
+
   <script src="nav-menu.js"></script>
 </body>
 </html>

@@ -41,62 +41,9 @@
       line-height: 1.5;
     }
 
-    /* ---------- Navbar ---------- */
-    .navbar {
-      background: var(--green-dark) !important;
-      border-bottom: none !important;
-      padding: 16px 32px !important;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
-    }
-    .nav-brand { display: flex; align-items: center; gap: 14px; }
-    .nav-brand h1 {
-      margin: 0;
-      font-family: 'Inter', sans-serif !important;
-      font-size: 22px !important;
-      font-weight: 700 !important;
-      letter-spacing: -0.02em;
-      color: #FFFFFF !important;
-    }
-    .nav-brand .tagline {
-      color: rgba(255,255,255,0.72) !important;
-      font-size: 13px !important;
-      font-weight: 500;
-    }
-    .nav-links { display: flex; align-items: center; gap: 18px; }
-    .nav-links .user-greeting {
-      color: rgba(255,255,255,0.85) !important;
-      font-size: 13.5px;
-    }
-    .nav-links .nav-link,
-    .nav-links a {
-      color: rgba(255,255,255,0.85) !important;
-      text-decoration: none;
-      font-size: 13.5px;
-      font-weight: 500;
-      padding: 6px 4px;
-      transition: color .15s ease;
-    }
-    .nav-links .nav-link:hover { color: #FFFFFF !important; }
-    .nav-links .btn,
-    .nav-links #logout-btn {
-      background: #FFFFFF !important;
-      color: var(--ink) !important;
-      border: 1px solid rgba(255,255,255,0.0) !important;
-      border-radius: 999px !important;
-      padding: 7px 16px !important;
-      font-size: 13px !important;
-      font-weight: 600 !important;
-      cursor: pointer;
-      text-decoration: none !important;
-      font-family: inherit !important;
-      box-shadow: none !important;
-      transition: background-color .15s ease;
-    }
-    .nav-links .btn:hover,
-    .nav-links #logout-btn:hover { background: #F0EBE0 !important; }
+    /* ---------- Navbar ----------
+       Page-local navbar overrides removed. nav-menu.js injects the
+       canonical navbar styling shared with the dashboard. */
 
     /* ---------- Page container ---------- */
     main.container {
@@ -591,9 +538,6 @@
       .admin-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
     }
     @media (max-width: 600px) {
-      .navbar { padding: 14px 16px !important; }
-      .nav-brand .tagline { display: none; }
-      .nav-links .user-greeting { display: none; }
       .admin-grid { grid-template-columns: 1fr !important; }
       .trips-list { grid-template-columns: 1fr !important; }
       main.container { padding: 0 16px !important; }

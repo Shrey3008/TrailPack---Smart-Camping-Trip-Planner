@@ -4,82 +4,698 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>Login - TrailPack</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body class="auth-page">
-  <div class="auth-container">
-    <div class="auth-box">
-      <div class="auth-header">
-        <h1><span class="logo-icon">⛺</span> TrailPack</h1>
-        <p>Smart Camping Trip Planner</p>
-      </div>
-      
-      <form id="login-form" class="auth-form">
-        <h2>Welcome Back</h2>
-        
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" autocomplete="email" required placeholder="Enter your email">
-        </div>
-        
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" autocomplete="current-password" required placeholder="Enter your password">
-        </div>
-        
-        <div id="error-message" class="error-message" style="display: none;"></div>
-        
-        <button type="submit" class="btn btn-primary btn-full">Login</button>
+  <title>Sign in · TrailPack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* =========================================================================
+       TrailPack — Login (premium SaaS redesign).
+       Self-contained styles. We deliberately drop styles.css/auth.css imports
+       so legacy global rules can't leak in and break the layout.
+       Tokens mirror the dashboard's dash-light system.
+       ========================================================================= */
+    :root {
+      --bg-page:        #f8f7f4;
+      --bg-card:        #ffffff;
+      --green:          #2d6a4f;
+      --green-dark:     #1b4332;
+      --green-light:    #40916c;
+      --green-soft:     #52b788;
+      --green-pale:     #e6f2eb;
+      --text-primary:   #1a1a1a;
+      --text-secondary: #6b7280;
+      --text-faint:     #9aa3af;
+      --border:         #e8e8e4;
+      --border-strong:  #d8d8d2;
+      --danger:         #dc2626;
+      --danger-soft:    #fef2f2;
+      --shadow-sm:      0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:      0 6px 24px rgba(15,23,42,0.08);
+      --radius:         10px;
+      --radius-sm:      8px;
+    }
 
-        <p class="forgot-link">
-          <a href="forgot-password.html">Forgot password?</a>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-page);
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ---------- Two-column shell ---------- */
+    .auth-shell {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ---------- LEFT: brand panel ---------- */
+    .brand {
+      position: relative;
+      width: 50%;
+      height: 100vh;
+      box-sizing: border-box;
+      background: var(--green);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;       /* vertically center logo/quote/bullets */
+      align-items: flex-start;
+      padding: 60px 56px;
+      overflow: hidden;
+    }
+    /* Soft radial wash to lift the flat green into something premium. */
+    .brand::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(82,183,136,0.30), transparent 60%),
+        radial-gradient(900px  500px at -10% 110%, rgba(27,67,50,0.55), transparent 55%);
+      pointer-events: none;
+    }
+    .brand__inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 520px;
+      margin: 0 auto;
+      width: 100%;
+      /* Match the form panel's content height so both vertically-centered
+         blocks share the same top y-position. Without this the (shorter)
+         brand cluster sits visibly lower than the (taller) form cluster. */
+      min-height: 460px;
+    }
+
+    .brand__logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 48px;
+    }
+    .brand__logo-mark {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand__logo-text {
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      font-size: 1.6rem;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+    }
+
+    .brand__quote {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 2.05rem;
+      line-height: 1.3;
+      color: #ffffff;
+      margin: 0 0 18px;
+      letter-spacing: -0.005em;
+    }
+    .brand__quote-attr {
+      font-family: 'Inter', sans-serif;
+      font-style: normal;
+      font-weight: 500;
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.78);
+      margin: 0 0 32px;             /* quote block bottom spacing */
+      letter-spacing: 0.01em;
+    }
+
+    .brand__features {
+      list-style: none;
+      padding: 0;
+      margin: 0;                    /* margin-top: 0 — sits flush after quote */
+      display: grid;
+      gap: 14px;
+    }
+    .brand__features li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: rgba(255,255,255,0.85);
+      font-size: 0.98rem;
+      font-weight: 500;
+    }
+    .brand__features svg {
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      padding: 4px;
+      border-radius: 50%;
+      background: rgba(82,183,136,0.25);
+      color: #c8f0d8;
+    }
+
+    /* Mountain + tent illustration anchored bottom. */
+    .brand__art {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: 220px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ---------- RIGHT: form panel ---------- */
+    .pane {
+      width: 50%;
+      height: 100vh;
+      box-sizing: border-box;
+      background: var(--bg-card);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;       /* vertically center the form */
+      align-items: center;           /* horizontally center */
+      padding: 60px 40px;
+      animation: fadeIn 0.5s ease-out both;
+      overflow-y: auto;              /* let it scroll if viewport is short */
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .form-wrap {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* Compact mobile-only logo (hidden on desktop where the brand panel handles branding). */
+    .pane__mobile-logo {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .pane__mobile-logo-text {
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .pane__intro h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 4px 0 0;
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+    }
+    .pane__greeting {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      margin: 0;
+      font-weight: 500;
+    }
+
+    /* ---------- Form ---------- */
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field__label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: 0.005em;
+    }
+    .field__control {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .field__input {
+      width: 100%;
+      height: 48px;
+      padding: 0 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+    }
+    .field__input::placeholder { color: var(--text-faint); }
+    .field__input:hover:not(:focus) { border-color: var(--border-strong); }
+    .field__input:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 4px rgba(45,106,79,0.12);
+    }
+    .field--password .field__input { padding-right: 44px; }
+
+    .field__toggle {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 36px; height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 0;
+      border-radius: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+    .field__toggle:hover { background: #f3f4f0; color: var(--text-primary); }
+    .field__toggle svg { width: 18px; height: 18px; }
+
+    /* Error state */
+    .field--error .field__input {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+    }
+    .field--error .field__input:focus {
+      box-shadow: 0 0 0 4px rgba(220,38,38,0.12);
+    }
+    .field__error {
+      display: none;
+      font-size: 0.78rem;
+      color: var(--danger);
+      margin-top: 2px;
+    }
+    .field--error .field__error { display: block; }
+
+    /* Top-level error banner (kept for JS compatibility — id="error-message"). */
+    .error-message {
+      background: var(--danger-soft);
+      color: var(--danger);
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    /* Row: remember me + forgot password */
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: -4px;
+    }
+    .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox input {
+      width: 16px; height: 16px;
+      accent-color: var(--green);
+      cursor: pointer;
+    }
+    .forgot-link {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--green);
+      transition: color 0.15s ease;
+    }
+    .forgot-link:hover { color: var(--green-dark); text-decoration: underline; }
+
+    /* Submit button */
+    .btn-submit {
+      height: 48px;
+      width: 100%;
+      background: var(--green);
+      color: #ffffff;
+      border: 0;
+      border-radius: var(--radius-sm);
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.005em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 1px 2px rgba(45,106,79,0.18);
+      transition: background-color 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: var(--green-dark);
+      box-shadow: 0 4px 14px rgba(27,67,50,0.22);
+    }
+    .btn-submit:active:not(:disabled) { transform: scale(0.98); }
+    .btn-submit:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(45,106,79,0.22);
+    }
+    .btn-submit:disabled {
+      cursor: not-allowed;
+      opacity: 0.85;
+    }
+    /* Spinner appears whenever the button is in the disabled (loading) state. */
+    .btn-submit:disabled::before {
+      content: '';
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #ffffff;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Divider */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text-faint);
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Bottom links */
+    .signup {
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    .signup a {
+      color: var(--green);
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+    .signup a:hover { color: var(--green-dark); text-decoration: underline; }
+
+    .copyright {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-faint);
+      margin: 24px 0 0;
+      letter-spacing: 0.02em;
+    }
+
+    /* ---------- Responsive: stack on mobile, hide brand panel ---------- */
+    @media (max-width: 880px) {
+      .auth-shell { flex-direction: column; height: auto; overflow: visible; }
+      .brand { display: none; }
+      .pane {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+        background: var(--bg-card);
+        padding: 32px 20px 48px;
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+      .pane__mobile-logo { display: inline-flex; }
+      .form-wrap { gap: 22px; margin-top: 24px; }
+      .pane__intro h2 { font-size: 1.5rem; }
+    }
+    @media (max-width: 1100px) and (min-width: 881px) {
+      .brand { padding: 48px 44px; }
+      .brand__quote { font-size: 1.75rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-shell">
+    <!-- ============================================================
+         LEFT PANEL — brand, John Muir quote, feature list, mountains.
+         Hidden on screens < 880px (form takes the full width).
+         ============================================================ -->
+    <aside class="brand" aria-label="TrailPack brand">
+      <div class="brand__inner">
+        <div class="brand__logo">
+          <span class="brand__logo-mark" aria-hidden="true">
+            <!-- White mountain mark -->
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 20L9 9L13 15L16 11L21 20H3Z"
+                    fill="#ffffff" stroke="#ffffff"
+                    stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span class="brand__logo-text">TrailPack</span>
+        </div>
+
+        <p id="quote-text" class="brand__quote">&ldquo;The mountains are calling, and I must go.&rdquo;</p>
+        <p class="brand__quote-attr"><span id="quote-author">— John Muir</span></p>
+
+        <ul class="brand__features">
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 12 10 18 20 6"/></svg>
+            Plan trips by terrain &amp; season
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 12 10 18 20 6"/></svg>
+            Build smart packing checklists
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 12 10 18 20 6"/></svg>
+            Track group packing in real time
+          </li>
+        </ul>
+      </div>
+
+      <!-- Mountains + tent illustration anchored to the bottom. -->
+      <svg class="brand__art" viewBox="0 0 800 220" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+        <!-- Back range -->
+        <path d="M0,220 L0,150 L120,90 L230,140 L340,70 L470,140 L600,80 L720,140 L800,110 L800,220 Z"
+              fill="#52b788" opacity="0.45"/>
+        <!-- Mid range -->
+        <path d="M0,220 L0,180 L100,130 L210,170 L330,110 L470,170 L600,120 L730,170 L800,150 L800,220 Z"
+              fill="#40916c" opacity="0.75"/>
+        <!-- Front peak -->
+        <path d="M260,220 L380,90 L460,160 L520,120 L600,220 Z"
+              fill="#1b4332" opacity="0.95"/>
+        <!-- Snow cap on front peak -->
+        <path d="M360,118 L380,90 L400,118 L390,124 L378,116 Z" fill="#ffffff" opacity="0.85"/>
+
+        <!-- Tent (small, tucked at the base of the front peak) -->
+        <g transform="translate(150,170)">
+          <path d="M0,40 L22,0 L44,40 Z" fill="#ffffff" opacity="0.92"/>
+          <path d="M22,0 L22,40" stroke="#1b4332" stroke-width="1.5" opacity="0.6"/>
+          <path d="M14,40 L22,22 L30,40 Z" fill="#1b4332" opacity="0.55"/>
+        </g>
+
+        <!-- Ground line -->
+        <rect x="0" y="218" width="800" height="2" fill="#0f3026" opacity="0.45"/>
+      </svg>
+    </aside>
+
+    <!-- ============================================================
+         RIGHT PANEL — login form. All IDs preserved for JS:
+           #login-form, #email, #password, #error-message
+         ============================================================ -->
+    <main class="pane">
+      <div class="form-wrap">
+        <!-- Mobile-only compact logo (brand panel is hidden on small screens). -->
+        <div class="pane__mobile-logo" aria-hidden="false">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#2d6a4f" stroke="#2d6a4f" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+          <span class="pane__mobile-logo-text">TrailPack</span>
+        </div>
+
+        <header class="pane__intro">
+          <p class="pane__greeting">Welcome back 👋</p>
+          <h2>Sign in to TrailPack</h2>
+        </header>
+
+        <form id="login-form" class="auth-form" novalidate>
+          <div class="field" id="email-field">
+            <label class="field__label" for="email">Email</label>
+            <div class="field__control">
+              <input
+                class="field__input"
+                type="email"
+                id="email"
+                name="email"
+                autocomplete="email"
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <span class="field__error">Please enter a valid email.</span>
+          </div>
+
+          <div class="field field--password" id="password-field">
+            <label class="field__label" for="password">Password</label>
+            <div class="field__control">
+              <input
+                class="field__input"
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required
+                placeholder="Enter your password"
+              />
+              <button
+                type="button"
+                class="field__toggle"
+                id="password-toggle"
+                aria-label="Show password"
+                aria-pressed="false"
+              >
+                <!-- Eye (shown when password is hidden) -->
+                <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <!-- Eye-off (shown when password is visible) -->
+                <svg id="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a19.6 19.6 0 0 1 5.06-5.94"/>
+                  <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a19.5 19.5 0 0 1-2.16 3.19"/>
+                  <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              </button>
+            </div>
+            <span class="field__error">Password is required.</span>
+          </div>
+
+          <div class="form-row">
+            <label class="checkbox">
+              <input type="checkbox" id="remember-me" name="remember-me" />
+              Remember me
+            </label>
+            <a href="forgot-password.html" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <div id="error-message" class="error-message" style="display: none;"></div>
+
+          <button type="submit" class="btn-submit" id="submit-btn">Sign In</button>
+        </form>
+
+        <div class="divider"><span>or</span></div>
+
+        <p class="signup">
+          Don't have an account?
+          <a href="register.html">Sign up</a>
         </p>
 
-        <div class="auth-links">
-          <p>Don't have an account? <a href="register.html">Sign up</a></p>
-        </div>
-      </form>
-    </div>
+        <p class="copyright">© 2026 TrailPack</p>
+      </div>
+    </main>
   </div>
 
   <script src="config.js"></script>
   <script src="ui.js"></script>
   <script>
+    /* =========================================================================
+       Show/hide password toggle. Pure UI affordance — does not affect submit.
+       ========================================================================= */
+    (function () {
+      const toggle    = document.getElementById('password-toggle');
+      const pwInput   = document.getElementById('password');
+      const eyeIcon   = document.getElementById('eye-icon');
+      const eyeOffIcon = document.getElementById('eye-off-icon');
+      if (!toggle || !pwInput) return;
+
+      toggle.addEventListener('click', () => {
+        const isHidden = pwInput.type === 'password';
+        pwInput.type = isHidden ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', String(isHidden));
+        toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        eyeIcon.style.display    = isHidden ? 'none' : '';
+        eyeOffIcon.style.display = isHidden ? '' : 'none';
+      });
+    })();
+
+    /* =========================================================================
+       Per-field error styling. Lightly augments the original error flow:
+       the global #error-message banner still drives the user-visible message,
+       but we also flag both inputs as invalid so the new red-border state
+       lights up. Inputs auto-clear their error class on next input.
+       ========================================================================= */
+    (function () {
+      const fields = ['email', 'password'];
+      fields.forEach(id => {
+        const input = document.getElementById(id);
+        const wrap  = document.getElementById(id + '-field');
+        if (!input || !wrap) return;
+        input.addEventListener('input', () => wrap.classList.remove('field--error'));
+      });
+    })();
+  </script>
+  <script>
+    /* =========================================================================
+       Original login submission logic — preserved 1:1 (only the visible button
+       text was updated to match the new "Sign In" / "Signing in..." spec).
+       Auth flow, sessionStorage keys, and the ?next= redirect are unchanged.
+       ========================================================================= */
     const API_URL = window.API_URL;
     window.authToken = null;
 
-    // Handle login form submission
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
+
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       console.log('[Login] Attempting login with email:', email);
-      
+
       const errorDiv = document.getElementById('error-message');
       const submitBtn = e.target.querySelector('button[type="submit"]');
-      
+      const emailField = document.getElementById('email-field');
+      const passwordField = document.getElementById('password-field');
+
       try {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Logging in...';
+        submitBtn.textContent = 'Signing in...';
         errorDiv.style.display = 'none';
-        
+        emailField.classList.remove('field--error');
+        passwordField.classList.remove('field--error');
+
         console.log('[Login] Sending request to:', `${API_URL}/auth/login`);
         const response = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
         });
-        
+
         console.log('[Login] Response status:', response.status);
         const data = await response.json();
         console.log('[Login] Response data:', data);
-        
+
         if (!response.ok) {
           throw new Error(data.message || 'Login failed');
         }
-        
+
         // Store token in sessionStorage for persistence across pages
         sessionStorage.setItem('authToken', data.token);
         sessionStorage.setItem('currentUser', JSON.stringify(data.user));
@@ -88,14 +704,58 @@
         const next = new URLSearchParams(window.location.search).get('next');
         const isSafeNext = typeof next === 'string' && next.startsWith('/') && !next.startsWith('//');
         window.location.href = isSafeNext ? next : 'index.html';
-        
+
       } catch (error) {
         errorDiv.textContent = error.message || 'Invalid email or password';
         errorDiv.style.display = 'block';
+        // Light up both fields visually — the server doesn't tell us which one failed.
+        emailField.classList.add('field--error');
+        passwordField.classList.add('field--error');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Login';
+        submitBtn.textContent = 'Sign In';
       }
     });
+  </script>
+  <script>
+    /* =========================================================================
+       Rotating quote on the brand panel. Cycles every 5s with a 0.4s fade.
+       Pure visual sugar — does not touch auth state.
+       ========================================================================= */
+    const quotes = [
+      { text: "The mountains are calling, and I must go.", author: "John Muir" },
+      { text: "Not all those who wander are lost.", author: "J.R.R. Tolkien" },
+      { text: "Of all the paths you take in life, make sure a few of them are dirt.", author: "John Muir" },
+      { text: "It's not the mountain we conquer, but ourselves.", author: "Edmund Hillary" },
+      { text: "Climb the mountain so you can see the world, not so the world can see you.", author: "David McCullough Jr." },
+      { text: "In every walk with nature, one receives far more than he seeks.", author: "John Muir" },
+      { text: "The clearest way into the Universe is through a forest wilderness.", author: "John Muir" },
+      { text: "Wilderness is not a luxury but a necessity of the human spirit.", author: "Edward Abbey" },
+      { text: "Look deep into nature, and then you will understand everything better.", author: "Albert Einstein" },
+      { text: "Earth and sky, woods and fields, lakes and rivers — the love of all these is a love for life.", author: "Havelock Ellis" }
+    ];
+
+    let currentQuote = 0;
+    const quoteText = document.getElementById('quote-text');
+    const quoteAuthor = document.getElementById('quote-author');
+
+    function rotateQuote() {
+      // Fade out
+      quoteText.style.transition = 'opacity 0.4s ease';
+      quoteAuthor.style.transition = 'opacity 0.4s ease';
+      quoteText.style.opacity = '0';
+      quoteAuthor.style.opacity = '0';
+
+      setTimeout(() => {
+        currentQuote = (currentQuote + 1) % quotes.length;
+        quoteText.textContent = '"' + quotes[currentQuote].text + '"';
+        quoteAuthor.textContent = '— ' + quotes[currentQuote].author;
+        // Fade in
+        quoteText.style.opacity = '1';
+        quoteAuthor.style.opacity = '1';
+      }, 400);
+    }
+
+    setInterval(rotateQuote, 5000);
   </script>
 </body>
 </html>

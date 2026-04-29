@@ -1,0 +1,1368 @@
+    /* =========================================================================
+       TrailPack Dashboard — light design system.
+       ----------------------------------------------------------------------------
+       Selectors are intentionally prefixed with `body.dash-light` so they win
+       against the !important rules nav-menu.js injects at runtime (since both
+       carry !important, the more-specific selector wins). All existing
+       app.js-rendered markup is untouched — only restyled.
+       ========================================================================= */
+    :root {
+      /* Light dashboard palette — exact tokens from spec. */
+      --bg-page:       #f8f7f4;
+      --bg-navbar:     #ffffff;
+      --bg-card:       #ffffff;
+      --bg-hero:       #d8eadf;
+      --border:        #e8e8e4;
+      --border-strong: #d8d8d2;
+      --green:         #2d6a4f;
+      --green-light:   #40916c;
+      --green-pale:    #e6f2eb;
+      --text-primary:  #1a1a1a;
+      --text-secondary:#6b7280;
+      --text-faint:    #9aa3af;
+      --text-white:    #ffffff;
+      --danger:        #dc2626;
+      --danger-soft:   #fef2f2;
+      --radius:        12px;
+      --radius-lg:     16px;
+      --shadow-sm:     0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.05);
+      --shadow-md:     0 4px 14px rgba(15, 23, 42, 0.07), 0 10px 24px rgba(15, 23, 42, 0.05);
+      /* Terrain accents (top border on trip cards). */
+      --t-mountain:    #3b82f6;  /* blue   */
+      --t-forest:      #22c55e;  /* green  */
+      --t-desert:      #f97316;  /* orange */
+      --t-beach:       #06b6d4;  /* cyan   */
+      --t-lake:        #38bdf8;  /* sky    */
+    }
+
+    body.dash-light, body.dash-light html {
+      background: var(--bg-page) !important;
+      color: var(--text-primary);
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif !important;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      min-height: 100vh;
+    }
+    body.dash-light { margin: 0; }
+
+    /* ---------- Custom scrollbar (WebKit) ---------- */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb {
+      background: #2d6a4f;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #1b4332; }
+    /* Firefox fallback */
+    html { scrollbar-color: #2d6a4f transparent; scrollbar-width: thin; }
+
+    /* ---------- Site footer ---------- */
+    body.dash-light .site-footer {
+      border-top: 1px solid #e8e8e4;
+      padding: 18px 24px;
+      margin-top: 0;
+      text-align: center;
+      background: var(--bg-page);
+    }
+    /* Trim the trailing gap from the last Discover section so the footer
+       sits close to content instead of floating ~110px below it. */
+    body.dash-light .disc-home-wrap { padding-bottom: 12px; }
+    body.dash-light .disc-home-wrap > .disc-section:last-child { margin-bottom: 0; }
+    body.dash-light .site-footer p {
+      margin: 0;
+      color: #9ca3af;             /* lighter gray per spec */
+      font-size: 0.8rem;
+      letter-spacing: 0.01em;
+    }
+
+    /* ---------- Navbar ----------
+       White, 60px tall, subtle bottom shadow + 1px border. Wins over
+       the NAVBAR_CSS injected by nav-menu.js via higher specificity. */
+    body.dash-light .navbar {
+      background: var(--bg-navbar) !important;
+      color: var(--text-primary) !important;
+      padding: 0 32px !important;
+      min-height: 64px;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      border-bottom: 1px solid var(--border) !important;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+      /* Sticky so the navbar stays pinned during dashboard scroll. */
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 100;
+    }
+    body.dash-light .nav-brand { display: flex !important; align-items: center !important; gap: 12px !important; }
+    body.dash-light .nav-brand h1,
+    body.dash-light .nav-brand .brand-text {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.45rem !important;
+      color: var(--text-primary) !important;
+      letter-spacing: 0.005em;
+      margin: 0 !important;
+    }
+    body.dash-light .nav-brand .logo-mark {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 10px !important;
+      background: var(--green-pale) !important;
+    }
+
+    body.dash-light .nav-user {
+      display: flex !important;
+      align-items: center !important;
+      gap: 12px !important;
+    }
+    /* User-greeting wrapper holds avatar + name. nav-menu.js's
+       isUserDisplayEl() detects .user-greeting and leaves it in place
+       (the rest of the nav-user buttons get vacuumed into the
+       hamburger dropdown). */
+    body.dash-light .nav-user .user-greeting {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 10px;
+      color: var(--text-primary) !important;
+      font-weight: 500 !important;
+      font-size: 0.92rem !important;
+    }
+    body.dash-light .nav-avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      background: var(--green);
+      color: var(--text-white);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    body.dash-light .nav-user-text {
+      display: inline-flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+    body.dash-light .nav-user .user-name,
+    body.dash-light .nav-user #user-info {
+      color: var(--text-primary) !important;
+      font-weight: 600 !important;
+      font-size: 0.9rem !important;
+      margin: 0 !important;
+    }
+
+    /* Hamburger button override — dark gray on white navbar.
+       nav-menu.js renders `.tp-hamburger` with a white border + white
+       glyph (designed for a dark green navbar); here we recolor it to
+       fit the light navbar. */
+    body.dash-light .navbar .tp-hamburger,
+    body.dash-light .tp-hamburger {
+      background: transparent !important;
+      border: 1px solid var(--border) !important;
+      color: #374151 !important;
+    }
+    body.dash-light .navbar .tp-hamburger:hover,
+    body.dash-light .tp-hamburger:hover {
+      background: #f3f4f6 !important;
+      border-color: var(--border-strong) !important;
+      color: var(--text-primary) !important;
+    }
+
+    /* ---------- Hero banner (Hipcamp-style photo) ----------
+       Full-bleed nature photo with a left-darkening gradient overlay so
+       the white greeting + count remain legible. The hero is composed
+       of three stacked layers (lowest → highest):
+         1. .dash-hero            — sage fallback color, never flashes
+                                    blank even before JS runs.
+         2. .dash-hero__photo     — two of these are inserted by
+                                    initHeroRotation() in dashboard-light.js;
+                                    they crossfade every 5s by toggling
+                                    .is-visible (opacity transition).
+         3. .dash-hero__overlay   — fixed dark left-fade gradient that
+                                    keeps the white greeting legible.
+         4. .dash-hero__inner     — copy / SVG, already z-index:2.
+       Both the dashboard and my-trips load this stylesheet + the shared
+       dashboard-light.js, so the rotation runs identically on each. */
+    body.dash-light .dash-hero {
+      position: relative;
+      height: 280px;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border);
+      background-color: #2D6A4F;
+      animation: dash-hero-fade 0.5s ease-out both;
+    }
+    body.dash-light .dash-hero__photo {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 700ms ease;
+      z-index: 0;
+      will-change: opacity;
+    }
+    body.dash-light .dash-hero__photo.is-visible { opacity: 1; }
+    body.dash-light .dash-hero__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(0,0,0,0.65) 40%, rgba(0,0,0,0.10));
+      z-index: 1;
+      pointer-events: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      body.dash-light .dash-hero__photo { transition: none; }
+    }
+    @keyframes dash-hero-fade {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    body.dash-light .dash-hero__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 32px;
+      height: 100%;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      position: relative;
+      z-index: 2;
+    }
+    body.dash-light .dash-hero__copy {
+      max-width: 60%;
+      color: #ffffff;
+      animation: dash-fade-in 0.5s ease-out both;
+    }
+    body.dash-light .dash-hero__greeting {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 2.2rem;
+      letter-spacing: -0.015em;
+      color: #ffffff;
+      margin: 0 0 8px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+    body.dash-light .dash-hero__sub {
+      color: rgba(255,255,255,0.85);
+      font-size: 1.05rem;
+      margin: 0;
+      font-weight: 300;          /* Inter Light per spec */
+      letter-spacing: 0.005em;
+    }
+    /* Decorative SVG illustration is hidden — the photo is the hero now. */
+    body.dash-light .dash-hero__art { display: none !important; }
+    @keyframes dash-fade-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---------- Layout ---------- */
+    body.dash-light main.container {
+      max-width: 1200px;
+      margin: 28px auto 56px !important;
+      padding: 0 32px !important;
+    }
+
+    /* ---------- Stat cards (Hipcamp — number-only, compact) ---------- */
+    body.dash-light .stats-bar {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 18px !important;
+      margin-bottom: 32px !important;
+    }
+    body.dash-light .stat-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      padding: 20px 24px !important;             /* compact per spec */
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    body.dash-light .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.10), 0 16px 32px rgba(15, 23, 42, 0.06) !important;
+      border-color: var(--border-strong) !important;
+    }
+    /* 4px colored left accent line, driven by data-accent. */
+    body.dash-light .stat-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      background: var(--green);
+    }
+    body.dash-light .stat-card[data-accent="green"]::before  { background: #2d6a4f; }
+    body.dash-light .stat-card[data-accent="orange"]::before { background: #d97706; }
+    body.dash-light .stat-card[data-accent="blue"]::before   { background: #2563eb; }
+    body.dash-light .stat-card[data-accent="purple"]::before { background: #7c3aed; }
+
+    /* Hide the emoji icon entirely — spec wants number-only cards. */
+    body.dash-light .stat-card .stat-icon { display: none !important; }
+
+    body.dash-light .stat-card .stat-content {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 4px;
+      order: 0;
+    }
+    body.dash-light .stat-card .stat-value {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 2rem !important;
+      font-weight: 700 !important;
+      line-height: 1.05 !important;
+      color: var(--text-primary) !important;
+      letter-spacing: -0.02em;
+    }
+    body.dash-light .stat-card .stat-label {
+      font-size: 0.7rem !important;
+      font-weight: 600 !important;
+      text-transform: uppercase !important;
+      color: #6b7280 !important;
+      letter-spacing: 0.08em !important;
+      margin-top: 2px;
+    }
+
+    /* ---------- Section header ---------- */
+    body.dash-light .section-header {
+      display: flex !important;
+      align-items: flex-start !important;
+      justify-content: space-between !important;
+      gap: 16px;
+      margin-bottom: 18px !important;
+    }
+    body.dash-light .section-header-left { display: flex; flex-direction: column; gap: 4px; }
+    body.dash-light .section-header h2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.5rem !important;
+      color: var(--text-primary) !important;
+      margin: 0 !important;
+      letter-spacing: -0.005em;
+    }
+    body.dash-light .section-sub {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin: 0;
+      letter-spacing: 0.005em;
+    }
+
+    /* ---------- Filter tabs (underline style — Hipcamp) ---------- */
+    body.dash-light .filter-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin: 0 0 24px;
+      border-bottom: 1px solid var(--border);
+    }
+    body.dash-light .filter-tab {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 12px 18px;
+      border-radius: 0;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;        /* sit on top of the .filter-tabs underline */
+      background: transparent;
+      color: #6b7280;
+      cursor: pointer;
+      transition: color 0.18s ease, border-color 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    body.dash-light .filter-tab:hover {
+      color: var(--text-primary);
+      border-color: transparent;
+      background: transparent;
+    }
+    body.dash-light .filter-tab.is-active {
+      background: transparent;
+      color: var(--green);
+      font-weight: 700;
+      border-bottom: 2px solid var(--green);
+    }
+    body.dash-light .filter-tab.is-active:hover {
+      background: transparent;
+      border-color: var(--green);
+      color: var(--green);
+    }
+    body.dash-light .trip-card.is-hidden-by-filter { display: none !important; }
+
+    /* "+ Create New Trip" CTA — solid green pill */
+    body.dash-light .section-header .btn.btn-primary {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.88rem !important;
+      padding: 10px 22px !important;
+      border-radius: 999px !important;
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    body.dash-light .section-header .btn.btn-primary:hover {
+      background: var(--green-light) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+
+    body.dash-light .dashboard-section { margin-bottom: 40px; }
+
+    /* ---------- Trip grid & cards (Hipcamp style) ----------
+       Markup is rendered by app.js as a flat .trip-card. enhanceCard()
+       injects (a) a .tp-card-photo div as the first child and (b) a
+       .tp-progress-block before .trip-actions. The CSS below treats the
+       photo as full-bleed and pads every other direct child uniformly so
+       the existing app.js markup needs zero changes. */
+    body.dash-light .trips-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;   /* desktop */
+      gap: 24px !important;
+    }
+    body.dash-light .trip-card {
+      background: var(--bg-card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 16px !important;          /* Hipcamp uses rounded cards */
+      padding: 0 !important;                     /* photo is full-bleed */
+      box-shadow: var(--shadow-sm) !important;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0 !important;                         /* spacing handled per-child */
+      position: relative;
+      overflow: hidden;
+      min-height: 320px;
+      cursor: pointer;
+      animation: card-fade-up 0.5s ease-out both;
+    }
+    /* Larger translateY than the generic dash-fade-in so cards visibly
+       rise into place on load. */
+    @keyframes card-fade-up {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* Staggered entrance — 0.1s step per card, schedule for the first 12. */
+    body.dash-light .trips-grid > .trip-card:nth-child(1)  { animation-delay: 0.1s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(2)  { animation-delay: 0.2s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(3)  { animation-delay: 0.3s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(4)  { animation-delay: 0.4s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(5)  { animation-delay: 0.5s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(6)  { animation-delay: 0.6s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(7)  { animation-delay: 0.7s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(8)  { animation-delay: 0.8s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(9)  { animation-delay: 0.9s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(10) { animation-delay: 1.0s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(11) { animation-delay: 1.1s; }
+    body.dash-light .trips-grid > .trip-card:nth-child(12) { animation-delay: 1.2s; }
+
+    /* No top accent line in the Hipcamp redesign — the photo handles
+       terrain identity. Suppress the legacy ::before bar. */
+    body.dash-light .trip-card::before { display: none !important; }
+
+    body.dash-light .trip-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10), 0 4px 10px rgba(15, 23, 42, 0.06) !important;
+      border-color: var(--border-strong) !important;
+    }
+    body.dash-light .trip-card:hover .tp-card-photo {
+      transform: scale(1.03);                    /* image zoom on hover */
+    }
+
+    /* ---------- Hipcamp full-bleed photo (top of card) ---------- */
+    body.dash-light .tp-card-photo {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 10;                     /* anchor the 55% photo zone */
+      background-color: #d8e2dc;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: transform 0.45s ease;
+      transform-origin: center;
+    }
+    /* Subtle bottom fade so the white content area visually 'lifts' off the photo. */
+    body.dash-light .tp-card-photo::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0; bottom: 0;
+      background: linear-gradient(to bottom, transparent 50%, rgba(255,255,255,0.95) 100%);
+      pointer-events: none;
+    }
+    /* Terrain-driven photo URLs (spec). */
+    body.dash-light .tp-card-photo                                  { background-image: url('https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600&q=80'); }
+    body.dash-light .tp-card-photo[data-terrain="forest"],
+    body.dash-light .tp-card-photo[data-terrain="woods"],
+    body.dash-light .tp-card-photo[data-terrain="jungle"]          { background-image: url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=80'); }
+    body.dash-light .tp-card-photo[data-terrain="mountain"],
+    body.dash-light .tp-card-photo[data-terrain="mountains"]       { background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80'); }
+    body.dash-light .tp-card-photo[data-terrain="desert"],
+    body.dash-light .tp-card-photo[data-terrain="dunes"]           { background-image: url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=80'); }
+    body.dash-light .tp-card-photo[data-terrain="beach"],
+    body.dash-light .tp-card-photo[data-terrain="coast"],
+    body.dash-light .tp-card-photo[data-terrain="lake"]            { background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80'); }
+
+    /* Pad every direct child of .trip-card *except* the photo so the photo
+       stays full-bleed but the textual content stays inset. */
+    body.dash-light .trip-card > h3,
+    body.dash-light .trip-card > .trip-meta,
+    body.dash-light .trip-card > .trip-date,
+    body.dash-light .trip-card > .tp-progress-block,
+    body.dash-light .trip-card > .trip-actions {
+      padding-left: 20px !important;
+      padding-right: 20px !important;
+    }
+    body.dash-light .trip-card > h3            { padding-top: 16px !important; }
+    body.dash-light .trip-card > .trip-actions { padding-bottom: 18px !important; padding-top: 4px !important; }
+    /* Vertical rhythm between card-body children. */
+    body.dash-light .trip-card > h3            { margin-top: 4px !important; margin-bottom: 10px !important; }
+    body.dash-light .trip-card > .trip-meta    { margin: 0 !important; padding-bottom: 4px; }
+    body.dash-light .trip-card > .trip-date    { padding-top: 8px; padding-bottom: 4px; }
+    body.dash-light .trip-card > .tp-progress-block { padding-top: 10px; padding-bottom: 12px; }
+
+    body.dash-light .trip-card h3 {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 1.1rem !important;
+      font-weight: 700 !important;
+      color: #1a1a1a !important;
+      margin: 0 !important;
+      letter-spacing: -0.005em;
+    }
+    body.dash-light .trip-meta {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
+    /* Hipcamp tags: small flat gray pills, no per-terrain coloring. */
+    body.dash-light .trip-badge {
+      background: #f3f4f6 !important;
+      color: #6b7280 !important;
+      border: 0 !important;
+      border-radius: 999px !important;
+      padding: 3px 10px !important;
+      font-size: 0.72rem !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.005em;
+      text-transform: capitalize;
+    }
+    /* Override the legacy per-terrain first-badge tints — Hipcamp keeps
+       all tags neutral gray. */
+    body.dash-light .trip-card .trip-meta .trip-badge:first-child {
+      background: #f3f4f6 !important;
+      color: #6b7280 !important;
+      border-color: transparent !important;
+    }
+    /* Season badge inline styles (set by app.js renderSeasonBadge) win at
+       equal specificity. Force them to the neutral pill too. */
+    body.dash-light .trip-card .trip-meta .trip-badge.season-badge {
+      background: #f3f4f6 !important;
+      color: #6b7280 !important;
+      border: 0 !important;
+    }
+
+    body.dash-light .trip-date {
+      font-size: 0.74rem !important;
+      color: #9ca3af !important;
+      font-weight: 500 !important;
+    }
+
+    /* Legacy emoji top row — hidden, the .tp-card-photo replaces it. */
+    body.dash-light .tp-card-top { display: none !important; }
+
+    /* Progress bar — thin green fill on gray track (Hipcamp style). */
+    body.dash-light .tp-progress-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    body.dash-light .tp-progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: #6b7280;
+      font-weight: 500;
+    }
+    body.dash-light .tp-progress-label strong {
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    body.dash-light .tp-progress-bar {
+      height: 4px;
+      width: 100%;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    body.dash-light .tp-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--green);
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    /* Trip card actions — stacked: full-width primary, small ghost link below. */
+    body.dash-light .trip-actions {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+      margin-top: auto !important;
+    }
+    body.dash-light .trip-card .trip-actions .btn {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.88rem !important;
+      padding: 11px 16px !important;
+      border-radius: 8px !important;
+      border: 0 !important;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+      width: 100% !important;
+    }
+    body.dash-light .trip-card .trip-actions .btn.btn-primary {
+      background: var(--green) !important;
+      color: #ffffff !important;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .trip-card .trip-actions .btn.btn-primary:hover {
+      background: var(--green-light) !important;
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+    /* Delete = small red ghost text link below View Checklist. */
+    body.dash-light .trip-card .trip-actions .btn.btn-danger {
+      background: transparent !important;
+      color: #dc2626 !important;
+      border: 0 !important;
+      box-shadow: none !important;
+      padding: 4px !important;
+      font-size: 0.78rem !important;
+      font-weight: 500 !important;
+      align-self: center;
+      width: auto !important;
+    }
+    body.dash-light .trip-card .trip-actions .btn.btn-danger:hover {
+      color: #b91c1c !important;
+      background: transparent !important;
+      text-decoration: underline;
+    }
+
+    /* ---------- Empty state ---------- */
+    body.dash-light .empty-state {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      padding: 56px 24px;
+      text-align: center;
+      box-shadow: none;
+    }
+    body.dash-light .empty-state .empty-icon {
+      font-size: 56px;            /* spec — large emoji */
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    body.dash-light .empty-state h3 {
+      font-family: 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      color: #1a1a1a;
+      margin: 0 0 6px;
+      letter-spacing: -0.01em;
+    }
+    body.dash-light .empty-state p {
+      color: #6b7280;
+      margin: 0 0 20px;
+    }
+    body.dash-light .empty-state .btn.btn-primary {
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+      padding: 11px 24px !important;
+      border-radius: 999px !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .empty-state .btn.btn-primary:hover { background: var(--green-light) !important; }
+
+    /* ---------- Create Trip modal (light) ---------- */
+    body.dash-light .tp-ct-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15, 23, 42, 0.32);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 1200;
+      opacity: 0;
+      transition: opacity 0.22s ease;
+    }
+    body.dash-light .tp-ct-overlay.open { opacity: 1; }
+    body.dash-light .tp-ct-modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: min(520px, 92vw);
+      padding: 28px 28px 24px;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+      transform: translateY(24px) scale(0.98);
+      opacity: 0;
+      transition: transform 0.28s cubic-bezier(.2,.8,.2,1), opacity 0.22s ease;
+    }
+    body.dash-light .tp-ct-overlay.open .tp-ct-modal {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+    body.dash-light .tp-ct-modal h3 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0 0 4px;
+    }
+    body.dash-light .tp-ct-modal p.tp-ct-sub {
+      color: var(--text-secondary);
+      margin: 0 0 20px;
+      font-size: 0.92rem;
+    }
+    body.dash-light .tp-ct-modal .tp-field {
+      display: flex; flex-direction: column;
+      margin-bottom: 14px;
+    }
+    body.dash-light .tp-ct-modal .tp-field label {
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    body.dash-light .tp-ct-modal input,
+    body.dash-light .tp-ct-modal select {
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    body.dash-light .tp-ct-modal input::placeholder { color: var(--text-faint); }
+    body.dash-light .tp-ct-modal input:focus,
+    body.dash-light .tp-ct-modal select:focus {
+      border-color: var(--green-light);
+      box-shadow: 0 0 0 3px rgba(64, 145, 108, 0.18);
+    }
+    body.dash-light .tp-ct-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    body.dash-light .tp-ct-actions {
+      display: flex; justify-content: flex-end; gap: 10px;
+      margin-top: 18px;
+    }
+    body.dash-light .tp-ct-actions button {
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      border-radius: 999px;
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    body.dash-light .tp-ct-cancel {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border) !important;
+    }
+    body.dash-light .tp-ct-cancel:hover { background: #f3f4f0; color: var(--text-primary); }
+    body.dash-light .tp-ct-confirm {
+      background: var(--green);
+      color: var(--text-white);
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .tp-ct-confirm:hover { background: var(--green-light); transform: translateY(-1px); }
+    body.dash-light .tp-ct-confirm:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ---------- Destination autocomplete ---------- */
+    body.dash-light .tp-ac-wrap { position: relative; }
+    body.dash-light .tp-ac-dropdown {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      max-height: 260px;
+      overflow-y: auto;
+      z-index: 50;
+      padding: 4px;
+    }
+    body.dash-light .tp-ac-item {
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      transition: background-color .12s ease;
+    }
+    body.dash-light .tp-ac-item:hover,
+    body.dash-light .tp-ac-item.is-active { background: var(--green-pale); color: var(--green); }
+    body.dash-light .tp-ac-item .ac-name { font-weight: 600; }
+    body.dash-light .tp-ac-item .ac-meta { font-size: 11.5px; color: var(--text-secondary); }
+    body.dash-light .tp-ac-empty {
+      padding: 9px 12px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    body.dash-light .tp-ac-hint {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin: 4px 0 0 0;
+    }
+    body.dash-light .tp-ac-hint.is-confirmed { color: var(--green); font-weight: 500; }
+
+    /* ---------- Date ↔ duration sync hint ---------- */
+    body.dash-light .tp-date-hint {
+      font-size: 12px;
+      color: var(--green);
+      font-weight: 500;
+      margin: -4px 0 4px 2px;
+      letter-spacing: 0.005em;
+    }
+
+    /* ---------- ui.js confirm modal + toast ---------- */
+    body.dash-light .tp-modal-overlay {
+      background: rgba(15, 23, 42, 0.32) !important;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    body.dash-light .tp-modal {
+      background: var(--bg-card) !important;
+      color: var(--text-primary) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: var(--radius-lg) !important;
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18) !important;
+      padding: 26px !important;
+      font-family: 'Inter', sans-serif !important;
+    }
+    body.dash-light .tp-modal-title {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-size: 1.25rem !important;
+      color: var(--text-primary) !important;
+    }
+    body.dash-light .tp-modal-body {
+      color: var(--text-secondary) !important;
+      font-size: 0.95rem !important;
+    }
+    body.dash-light .tp-modal-actions .btn {
+      border-radius: 999px !important;
+      padding: 10px 20px !important;
+      font-weight: 600 !important;
+    }
+    body.dash-light .tp-modal-actions .tp-modal-cancel {
+      background: transparent !important;
+      border: 1px solid var(--border) !important;
+      color: var(--text-secondary) !important;
+    }
+    body.dash-light .tp-modal-actions .tp-modal-confirm {
+      background: var(--danger) !important;
+      color: var(--text-white) !important;
+      border: 0 !important;
+    }
+
+    /* Toasts — bottom-right, slide up */
+    body.dash-light .tp-toast-container {
+      bottom: 24px !important;
+      right: 24px !important;
+      left: auto !important;
+      top: auto !important;
+    }
+    body.dash-light .tp-toast {
+      background: var(--green) !important;
+      color: var(--text-white) !important;
+      border-radius: 12px !important;
+      padding: 12px 16px !important;
+      font-family: 'Inter', sans-serif !important;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18) !important;
+      animation: tp-toast-rise 0.25s ease-out both;
+    }
+    body.dash-light .tp-toast-success { background: var(--green-light) !important; }
+    body.dash-light .tp-toast-error   { background: var(--danger) !important; }
+    body.dash-light .tp-toast-warning { background: #d97706 !important; }
+    @keyframes tp-toast-rise {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    /* Hide the legacy "Shared With Me" section when JS leaves it
+       hidden — same trick the original CSS used. */
+    body.dash-light #shared-trips-section[style*="display: none"] { display: none !important; }
+
+    /* =========================================================================
+       Discover Trails Near You
+       Hipcamp-style trail finder: header row, radius slider, two-column
+       results+map grid, photo-top trail cards, skeleton loaders, empty +
+       geocoder-fallback views, and the Leaflet map container. All scoped
+       under body.dash-light to inherit the dashboard's design tokens.
+       ========================================================================= */
+    body.dash-light .discover-section {
+      background: #ffffff;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 40px 0;
+      margin: 0 -32px 40px;          /* full-bleed inside the 32px container padding */
+      padding-left: 32px;
+      padding-right: 32px;
+    }
+    body.dash-light .discover-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    body.dash-light .discover-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 4px;
+      letter-spacing: -0.01em;
+    }
+    body.dash-light .discover-sub {
+      font-size: 0.92rem;
+      font-weight: 400;
+      color: #6b7280;
+      margin: 0;
+    }
+    /* "Use My Location" pill */
+    body.dash-light .discover-locate-btn {
+      font-family: 'Inter', sans-serif !important;
+      font-weight: 600 !important;
+      font-size: 0.9rem !important;
+      padding: 10px 22px !important;
+      border-radius: 999px !important;
+      border: 0 !important;
+      background: var(--green) !important;
+      color: #ffffff !important;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+      transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      flex-shrink: 0;
+    }
+    body.dash-light .discover-locate-btn:hover {
+      background: var(--green-light) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+    body.dash-light .discover-locate-btn:disabled {
+      opacity: 0.7;
+      cursor: progress;
+      transform: none;
+    }
+    body.dash-light .discover-locate-btn__spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: discover-spin 0.7s linear infinite;
+    }
+    body.dash-light .discover-locate-btn.is-loading .discover-locate-btn__pin   { display: none; }
+    body.dash-light .discover-locate-btn.is-loading .discover-locate-btn__spinner { display: inline-block; }
+
+    /* Radius slider row */
+    body.dash-light .discover-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 22px;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+    body.dash-light .discover-controls__label {
+      font-weight: 500;
+      color: #374151;
+    }
+    body.dash-light #radiusSlider {
+      width: 200px;
+      accent-color: #2d6a4f;
+      cursor: pointer;
+    }
+    body.dash-light .discover-controls__value {
+      font-weight: 600;
+      color: var(--green);
+      font-variant-numeric: tabular-nums;
+      min-width: 70px;
+    }
+
+    /* Two-column results + map grid */
+    body.dash-light .discover-grid {
+      display: grid;
+      grid-template-columns: 60% 40%;
+      gap: 24px;
+      align-items: start;
+    }
+    body.dash-light .discover-results {
+      min-width: 0;                  /* allow children to shrink */
+    }
+    body.dash-light .trail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    body.dash-light .trail-grid--placeholder,
+    body.dash-light .trail-grid--empty,
+    body.dash-light .trail-grid--error {
+      display: block;
+      max-height: none;
+      overflow: visible;
+    }
+
+    /* Initial centered placeholder */
+    body.dash-light .trail-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 60px 24px;
+      background: #f8f7f4;
+      border: 1px dashed var(--border-strong);
+      border-radius: 12px;
+      min-height: 460px;
+    }
+    body.dash-light .trail-placeholder__icon { font-size: 56px; margin-bottom: 14px; line-height: 1; }
+    body.dash-light .trail-placeholder__text { color: #6b7280; font-size: 0.95rem; margin: 0; }
+
+    /* Empty state (no trails found) */
+    body.dash-light .trail-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 56px 24px;
+      background: #f8f7f4;
+      border: 1px dashed var(--border-strong);
+      border-radius: 12px;
+      min-height: 460px;
+      gap: 14px;
+    }
+    body.dash-light .trail-empty__icon { font-size: 48px; line-height: 1; }
+    body.dash-light .trail-empty__text { color: #374151; font-weight: 500; margin: 0; }
+    body.dash-light .trail-empty__hint { color: #6b7280; font-size: 0.85rem; margin: -8px 0 0; }
+    body.dash-light .trail-empty__btn {
+      background: var(--green) !important;
+      color: #ffffff !important;
+      border: 0 !important;
+      padding: 10px 20px !important;
+      border-radius: 999px !important;
+      font-weight: 600 !important;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.dash-light .trail-empty__btn:hover { background: var(--green-light) !important; }
+
+    /* Geolocation-denied fallback */
+    body.dash-light .trail-fallback {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 48px 24px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 12px;
+      min-height: 460px;
+      gap: 14px;
+    }
+    body.dash-light .trail-fallback__title { color: #9a3412; font-weight: 600; margin: 0; font-size: 1rem; }
+    body.dash-light .trail-fallback__hint  { color: #c2410c; font-size: 0.85rem; margin: 0; }
+    body.dash-light .trail-fallback__form {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      max-width: 340px;
+      margin-top: 4px;
+    }
+    body.dash-light .trail-fallback__form input {
+      flex: 1;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      padding: 9px 12px;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      background: #ffffff;
+      color: #1a1a1a;
+      outline: none;
+    }
+    body.dash-light .trail-fallback__form input:focus { border-color: #c2410c; }
+    body.dash-light .trail-fallback__form button {
+      background: var(--green) !important;
+      color: #ffffff !important;
+      border: 0 !important;
+      padding: 9px 18px !important;
+      border-radius: 8px !important;
+      font-weight: 600 !important;
+      font-size: 0.88rem !important;
+      cursor: pointer;
+    }
+    body.dash-light .trail-fallback__form button:hover { background: var(--green-light) !important; }
+
+    /* Skeleton card (loading) */
+    body.dash-light .trail-skeleton {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      min-height: 220px;
+      display: flex;
+      flex-direction: column;
+    }
+    body.dash-light .trail-skeleton__photo {
+      aspect-ratio: 16 / 10;
+      background: linear-gradient(90deg, #eef0ee 0%, #f7f8f6 50%, #eef0ee 100%);
+      background-size: 200% 100%;
+      animation: discover-shimmer 1.4s ease-in-out infinite;
+    }
+    body.dash-light .trail-skeleton__body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+    body.dash-light .trail-skeleton__line {
+      height: 10px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, #eef0ee 0%, #f7f8f6 50%, #eef0ee 100%);
+      background-size: 200% 100%;
+      animation: discover-shimmer 1.4s ease-in-out infinite;
+    }
+    body.dash-light .trail-skeleton__line.l1 { width: 75%; height: 14px; }
+    body.dash-light .trail-skeleton__line.l2 { width: 40%; }
+    body.dash-light .trail-skeleton__line.l3 { width: 60%; }
+    @keyframes discover-shimmer {
+      0%   { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+
+    /* Trail card (Hipcamp-style) */
+    body.dash-light .trail-card {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+      min-height: 280px;
+      animation: card-fade-up 0.45s ease-out both;
+    }
+    body.dash-light .trail-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10), 0 4px 10px rgba(15, 23, 42, 0.06);
+      border-color: var(--border-strong);
+    }
+    body.dash-light .trail-card:hover .trail-card__photo { transform: scale(1.03); }
+    body.dash-light .trail-card__photo {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background-color: #d8e2dc;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      transition: transform 0.45s ease;
+      transform-origin: center;
+    }
+    body.dash-light .trail-card__body {
+      padding: 12px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    body.dash-light .trail-card__name {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0;
+      letter-spacing: -0.005em;
+      line-height: 1.3;
+      /* Clamp to 2 lines to keep card heights aligned. */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+              line-clamp: 2;            /* standard property for forward-compat */
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    body.dash-light .trail-card__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    body.dash-light .trail-badge {
+      background: #f3f4f6;
+      color: #6b7280;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      letter-spacing: 0.005em;
+    }
+    body.dash-light .trail-badge--terrain { background: #ecfdf5; color: #065f46; }
+    body.dash-light .trail-card__distance {
+      font-size: 0.78rem;
+      color: #6b7280;
+      font-weight: 500;
+      margin: 0;
+    }
+    body.dash-light .trail-card__fee {
+      font-size: 0.85rem;
+      color: #1a1a1a;
+      font-weight: 600;
+      margin: 0;
+    }
+    body.dash-light .trail-card__fee--free { color: var(--green); }
+    body.dash-light .trail-card__plan {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      border: 0;
+      padding: 8px 0 0;
+      color: var(--green);
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      text-align: left;
+      align-self: flex-start;
+    }
+    body.dash-light .trail-card__plan:hover { color: var(--green-light); text-decoration: underline; }
+
+    /* Map column */
+    body.dash-light .discover-map-wrap {
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      background: #eef2ee;
+    }
+    body.dash-light #trailMap {
+      width: 100%;
+      height: 500px;
+      border-radius: 12px;
+    }
+    body.dash-light .discover-map-spinner {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 500;                  /* above Leaflet panes (max ~400) */
+    }
+    body.dash-light .discover-map-spinner[hidden] { display: none; }
+    body.dash-light .discover-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid rgba(45, 106, 79, 0.18);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: discover-spin 0.8s linear infinite;
+    }
+    @keyframes discover-spin { to { transform: rotate(360deg); } }
+
+    /* Custom Leaflet markers — pill-shaped tags. */
+    body.dash-light .discover-marker {
+      background: var(--green);
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      white-space: nowrap;
+      text-align: center;
+      line-height: 1.2;
+    }
+    body.dash-light .discover-marker--user { background: #1b4332; }
+    body.dash-light .discover-marker--trail { background: #40916c; }
+    /* Tighter Leaflet popup typography. */
+    body.dash-light .leaflet-popup-content { font-family: 'Inter', sans-serif; font-size: 0.85rem; line-height: 1.45; margin: 10px 12px; }
+    body.dash-light .leaflet-popup-content b { color: #1a1a1a; }
+    body.dash-light .leaflet-popup-content a { color: var(--green); font-weight: 600; text-decoration: none; }
+    body.dash-light .leaflet-popup-content a:hover { text-decoration: underline; }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 1024px) {
+      body.dash-light .stats-bar  { grid-template-columns: repeat(2, 1fr) !important; }
+      body.dash-light .trips-grid { grid-template-columns: repeat(2, 1fr) !important; } /* tablet */
+      body.dash-light .dash-hero  { height: 240px; }
+      body.dash-light .dash-hero__greeting { font-size: 1.9rem; }
+      body.dash-light .discover-grid { grid-template-columns: 1fr; }
+      body.dash-light #trailMap { height: 380px; }
+      body.dash-light .trail-grid { max-height: none; grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 900px) {
+      body.dash-light .navbar { padding: 0 20px !important; }
+      body.dash-light .nav-user-text { display: none !important; }
+      /* Hero is a fixed-height photo now — sized in the 1024/640 breakpoints. */
+      body.dash-light .dash-hero__inner { padding: 0 20px; }
+    }
+    @media (max-width: 640px) {
+      body.dash-light main.container { padding: 0 18px !important; margin-top: 22px !important; }
+      body.dash-light .stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
+      body.dash-light .stat-card { padding: 16px 20px !important; }
+      body.dash-light .stat-card .stat-value { font-size: 1.7rem !important; }
+      body.dash-light .trips-grid { grid-template-columns: 1fr !important; }       /* mobile */
+      body.dash-light .dash-hero  { height: 220px; }
+      body.dash-light .dash-hero__greeting { font-size: 1.7rem; }
+      body.dash-light .dash-hero__sub { font-size: 0.95rem; }
+      body.dash-light .section-header { flex-direction: column; align-items: stretch; gap: 12px; }
+      body.dash-light .section-header .btn.btn-primary { align-self: flex-start; }
+      body.dash-light .dash-hero__art { display: none; }
+      body.dash-light .dash-hero__copy { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      body.dash-light .trip-card .trip-actions { flex-direction: column; }
+      body.dash-light .trip-card .trip-actions .btn { width: 100%; }
+    }

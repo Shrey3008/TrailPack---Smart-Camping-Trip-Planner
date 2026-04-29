@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checklist Preview · TrailPack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#2d6a4f; --green-dark:#1b4332; --green-light:#52b788;
+    --ink:#111; --ink-soft:#374151; --muted:#6b7280;
+    --bg:#f7f5f0; --surface:#fff; --line:rgba(0,0,0,.08);
+    --shadow-card:0 2px 12px rgba(0,0,0,.06);
+    --shadow-hover:0 6px 20px rgba(0,0,0,.10);
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    background:var(--bg); color:var(--ink); font-size:15px; line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{margin:0; color:var(--ink); font-weight:700}
+  a{color:inherit}
+
+  /* Top nav (mock — matches dashboard) */
+  .nav{
+    height:64px; background:#fff; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; padding:0 28px; position:sticky; top:0; z-index:50;
+  }
+  .nav-logo{display:flex; align-items:center; gap:10px; font-weight:700}
+  .nav-logo span.dot{width:28px; height:28px; border-radius:8px; background:var(--green);
+    display:inline-flex; align-items:center; justify-content:center; color:#fff; font-size:14px}
+  .nav-spacer{flex:1}
+  .nav-back{font-size:.85rem; color:var(--muted); text-decoration:none; margin-right:18px}
+  .nav-back:hover{color:var(--green)}
+  .nav-avatar{
+    width:36px; height:36px; border-radius:50%; background:var(--green); color:#fff;
+    display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:.85rem;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative; height:380px; overflow:hidden;
+    background:#222 center/cover no-repeat;
+    background-image:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1800&q=80');
+  }
+  .hero::after{
+    content:""; position:absolute; inset:0;
+    background:linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.20) 55%, rgba(0,0,0,.55) 100%);
+  }
+  .hero-inner{
+    position:relative; z-index:2; max-width:1240px; margin:0 auto;
+    padding:48px 28px; height:100%; display:flex; flex-direction:column; justify-content:flex-end;
+    color:#fff;
+  }
+  .hero-eyebrow{
+    font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    opacity:.92; margin-bottom:14px;
+  }
+  .hero-title{font-size:2.6rem; font-weight:700; line-height:1.1; margin-bottom:10px; max-width:24ch}
+  .hero-sub{font-size:1rem; opacity:.92; margin-bottom:18px}
+  .hero-meta{display:flex; flex-wrap:wrap; gap:8px}
+  .hero-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 12px; border-radius:9999px;
+    background:rgba(255,255,255,.16); backdrop-filter:blur(6px);
+    font-size:.78rem; font-weight:500; border:1px solid rgba(255,255,255,.22);
+  }
+  .hero-actions{
+    position:absolute; top:24px; right:28px; z-index:3;
+    display:flex; gap:10px;
+  }
+  .hero-btn{
+    padding:9px 16px; border-radius:9999px; font-size:.82rem; font-weight:600;
+    background:rgba(255,255,255,.18); color:#fff; border:1px solid rgba(255,255,255,.28);
+    cursor:pointer; backdrop-filter:blur(6px); font-family:inherit;
+  }
+  .hero-btn:hover{background:rgba(255,255,255,.28)}
+  .hero-btn.primary{background:#fff; color:var(--ink); border-color:#fff}
+
+  /* ---------- Sticky progress strip ---------- */
+  .strip{
+    position:sticky; top:64px; z-index:40;
+    background:#fff; border-bottom:1px solid var(--line);
+  }
+  .strip-inner{
+    max-width:1240px; margin:0 auto; padding:14px 28px;
+    display:flex; align-items:center; gap:32px;
+  }
+  .strip-prog{display:flex; align-items:center; gap:14px; min-width:260px}
+  .strip-prog .bar{
+    flex:1; height:6px; border-radius:9999px; background:#eef0ec; overflow:hidden;
+  }
+  .strip-prog .bar-fill{height:100%; width:43%; background:var(--green); border-radius:9999px}
+  .strip-prog .label{font-size:.82rem; color:var(--ink-soft); white-space:nowrap}
+  .strip-prog .label b{color:var(--green); font-weight:700}
+  .tabs{display:flex; gap:2px; flex:1; overflow-x:auto}
+  .tab{
+    padding:14px 4px; margin-right:24px; font-size:.88rem; font-weight:600; color:var(--muted);
+    background:none; border:0; border-bottom:2px solid transparent; cursor:pointer; font-family:inherit;
+    white-space:nowrap;
+  }
+  .tab.is-active{color:var(--ink); border-color:var(--green)}
+  .tab:hover{color:var(--ink)}
+  .tab .count{font-size:.7rem; color:var(--muted); margin-left:6px; font-weight:500}
+
+  /* ---------- Body grid ---------- */
+  .wrap{max-width:1240px; margin:0 auto; padding:32px 28px 80px}
+  .body{display:grid; grid-template-columns:1fr 360px; gap:32px; align-items:start}
+  @media (max-width:1024px){ .body{grid-template-columns:1fr} }
+
+  /* Quick add bar */
+  .qadd{
+    display:flex; align-items:center; gap:10px;
+    background:#fff; border:1px solid var(--line); border-radius:9999px;
+    padding:8px 8px 8px 22px; box-shadow:var(--shadow-card); margin-bottom:24px;
+  }
+  .qadd input, .qadd select{
+    border:0; outline:0; background:transparent; font-family:inherit; font-size:.92rem;
+    padding:10px 0;
+  }
+  .qadd input{flex:1}
+  .qadd .div{width:1px; align-self:stretch; background:var(--line); margin:6px 4px}
+  .qadd select{color:var(--ink-soft); padding-right:8px; cursor:pointer}
+  .qadd-btn{
+    background:var(--green); color:#fff; border:0; border-radius:9999px;
+    padding:10px 22px; font-weight:600; font-size:.85rem; cursor:pointer; font-family:inherit;
+  }
+  .qadd-btn:hover{background:var(--green-dark)}
+
+  /* Suggestions strip */
+  .suggest{margin-bottom:28px}
+  .suggest-h{
+    font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:12px;
+  }
+  .chips{display:flex; gap:10px; overflow-x:auto; padding-bottom:6px; scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+    padding:8px 14px; border-radius:9999px; background:#fff; border:1px solid var(--line);
+    font-size:.85rem; cursor:pointer; transition:.18s;
+  }
+  .chip:hover{border-color:var(--green); color:var(--green)}
+  .chip .plus{font-size:1.1rem; color:var(--green); line-height:1; margin-right:-2px}
+
+  /* Category card */
+  .cat{
+    background:#fff; border-radius:var(--radius); border:1px solid var(--line);
+    box-shadow:var(--shadow-card); margin-bottom:18px; overflow:hidden;
+  }
+  .cat-head{
+    display:flex; align-items:center; padding:18px 22px 12px;
+    border-bottom:1px solid var(--line);
+  }
+  .cat-title{font-size:1.05rem; font-weight:700}
+  .cat-sub{font-size:.78rem; color:var(--muted); margin-left:10px}
+  .cat-add{
+    margin-left:auto; background:none; border:0; color:var(--green); font-weight:600;
+    font-size:.82rem; cursor:pointer; font-family:inherit;
+  }
+  .cat-add:hover{text-decoration:underline}
+  .items{padding:6px 0}
+  .item{
+    display:flex; align-items:center; gap:14px;
+    padding:12px 22px; border-bottom:1px solid #f3f3ef;
+    transition:background .15s;
+  }
+  .item:last-child{border-bottom:0}
+  .item:hover{background:#fafaf6}
+  .check{
+    width:22px; height:22px; border-radius:6px; border:2px solid #d1d5db;
+    display:inline-flex; align-items:center; justify-content:center;
+    cursor:pointer; flex-shrink:0; transition:.15s;
+  }
+  .check.on{background:var(--green); border-color:var(--green)}
+  .check.on::after{
+    content:""; width:6px; height:11px; border:solid #fff; border-width:0 2px 2px 0;
+    transform:rotate(45deg) translate(-1px,-1px);
+  }
+  .item-name{flex:1; font-size:.92rem}
+  .item.done .item-name{color:var(--muted); text-decoration:line-through; text-decoration-thickness:1px}
+  .item-qty{
+    font-size:.78rem; color:var(--muted); padding:3px 9px;
+    background:#f3f4f6; border-radius:9999px; min-width:30px; text-align:center;
+  }
+  .item-actions{display:flex; gap:6px; opacity:0; transition:opacity .15s}
+  .item:hover .item-actions{opacity:1}
+  .item-icon{
+    width:28px; height:28px; border-radius:6px; border:0; background:transparent;
+    color:var(--muted); cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .item-icon:hover{background:#f3f4f6; color:var(--ink)}
+
+  /* Sidebar cards */
+  .side{display:flex; flex-direction:column; gap:18px; position:sticky; top:140px}
+  .card{
+    background:#fff; border-radius:var(--radius); border:1px solid var(--line);
+    box-shadow:var(--shadow-card); overflow:hidden;
+  }
+  .card-photo{
+    height:140px; background:#ddd center/cover no-repeat;
+    background-image:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80');
+  }
+  .card-body{padding:16px 18px}
+  .card-h{font-size:1rem; font-weight:700; margin-bottom:4px}
+  .card-sub{font-size:.82rem; color:var(--muted); margin-bottom:14px}
+  .meta-row{
+    display:flex; align-items:center; gap:10px; padding:8px 0;
+    border-top:1px solid #f3f3ef; font-size:.85rem;
+  }
+  .meta-row:first-of-type{border-top:0}
+  .meta-row .k{color:var(--muted); width:90px; font-size:.78rem}
+  .meta-row .v{color:var(--ink); font-weight:500}
+
+  /* Progress card */
+  .prog-h{padding:18px 18px 6px; font-size:1rem; font-weight:700}
+  .prog-pct{
+    padding:0 18px 14px; font-size:2.4rem; font-weight:700; color:var(--green);
+    line-height:1;
+  }
+  .prog-pct small{font-size:.82rem; color:var(--muted); font-weight:500; margin-left:6px}
+  .prog-cat{padding:10px 18px; border-top:1px solid #f3f3ef}
+  .prog-cat:first-of-type{border-top:0}
+  .prog-cat-row{display:flex; align-items:center; gap:8px; font-size:.82rem; margin-bottom:6px}
+  .prog-cat-row .name{flex:1}
+  .prog-cat-row .pct{color:var(--muted); font-size:.75rem}
+  .mini-bar{height:4px; background:#eef0ec; border-radius:9999px; overflow:hidden}
+  .mini-bar > div{height:100%; background:var(--green-light); border-radius:9999px}
+
+  /* Collaborators */
+  .ava-stack{display:flex; padding:14px 18px 4px}
+  .ava{
+    width:34px; height:34px; border-radius:50%; background:var(--green); color:#fff;
+    display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:.78rem;
+    border:2px solid #fff; margin-left:-8px;
+  }
+  .ava:first-child{margin-left:0}
+  .ava.invite{background:#fff; color:var(--green); border:2px dashed var(--green); cursor:pointer}
+
+  /* Footer actions */
+  .actions{
+    display:flex; flex-wrap:wrap; gap:10px; margin-top:28px;
+    padding:22px; background:#fff; border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow-card);
+  }
+  .btn{
+    padding:10px 18px; border-radius:9999px; border:1px solid var(--line);
+    background:#fff; font-family:inherit; font-size:.85rem; font-weight:600;
+    cursor:pointer; color:var(--ink-soft);
+  }
+  .btn:hover{border-color:var(--ink); color:var(--ink)}
+  .btn.primary{background:var(--green); color:#fff; border-color:var(--green)}
+  .btn.primary:hover{background:var(--green-dark); border-color:var(--green-dark)}
+  .btn.danger{margin-left:auto; color:#b91c1c; border-color:transparent; background:transparent}
+  .btn.danger:hover{background:#fef2f2; border-color:#fecaca}
+
+  /* Responsive */
+  @media (max-width:720px){
+    .hero{height:340px}
+    .hero-title{font-size:1.9rem}
+    .hero-actions{top:auto; bottom:24px; right:20px; left:20px; justify-content:flex-end}
+    .strip-inner{flex-direction:column; align-items:flex-start; gap:12px}
+    .wrap{padding:22px 18px 60px}
+    .qadd{flex-wrap:wrap; padding:10px}
+    .qadd input{width:100%; padding:6px 10px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Top nav ===== -->
+<nav class="nav">
+  <div class="nav-logo"><span class="dot">⛰</span> TrailPack</div>
+  <div class="nav-spacer"></div>
+  <a href="index.html" class="nav-back">← Back to dashboard</a>
+  <div class="nav-avatar">SP</div>
+</nav>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+  <div class="hero-actions">
+    <button class="hero-btn">Share</button>
+    <button class="hero-btn">Export</button>
+    <button class="hero-btn primary">Edit trip</button>
+  </div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">Mountain · 4 days · Party of 3</div>
+    <h1 class="hero-title">Rocky Mountain Weekend</h1>
+    <p class="hero-sub">Estes Park, Colorado · Sep 12 – Sep 16, 2026</p>
+    <div class="hero-meta">
+      <span class="hero-chip">☀️ 68°F average</span>
+      <span class="hero-chip">📍 1,420 mi away</span>
+      <span class="hero-chip">⏱ Created 2 days ago</span>
+      <span class="hero-chip">🎒 28 items planned</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Sticky progress + tabs ===== -->
+<div class="strip">
+  <div class="strip-inner">
+    <div class="strip-prog">
+      <span class="label"><b>12 / 28</b> packed</span>
+      <div class="bar"><div class="bar-fill"></div></div>
+      <span class="label">43%</span>
+    </div>
+    <div class="tabs">
+      <button class="tab is-active">All<span class="count">28</span></button>
+      <button class="tab">Essentials<span class="count">8</span></button>
+      <button class="tab">Clothing<span class="count">7</span></button>
+      <button class="tab">Food<span class="count">5</span></button>
+      <button class="tab">Gear<span class="count">6</span></button>
+      <button class="tab">Custom<span class="count">2</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Body ===== -->
+<div class="wrap">
+  <div class="body">
+    <!-- Main column -->
+    <div>
+      <!-- Quick add -->
+      <div class="qadd">
+        <input placeholder="Add an item to your list…">
+        <div class="div"></div>
+        <select>
+          <option>Essentials</option>
+          <option>Clothing</option>
+          <option>Food</option>
+          <option>Gear</option>
+          <option>Custom</option>
+        </select>
+        <button class="qadd-btn">Add item</button>
+      </div>
+
+      <!-- Suggestions -->
+      <div class="suggest">
+        <div class="suggest-h">Suggested for Mountain · Fall trips</div>
+        <div class="chips">
+          <button class="chip"><span class="plus">+</span> Down jacket</button>
+          <button class="chip"><span class="plus">+</span> Trekking poles</button>
+          <button class="chip"><span class="plus">+</span> Bear spray</button>
+          <button class="chip"><span class="plus">+</span> Hand warmers</button>
+          <button class="chip"><span class="plus">+</span> Trail map</button>
+          <button class="chip"><span class="plus">+</span> Microspikes</button>
+          <button class="chip"><span class="plus">+</span> Insulated bottle</button>
+        </div>
+      </div>
+
+      <!-- Category: Essentials -->
+      <div class="cat">
+        <div class="cat-head">
+          <h3 class="cat-title">Essentials</h3>
+          <span class="cat-sub">5 of 8 packed</span>
+          <button class="cat-add">+ Add item</button>
+        </div>
+        <div class="items">
+          <div class="item done">
+            <div class="check on" onclick="toggle(this)"></div>
+            <div class="item-name">Headlamp</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item done">
+            <div class="check on" onclick="toggle(this)"></div>
+            <div class="item-name">First aid kit</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item done">
+            <div class="check on" onclick="toggle(this)"></div>
+            <div class="item-name">Sunscreen SPF 50</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Water filter</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Multi-tool</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Emergency whistle</div>
+            <div class="item-qty">×3</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category: Clothing -->
+      <div class="cat">
+        <div class="cat-head">
+          <h3 class="cat-title">Clothing</h3>
+          <span class="cat-sub">4 of 7 packed</span>
+          <button class="cat-add">+ Add item</button>
+        </div>
+        <div class="items">
+          <div class="item done">
+            <div class="check on" onclick="toggle(this)"></div>
+            <div class="item-name">Base layers</div>
+            <div class="item-qty">×3</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item done">
+            <div class="check on" onclick="toggle(this)"></div>
+            <div class="item-name">Hiking pants</div>
+            <div class="item-qty">×2</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Rain shell</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Wool socks</div>
+            <div class="item-qty">×4</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Beanie</div>
+            <div class="item-qty">×1</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category: Food -->
+      <div class="cat">
+        <div class="cat-head">
+          <h3 class="cat-title">Food &amp; Water</h3>
+          <span class="cat-sub">1 of 5 packed</span>
+          <button class="cat-add">+ Add item</button>
+        </div>
+        <div class="items">
+          <div class="item done">
+            <div class="check on" onclick="toggle(this)"></div>
+            <div class="item-name">Trail mix</div>
+            <div class="item-qty">×4</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Freeze-dried meals</div>
+            <div class="item-qty">×8</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Energy bars</div>
+            <div class="item-qty">×12</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+          <div class="item">
+            <div class="check" onclick="toggle(this)"></div>
+            <div class="item-name">Water bottles (1L)</div>
+            <div class="item-qty">×3</div>
+            <div class="item-actions"><button class="item-icon">✎</button><button class="item-icon">✕</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer actions -->
+      <div class="actions">
+        <button class="btn primary">Mark all packed</button>
+        <button class="btn">Reset checklist</button>
+        <button class="btn">Duplicate as template</button>
+        <button class="btn danger">Delete trip</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="side">
+      <!-- Trip summary -->
+      <div class="card">
+        <div class="card-photo"></div>
+        <div class="card-body">
+          <h3 class="card-h">Rocky Mountain Weekend</h3>
+          <p class="card-sub">Estes Park, Colorado</p>
+          <div class="meta-row"><span class="k">Dates</span><span class="v">Sep 12 – 16</span></div>
+          <div class="meta-row"><span class="k">Duration</span><span class="v">4 days</span></div>
+          <div class="meta-row"><span class="k">Group</span><span class="v">3 people</span></div>
+          <div class="meta-row"><span class="k">Terrain</span><span class="v">Mountain</span></div>
+          <div class="meta-row"><span class="k">Weather</span><span class="v">☀️ 68°F avg</span></div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="card">
+        <div class="prog-h">Packing progress</div>
+        <div class="prog-pct">43%<small>12 of 28 items</small></div>
+        <div class="prog-cat">
+          <div class="prog-cat-row"><span class="name">Essentials</span><span class="pct">5/8</span></div>
+          <div class="mini-bar"><div style="width:62%"></div></div>
+        </div>
+        <div class="prog-cat">
+          <div class="prog-cat-row"><span class="name">Clothing</span><span class="pct">4/7</span></div>
+          <div class="mini-bar"><div style="width:57%"></div></div>
+        </div>
+        <div class="prog-cat">
+          <div class="prog-cat-row"><span class="name">Food &amp; Water</span><span class="pct">1/5</span></div>
+          <div class="mini-bar"><div style="width:20%"></div></div>
+        </div>
+        <div class="prog-cat">
+          <div class="prog-cat-row"><span class="name">Gear</span><span class="pct">2/6</span></div>
+          <div class="mini-bar"><div style="width:33%"></div></div>
+        </div>
+        <div class="prog-cat">
+          <div class="prog-cat-row"><span class="name">Custom</span><span class="pct">0/2</span></div>
+          <div class="mini-bar"><div style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Collaborators -->
+      <div class="card">
+        <div class="card-body" style="padding-bottom:8px">
+          <h3 class="card-h">Collaborators</h3>
+          <p class="card-sub">Share planning with your party</p>
+        </div>
+        <div class="ava-stack">
+          <div class="ava">SP</div>
+          <div class="ava" style="background:#b45309">JD</div>
+          <div class="ava" style="background:#1d4ed8">MA</div>
+          <div class="ava invite">+</div>
+        </div>
+        <div class="card-body" style="padding-top:8px">
+          <button class="btn" style="width:100%">Invite people</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+  function toggle(el){
+    el.classList.toggle('on');
+    el.closest('.item').classList.toggle('done');
+  }
+</script>
+</body>
+</html>

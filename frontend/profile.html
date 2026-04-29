@@ -10,40 +10,40 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <script src="config.js"></script>
   <style>
+    /* =========================================================================
+       Light design system (matches index.html / admin.html dash-light tokens).
+       Dark mode removed per spec — single light palette only.
+       ========================================================================= */
     :root {
       --green:        #2D6A4F;
       --green-dark:   #1B4332;
-      --green-light:  #52B788;
-      --green-pale:   #D8F3DC;
+      --green-light:  #40916C;
+      --green-pale:   #E6F2EB;
       --sage:         #7A9E7E;
-      --cream:        #F5F0E8;
-      --surface:      #FFFFFF;
-      --ink:          #1b2422;
-      --ink-soft:     #5a6560;
-      --muted:        #6B7A72;
-      --line:         #E3DDD0;
-      --line-soft:    #EDE7DA;
-      --danger:       #C0392B;
-      --danger-dark:  #962818;
-      --danger-soft:  #F9E2DE;
+
+      --cream:        #F8F7F4;       /* page background */
+      --surface:      #FFFFFF;       /* cards / nav surface */
+      --bg-hero:      #D8EADF;       /* sage banner */
+
+      --ink:          #1A1A1A;
+      --ink-soft:     #6B7280;
+      --muted:        #9AA3AF;
+
+      --line:         #E8E8E4;
+      --line-soft:    #EFEEE9;
+      --line-strong:  #D8D8D2;
+
+      --danger:       #DC2626;
+      --danger-dark:  #B91C1C;
+      --danger-soft:  #FEF2F2;
+
       --warning:      #D97706;
       --info:         #2563EB;
-      --shadow-sm:    0 1px 2px rgba(15,36,28,0.04), 0 2px 8px rgba(15,36,28,0.05);
-      --shadow-md:    0 8px 24px rgba(15,36,28,0.10);
+
+      --shadow-sm:    0 1px 4px rgba(0,0,0,0.06);
+      --shadow-md:    0 8px 24px rgba(15,23,42,0.08);
       --radius:       16px;
       --radius-sm:    10px;
-    }
-    html[data-theme="dark"] {
-      --cream:        #0F1713;
-      --surface:      #17231D;
-      --ink:          #E6EDE7;
-      --ink-soft:     #9BA8A1;
-      --line:         #233129;
-      --line-soft:    #1D2A23;
-      --green-pale:   #1F3B2C;
-      --danger-soft:  #3A1A14;
-      --shadow-sm:    0 1px 2px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.35);
-      --shadow-md:    0 10px 28px rgba(0,0,0,0.45);
     }
 
     * { box-sizing: border-box; }
@@ -59,86 +59,9 @@
     }
     h1, h2, h3, h4 { margin: 0; color: var(--ink); }
 
-    /* ---------- Navbar (mirrors index.html exactly) ---------- */
-    .navbar {
-      background: var(--green-dark) !important;
-      color: #fff !important;
-      padding: 18px 32px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: space-between !important;
-      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
-    }
-    .nav-brand { display: flex; align-items: center; gap: 12px; }
-    .nav-brand h1,
-    .nav-brand .brand-text {
-      font-family: 'Playfair Display', Georgia, serif !important;
-      font-weight: 700 !important;
-      font-size: 1.55rem !important;
-      color: #fff !important;
-      letter-spacing: 0.005em;
-      margin: 0 !important;
-    }
-    .nav-brand .logo-mark {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
-      background: rgba(82, 183, 136, 0.15);
-    }
-    .nav-brand .logo-mark svg { display: block; }
-
-    .nav-user {
-      display: flex !important;
-      align-items: center !important;
-      gap: 10px !important;
-      flex-wrap: wrap;
-    }
-    .nav-user .user-name,
-    .nav-user #user-info {
-      color: rgba(255,255,255,0.88) !important;
-      font-weight: 500 !important;
-      font-size: 0.92rem !important;
-      margin-right: 4px;
-    }
-
-    /* Pill buttons in navbar — same overrides as index.html. */
-    .navbar .btn,
-    .navbar a.btn,
-    .navbar button {
-      font-family: 'Inter', sans-serif !important;
-      font-weight: 500 !important;
-      font-size: 0.85rem !important;
-      background: transparent !important;
-      color: #fff !important;
-      border: 1px solid rgba(255,255,255,0.45) !important;
-      padding: 7px 14px !important;
-      border-radius: 999px !important;
-      cursor: pointer;
-      text-decoration: none !important;
-      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    }
-    .navbar .btn:hover,
-    .navbar a.btn:hover,
-    .navbar button:hover {
-      background: rgba(255,255,255,0.10) !important;
-      border-color: rgba(255,255,255,0.65) !important;
-    }
-    /* Logout = red outlined pill (matches index.html). */
-    .navbar .btn-logout,
-    .navbar button[onclick*="logout"] {
-      background: transparent !important;
-      border-color: rgba(255, 138, 128, 0.55) !important;
-      color: #FFBFBA !important;
-    }
-    .navbar .btn-logout:hover,
-    .navbar button[onclick*="logout"]:hover {
-      background: rgba(192, 57, 43, 0.20) !important;
-      border-color: #FF8A80 !important;
-      color: #fff !important;
-    }
+    /* ---------- Navbar ----------
+       Page-local navbar overrides removed. nav-menu.js injects the
+       canonical navbar styling shared with the dashboard. */
 
     /* ---------- Page container ---------- */
     .container {
@@ -147,57 +70,52 @@
       padding: 28px 24px 60px;
     }
 
-    /* ---------- Hero ---------- */
+    /* ---------- Hero (sage green banner, dark text) ---------- */
     .profile-hero {
-      background: linear-gradient(135deg, var(--green-dark) 0%, var(--green) 100%);
-      color: #fff;
-      border-radius: var(--radius);
+      background: var(--bg-hero);
+      color: var(--ink);
+      border-radius: 0;
+      border-bottom: 1px solid var(--line);
       padding: 32px 28px;
+      margin: -28px -24px 24px;        /* break out of .container's padding */
       display: flex;
       align-items: center;
       gap: 24px;
-      box-shadow: var(--shadow-md);
-      margin-bottom: 22px;
+      box-shadow: none;
       position: relative;
       overflow: hidden;
     }
-    .profile-hero::after {
-      content: "";
-      position: absolute;
-      right: -80px; top: -80px;
-      width: 280px; height: 280px;
-      background: radial-gradient(circle, rgba(82,183,136,0.40) 0%, rgba(82,183,136,0) 60%);
-      pointer-events: none;
-    }
+    .profile-hero::after { content: none; }
     .avatar-circle {
-      width: 96px; height: 96px;
+      width: 80px; height: 80px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--green-light) 0%, var(--green) 100%);
+      background: var(--green);
       color: #fff;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 38px;
+      font-size: 30px;
       font-weight: 700;
       letter-spacing: -0.02em;
       flex-shrink: 0;
-      border: 3px solid rgba(255,255,255,0.20);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.20);
+      border: 3px solid #fff;
+      box-shadow: 0 4px 14px rgba(45,106,79,0.18);
       position: relative;
       z-index: 1;
     }
-    .hero-text { z-index: 1; min-width: 0; }
+    .hero-text { z-index: 1; min-width: 0; color: var(--ink); }
     .hero-name {
-      font-family: 'Playfair Display', serif;
-      font-size: 30px;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 28px;
       font-weight: 700;
       letter-spacing: -0.01em;
-      line-height: 1.1;
-      margin-bottom: 6px;
+      line-height: 1.15;
+      margin-bottom: 4px;
+      color: var(--ink);
     }
     .hero-email {
       font-size: 14px;
-      opacity: 0.86;
+      color: var(--ink-soft);
       margin-bottom: 12px;
       word-break: break-all;
     }
@@ -206,12 +124,13 @@
       align-items: center;
       gap: 6px;
       font-size: 12.5px;
-      background: rgba(255,255,255,0.12);
+      color: var(--ink-soft);
+      background: rgba(255,255,255,0.7);
       padding: 5px 12px;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.18);
+      border: 1px solid rgba(45,106,79,0.18);
     }
-    .hero-meta strong { font-weight: 600; }
+    .hero-meta strong { font-weight: 600; color: var(--ink); }
 
     /* ---------- Stats row ---------- */
     .stats-row {
@@ -232,14 +151,14 @@
     .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .stat-icon { font-size: 22px; margin-bottom: 8px; display: block; line-height: 1; }
     .stat-value {
-      font-family: 'Playfair Display', serif;
-      font-size: 32px;
+      font-family: 'Inter', sans-serif;
+      font-size: 30px;
       font-weight: 700;
-      color: var(--green-dark);
+      color: var(--ink);
+      letter-spacing: -0.02em;
       line-height: 1;
       margin-bottom: 6px;
     }
-    html[data-theme="dark"] .stat-value { color: var(--green-light); }
     .stat-label {
       font-size: 11.5px;
       text-transform: uppercase;
@@ -461,8 +380,6 @@
       color: var(--danger);
       border-color: #f3c6bf;
     }
-    html[data-theme="dark"] .message.success { color: #B7E0C4; border-color: #2C5A40; }
-    html[data-theme="dark"] .message.error { color: #F4B8AE; border-color: #5A2820; }
 
     /* ---------- Notification checkboxes ---------- */
     .check-row {
@@ -481,12 +398,8 @@
 
     /* ---------- Danger Zone ---------- */
     .danger-card {
-      border-color: #f3c6bf;
-      background: linear-gradient(180deg, var(--surface) 0%, #FDF7F5 100%);
-    }
-    html[data-theme="dark"] .danger-card {
-      background: var(--surface);
-      border-color: #5a2820;
+      border-color: #FECACA;
+      background: linear-gradient(180deg, var(--surface) 0%, #FEF7F6 100%);
     }
     .danger-card .card-title { color: var(--danger); }
     .danger-row {
@@ -591,16 +504,15 @@
 
     /* ---------- Responsive ---------- */
     @media (max-width: 720px) {
-      .navbar { padding: 14px 18px; }
-      .nav-user .user-name { display: none; }
       .container { padding: 18px 14px 50px; }
       .profile-hero {
         flex-direction: column;
         align-items: flex-start;
-        padding: 24px 22px;
+        padding: 24px 18px;
+        margin: -18px -14px 22px;
       }
-      .avatar-circle { width: 72px; height: 72px; font-size: 28px; }
-      .hero-name { font-size: 24px; }
+      .avatar-circle { width: 64px; height: 64px; font-size: 24px; }
+      .hero-name { font-size: 22px; }
       .stats-row { grid-template-columns: 1fr; gap: 10px; }
       .card { padding: 20px 18px; }
       .danger-row { flex-direction: column; align-items: stretch; }
@@ -625,9 +537,7 @@
     <div class="nav-user">
       <span id="user-info" class="user-name"></span>
       <a href="index.html" class="btn">Dashboard</a>
-      <a href="history.html" class="btn">History</a>
       <a href="profile.html" class="btn">Profile</a>
-      <button id="theme-toggle" class="btn" type="button" aria-label="Toggle theme" title="Toggle theme">🌙</button>
       <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
     </div>
   </nav>
@@ -787,30 +697,6 @@
   <script src="auth.js"></script>
   <script src="profile.js"></script>
   <script>
-    /* ============================================================
-       Theme toggle (persists in localStorage; matches index.html)
-       ============================================================ */
-    (function() {
-      const saved = localStorage.getItem('tp-theme');
-      if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-      const btn = document.getElementById('theme-toggle');
-      function refreshIcon() {
-        btn.textContent = document.documentElement.getAttribute('data-theme') === 'dark' ? '☀️' : '🌙';
-      }
-      refreshIcon();
-      btn.addEventListener('click', () => {
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        if (isDark) {
-          document.documentElement.removeAttribute('data-theme');
-          localStorage.setItem('tp-theme', 'light');
-        } else {
-          document.documentElement.setAttribute('data-theme', 'dark');
-          localStorage.setItem('tp-theme', 'dark');
-        }
-        refreshIcon();
-      });
-    })();
-
     /* ============================================================
        Auth + initial load. profile.js's loadProfile() populates
        the form fields and stat ids; we then mirror those values
@@ -1025,7 +911,6 @@
           await apiCallWithAuth('/auth/me', { method: 'DELETE' });
           if (window.showToast) window.showToast('Account deleted. Goodbye!', 'success', 3000);
           sessionStorage.clear();
-          try { localStorage.removeItem('tp-theme'); } catch(_) {}
           setTimeout(() => { window.location.href = 'login.html'; }, 800);
         } catch (err) {
           confirm.textContent = 'Delete Forever';

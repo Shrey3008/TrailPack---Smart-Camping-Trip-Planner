@@ -12,7 +12,7 @@
   const queryOverride = new URLSearchParams(window.location.search).get('api');
 
   const DEFAULT_LOCAL = 'http://localhost:3000';
-  const DEFAULT_PROD = 'http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com';
+  const DEFAULT_PROD = 'https://dk4c01g0h1v43.cloudfront.net';
 
   window.API_URL = queryOverride || metaOverride || (isLocalhost ? DEFAULT_LOCAL : DEFAULT_PROD);
 })();

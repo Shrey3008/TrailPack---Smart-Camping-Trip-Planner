@@ -6,70 +6,123 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <title>Register - TrailPack</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+  <!-- Inter via Google Fonts. Preconnect to keep first paint snappy. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="auth-page">
-  <div class="auth-container">
-    <div class="auth-box">
-      <div class="auth-header">
-        <h1><span class="logo-icon">⛺</span> TrailPack</h1>
-        <p>Smart Camping Trip Planner</p>
+<body class="sa-page">
+  <div class="sa-shell">
+    <!-- LEFT PANEL: brand + features + mountain silhouette -->
+    <aside class="sa-brand" aria-hidden="false">
+      <div class="sa-brand__inner">
+        <h1 class="sa-brand__logo">
+          <span class="sa-brand__logo-emoji" aria-hidden="true">🏕️</span>
+          TrailPack
+        </h1>
+        <p class="sa-brand__tagline">Your Smart Camping Companion</p>
+        <ul class="sa-brand__features">
+          <li class="sa-brand__feature">AI-powered gear checklists</li>
+          <li class="sa-brand__feature">Real-time weather integration</li>
+          <li class="sa-brand__feature">Group trip coordination</li>
+        </ul>
       </div>
-      
-      <form id="register-form" class="auth-form">
-        <h2>Create Account</h2>
-        
-        <div class="form-group">
-          <label for="name">Full Name</label>
-          <input type="text" id="name" name="name" autocomplete="name" required placeholder="Enter your full name">
-        </div>
-        
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" autocomplete="email" required placeholder="Enter your email">
-        </div>
-        
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" autocomplete="new-password" required 
-                 minlength="6" placeholder="Create a password (min 6 characters)">
-          <small class="help-text">Must be at least 6 characters</small>
-        </div>
-        
-        <div class="form-group">
-          <label for="confirm-password">Confirm Password</label>
-          <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" required 
-                 placeholder="Confirm your password">
+      <!-- Decorative mountain silhouette anchored to the bottom of the panel -->
+      <svg class="sa-brand__mountains" viewBox="0 0 1440 220" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path d="M0,220 L0,150 L160,80 L300,140 L460,40 L640,130 L820,60 L1000,150 L1180,90 L1320,160 L1440,110 L1440,220 Z" fill="#0d2e22" opacity="0.55"/>
+        <path d="M0,220 L0,180 L120,140 L260,180 L420,120 L600,170 L780,130 L960,180 L1140,140 L1320,190 L1440,160 L1440,220 Z" fill="#0a2018" opacity="0.85"/>
+      </svg>
+    </aside>
+
+    <!-- RIGHT PANEL: register form -->
+    <main class="sa-pane">
+      <form id="register-form" class="sa-form" novalidate>
+        <h2 class="sa-form__heading">Create Account</h2>
+        <p class="sa-form__sub">Join TrailPack and start planning smarter trips.</p>
+
+        <div class="sa-form__group">
+          <label class="sa-form__label" for="name">Full Name</label>
+          <span class="sa-input">
+            <svg class="sa-input__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="8" r="4"/>
+              <path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>
+            </svg>
+            <input type="text" id="name" name="name" autocomplete="name" required placeholder="Enter your full name">
+          </span>
         </div>
 
-        <div class="form-group">
-          <label for="security-question">Security Question</label>
-          <select id="security-question" name="securityQuestion" required>
-            <option value="What was the name of your first pet?">What was the name of your first pet?</option>
-            <option value="What city were you born in?">What city were you born in?</option>
-            <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-            <option value="What was your elementary school name?">What was your elementary school name?</option>
-            <option value="What was the make of your first car?">What was the make of your first car?</option>
-          </select>
-          <small class="help-text">Used to recover your account if you forget your password</small>
+        <div class="sa-form__group">
+          <label class="sa-form__label" for="email">Email</label>
+          <span class="sa-input">
+            <svg class="sa-input__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <path d="M3 7l9 6 9-6"/>
+            </svg>
+            <input type="email" id="email" name="email" autocomplete="email" required placeholder="you@example.com">
+          </span>
         </div>
 
-        <div class="form-group">
-          <label for="security-answer">Your Answer</label>
-          <input type="text" id="security-answer" name="securityAnswer" autocomplete="off" required
-                 placeholder="Your answer">
-          <small class="help-text">Case-insensitive — extra spaces are ignored</small>
+        <div class="sa-form__group">
+          <label class="sa-form__label" for="password">Password</label>
+          <span class="sa-input">
+            <svg class="sa-input__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <rect x="4" y="11" width="16" height="10" rx="2"/>
+              <path d="M8 11V8a4 4 0 1 1 8 0v3"/>
+            </svg>
+            <input type="password" id="password" name="password" autocomplete="new-password" required
+                   minlength="6" placeholder="Create a password (min 6 characters)">
+          </span>
+          <small class="sa-form__hint help-text">Must be at least 6 characters</small>
+        </div>
+
+        <div class="sa-form__group">
+          <label class="sa-form__label" for="confirm-password">Confirm Password</label>
+          <span class="sa-input">
+            <svg class="sa-input__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <rect x="4" y="11" width="16" height="10" rx="2"/>
+              <path d="M8 11V8a4 4 0 1 1 8 0v3"/>
+            </svg>
+            <input type="password" id="confirm-password" name="confirm-password" autocomplete="new-password" required
+                   placeholder="Confirm your password">
+          </span>
+        </div>
+
+        <div class="sa-form__group">
+          <label class="sa-form__label" for="security-question">Security Question</label>
+          <span class="sa-input sa-input--no-icon">
+            <select id="security-question" name="securityQuestion" required>
+              <option value="What was the name of your first pet?">What was the name of your first pet?</option>
+              <option value="What city were you born in?">What city were you born in?</option>
+              <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+              <option value="What was your elementary school name?">What was your elementary school name?</option>
+              <option value="What was the make of your first car?">What was the make of your first car?</option>
+            </select>
+          </span>
+          <small class="sa-form__hint help-text">Used to recover your account if you forget your password</small>
+        </div>
+
+        <div class="sa-form__group">
+          <label class="sa-form__label" for="security-answer">Your Answer</label>
+          <span class="sa-input sa-input--no-icon">
+            <input type="text" id="security-answer" name="securityAnswer" autocomplete="off" required
+                   placeholder="Your answer">
+          </span>
+          <small class="sa-form__hint help-text">Case-insensitive — extra spaces are ignored</small>
         </div>
 
         <div id="error-message" class="error-message" style="display: none;"></div>
         <div id="success-message" class="success-message" style="display: none;"></div>
-        
-        <button type="submit" class="btn btn-primary btn-full">Create Account</button>
-        
-        <div class="auth-links">
-          <p>Already have an account? <a href="login.html">Login</a></p>
-        </div>
+
+        <button type="submit" class="sa-btn btn btn-primary btn-full">Create Account</button>
+
+        <div class="sa-divider">or</div>
+
+        <p class="sa-altlink auth-links">
+          Already have an account? <a href="login.html">Login</a>
+        </p>
       </form>
-    </div>
+    </main>
   </div>
 
   <script src="config.js"></script>
