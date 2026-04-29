@@ -1,174 +1,312 @@
-# TrailPack - Smart Camping Trip Planner
+# TrailPack — Smart Camping Trip Planner
 
-A web-based SaaS tool that helps campers and backpackers plan trips by generating smart packing checklists based on terrain and season.
+A web app that helps campers and backpackers plan trips by generating smart packing checklists tailored to terrain, season, and duration. Includes trip sharing, collaborative packing, AI-assisted gear suggestions, weather forecasts, email reminders, and an admin console.
+
+## Live Demo
+
+- **Frontend (HTTPS):** https://d1lo74lzwr0k57.cloudfront.net/
+- **Backend API (HTTPS):** https://dk4c01g0h1v43.cloudfront.net/
+- **Region:** `us-east-1`
+
+The frontend and backend are both served via Amazon CloudFront for HTTPS and edge caching. The S3 and Elastic Beanstalk endpoints below still work (HTTP) but the CloudFront URLs are the canonical ones.
+
+<details><summary>Origin endpoints (used internally by CloudFront)</summary>
+
+- S3 website: `http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com`
+- Elastic Beanstalk: `http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com`
+
+</details>
 
 ## Features
 
-- **Trip Creation**: Create trips with name, terrain type, season, and duration
-- **Smart Checklist Generator**: Automatically generates packing lists based on:
-  - Terrain type (Mountain, Forest, Desert)
-  - Season (Spring, Summer, Fall, Winter)
-  - Trip duration
-- **Packing Tracker**: Track packed items with checkboxes and progress indicator
-- **Custom Items**: Add custom items to any checklist
-- **Trip Management**: View all trips, check detailed checklists, and delete trips
+### Trips & checklists
+- Create trips with name, terrain (mountain / forest / desert / lake / beach), season, dates, and duration
+- Smart packing list auto-generated from terrain × season × duration
+- Interactive checklist with packed/unpacked toggling and live progress bar
+- Add, edit, and delete custom items per trip
+- Trip status flow: Planning → Active → Completed / Cancelled
+- Filter, search, and sort trips on the My Trips page
+
+### Collaboration
+- Invite collaborators by email — they join via a tokenized accept-invite link
+- Collaborative checklist: every collaborator sees who packed what and when
+- Shared-trips section on the dashboard
+
+### AI & external data
+- AI gear suggestions via Groq (`POST /trips/:id/ai-items`) — falls back to a no-op if `GROQ_API_KEY` is unset
+- Open-Meteo weather forecast for trip locations (no API key required)
+- Optional OpenAI integration for legacy AI helpers
+
+### Notifications
+- Cron-driven email reminders (pre-trip nudges) via AWS SES, gated by `ENABLE_EMAIL_SCHEDULER`
+- Local SMTP / Gmail fallback for development
+
+### Auth & accounts
+- JWT-based login / register with bcrypt-hashed passwords
+- Forgot-password flow with tokenized email reset
+- Three-tier role system: `user`, `organizer`, `admin`
+
+### Admin console
+- View all users, filter by role/status, search by name/email
+- Inline role popover (anchored to each row) — change role with one click
+- Permanently deactivate (delete) a user account with a confirmation step
 
 ## Tech Stack
 
-- **Backend**: Node.js + Express
-- **Database**: MongoDB with Mongoose
-- **Frontend**: HTML, CSS, JavaScript
+| Layer | Tech |
+|---|---|
+| Frontend | Vanilla HTML / CSS / JS (no framework) — served from S3, fronted by CloudFront |
+| Backend | Node.js + Express, deployed to Elastic Beanstalk |
+| Database | DynamoDB (single-table for trips/items/collaborators + a separate users table) |
+| Auth | JWT (`jsonwebtoken`) + bcrypt |
+| Email | AWS SES in production, nodemailer/Gmail in dev |
+| AI | Groq (primary), OpenAI (legacy) |
+| Weather | Open-Meteo (free, no key) |
+| Hosting | S3 (static site) + Elastic Beanstalk (API) + CloudFront (HTTPS + caching) |
 
 ## Project Structure
 
 ```
 TrailPack/
-├── backend/              # Node.js API
-│   ├── models/          # Database models
-│   ├── routes/          # API routes
-│   ├── server.js        # Express server
-│   ├── package.json     # Dependencies
-│   └── .env.example     # Environment variables template
-├── frontend/            # Static web pages
-│   ├── index.html       # Dashboard
-│   ├── create-trip.html # Trip creation form
-│   ├── checklist.html   # Checklist view
-│   ├── styles.css       # Styling
-│   └── app.js           # Frontend logic
+├── backend/                          # Node.js + Express API
+│   ├── server.js                     # App entry, CORS, route mounting
+│   ├── db.js                         # DynamoDB document client
+│   ├── routes/                       # admin, ai, auth, items, notifications,
+│   │                                   sharedTrips, trips, weather
+│   ├── middleware/                   # auth (JWT) + adminMiddleware
+│   ├── services/                     # checklist, ai, email, dashboard,
+│   │                                   notification scheduler, dynamoDB,
+│   │                                   provisions, sharedTrips
+│   ├── __tests__/                    # Jest test suite
+│   └── .env.example                  # Backend env template
+│
+├── frontend/                         # Static site
+│   ├── login.html, register.html,
+│   │ forgot-password.html            # Auth pages
+│   ├── index.html                    # Dashboard (rotating hero + stats)
+│   ├── my-trips.html                 # Full trips list with filters
+│   ├── create-trip.html              # Plan a new trip
+│   ├── checklist.html                # Active checklist view
+│   ├── checklist-preview.html        # Preview before saving
+│   ├── organizer.html                # Manage collaborators
+│   ├── accept-invite.html            # Accept a share invite
+│   ├── profile.html                  # Account settings
+│   ├── admin.html                    # Admin console
+│   ├── config.js                     # API base URL (auto-switches local/prod)
+│   ├── app.js                        # Trip + checklist logic
+│   ├── auth.js, ui.js                # Auth state + toasts/confirm dialogs
+│   ├── nav-menu.js                   # Hamburger / desktop nav
+│   ├── dashboard-light.{js,css}      # Dashboard hero rotation + theme
+│   ├── admin.js                      # Admin console logic
+│   └── assets/hero/                  # Rotating hero photos
+│
+├── aws-configs/                      # CloudFront distribution configs
+│   ├── cf-frontend.json              # S3 → CloudFront
+│   └── cf-backend.json               # EB → CloudFront
+│
+├── deploy.sh                         # One-command deploy script
+├── .env.example                      # Root env template (full reference)
 └── README.md
 ```
 
-## Quick Start
+## Local Development
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
-- MongoDB (local or MongoDB Atlas)
+- **Node.js** 18+ (current LTS)
+- **AWS account** with credentials in `~/.aws/credentials` or env vars (the backend talks to DynamoDB even in dev — there is no local DB fallback)
+- **DynamoDB tables** named `TrailPack-Trips` and `TrailPack-Users` in `us-east-1` (or override via env vars)
+- **`aws` CLI** for the deploy script
+- **`eb` CLI** for backend deploys: `pip install --user awsebcli`
 
-### Backend Setup
+### 1. Clone and install
 
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
+```bash
+git clone https://github.com/Shrey3008/TrailPack---Smart-Camping-Trip-Planner.git
+cd TrailPack---Smart-Camping-Trip-Planner/backend
+npm install
+```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 2. Configure environment
 
-3. Create a `.env` file (copy from `.env.example`):
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+cp .env.example .env
+# Open .env and fill in:
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
+#   JWT_SECRET           (any random 32+ char string for dev)
+#   GROQ_API_KEY         (optional — enables AI gear suggestions)
+#   WEATHER_API_KEY      (optional — only for legacy OpenWeather features)
+```
 
-4. Update `.env` with your MongoDB connection string:
-   ```
-   MONGODB_URI=mongodb://localhost:27017/trailpack
-   PORT=3000
-   ```
+The full annotated reference lives in the **root** `.env.example` — it documents every supported variable across CORS, AWS, email, AI, and weather.
 
-5. Start the server:
-   ```bash
-   npm start
-   # or for development with auto-restart:
-   npm run dev
-   ```
+### 3. Run the backend
 
-### Frontend Setup
+```bash
+# from /backend
+npm run dev          # nodemon, auto-restart on file changes
+# or
+npm start            # plain node
+```
 
-The frontend is static HTML/CSS/JavaScript. You can:
+Backend listens on `http://localhost:3000`.
 
-1. Open the `frontend/index.html` file directly in a browser
-2. Or use a local server like Live Server in VS Code
+### 4. Serve the frontend
 
-**Note**: The frontend expects the backend to be running on `http://localhost:3000`
+The frontend is fully static. Any local web server works:
 
-## API Endpoints
+```bash
+# from repo root
+cd frontend
+python3 -m http.server 8080
+# or use the VS Code "Live Server" extension
+```
 
-### Trips
-- `POST /trips` - Create a new trip (auto-generates checklist)
-- `GET /trips` - Get all trips
-- `GET /trips/:id` - Get a specific trip
-- `DELETE /trips/:id` - Delete a trip and its checklist
+Open `http://localhost:8080/login.html`.
 
-### Checklist Items
-- `GET /trips/:id/items` - Get all items for a trip
-- `POST /items` - Add a custom item
-- `PUT /items/:id` - Update packed status
-- `DELETE /items/:id` - Delete an item
+`config.js` auto-detects `localhost` and points API calls to `http://localhost:3000`. In production builds it points to the backend CloudFront URL — no manual switch needed.
 
-## Checklist Generation Rules
+### 5. Run tests
 
-### Base Items (All Trips)
-- Backpack
-- Water bottle
-- First aid kit
-- Flashlight/Headlamp
-- Whistle
-- Map and compass
+```bash
+cd backend
+npm test
+```
 
-### Terrain Rules
-- **Mountain**: Hiking boots, warm layers, trekking poles
-- **Forest**: Bug spray, tarp, long pants
-- **Desert**: Extra water containers, sun hat, sunscreen, sunglasses
-
-### Season Rules
-- **Winter**: Winter jacket, gloves, warm hat, insulated sleeping bag
-- **Summer**: Lightweight clothing, cooling towel, lightweight tent
-- **Fall/Spring**: Layered clothing, rain jacket, warm sleeping bag/waterproof boots
-
-### Duration Rules
-- **1+ days**: Tent, sleeping pad, camping stove, food supplies
-- **3+ days**: Extra batteries, water purification tablets, multi-tool
-
-## Live Demo
-
-- **Frontend:** http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com
-- **Backend:** http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com
-- **AWS Region:** us-east-1
-
-## Features
-
-### Core Features
-- User authentication (JWT-based)
-- Create and manage camping trips
-- Smart checklist generation based on terrain, season, and duration
-- Interactive packing checklist with progress tracking
-
-### Phase 2 Features
-- Trip status management (Planning → Active → Completed/Cancelled)
-- Progress bars with visual indicators
-- Status badges and action buttons
-
-### Phase 3 Features (Organizer Role - Trip Sharing)
-- **Trip Sharing:** Share trips with other users via email
-- **Role Management:** Assign participants as "Organizer" or "Participant"
-- **Collaborative Checklist:** Multiple users can check items, see who packed what
-- **Shared Trips Dashboard:** View trips shared with you in a dedicated section
-- **Activity Tracking:** Backend tracks who packed each item and when
+Jest runs the full route + service suite. Tests use stubbed AWS env vars so they don't hit real DynamoDB.
 
 ## Deployment
 
-### Backend (AWS Elastic Beanstalk)
-Current deployment: `trailpack-prod-env-v2`
+A single script handles everything:
+
+```bash
+./deploy.sh             # backend (EB) + frontend (S3) + CloudFront invalidations
+./deploy.sh frontend    # frontend only
+./deploy.sh backend     # backend only
+```
+
+The script:
+
+1. Runs `eb deploy trailpack-prod-env-v2` from `backend/`
+2. Syncs `frontend/` to `s3://trailpack-frontend-173480719972/` (excludes `_originals/`, backups, logs, `.DS_Store`)
+3. Submits CloudFront invalidations for both distributions
+4. Prints all public URLs at the end
+
+### AWS architecture
+
+```
+                    ┌────────────────────────────┐
+   browser ──HTTPS──▶│  CloudFront  d1lo74...     │──▶ S3 static site
+                    └────────────────────────────┘     (frontend bucket)
+                    
+                    ┌────────────────────────────┐
+   browser ──HTTPS──▶│  CloudFront  dk4c01...     │──▶ Elastic Beanstalk
+                    │  (caching disabled — API)  │     (Node.js API)
+                    └────────────────────────────┘            │
+                                                              ▼
+                                                    ┌──────────────────┐
+                                                    │     DynamoDB     │
+                                                    │ TrailPack-Trips  │
+                                                    │ TrailPack-Users  │
+                                                    └──────────────────┘
+                                                              │
+                                                              ▼
+                                                          AWS SES
+                                                       (transactional email)
+```
+
+| Component | AWS resource |
+|---|---|
+| Frontend hosting | S3 bucket `trailpack-frontend-173480719972` (static website) |
+| Frontend CDN | CloudFront `E2DQVML6TDR39D` → `d1lo74lzwr0k57.cloudfront.net` |
+| Backend hosting | Elastic Beanstalk env `trailpack-prod-env-v2` (single t2.micro / t3.micro) |
+| Backend CDN | CloudFront `E1A4XC62OW633P` → `dk4c01g0h1v43.cloudfront.net` (caching disabled) |
+| Database | DynamoDB tables `TrailPack-Trips` and `TrailPack-Users` |
+| Email | AWS SES (`us-east-1`) |
+
+Free-tier footprint: well under all limits (CloudFront 1 TB out + 10M req/mo are perpetually free; EB on a single micro instance is free for 12 months; DynamoDB 25 GB + 25 RCU/WCU always free; SES 200 emails/day from EC2 always free).
+
+### CORS
+
+The backend allowlist is built from:
+
+1. Hardcoded production origins (S3 website + CloudFront frontend) in `backend/server.js`
+2. Anything in the `CORS_ALLOWED_ORIGINS` env var (comma-separated, supports `*.subdomain` wildcards)
+3. Localhost on any port (always allowed)
+
+To allow a new origin in production:
+
 ```bash
 cd backend
-eb deploy trailpack-prod-env-v2 --staged
+eb setenv CORS_ALLOWED_ORIGINS=https://your-new-origin.example.com
 ```
 
-### Frontend (AWS S3 Static Website)
-```bash
-aws s3 sync frontend s3://trailpack-frontend-173480719972 --delete
-```
+## API Reference (overview)
 
-### Database (AWS DynamoDB)
-Tables: `users`, `trips`, `items`
-Region: `us-east-1`
+All routes are mounted at the backend root. Auth-required routes need `Authorization: Bearer <jwt>`.
+
+### `auth`
+- `POST /auth/register` — create account
+- `POST /auth/login` — get JWT
+- `POST /auth/forgot-password` — email reset link
+- `POST /auth/reset-password` — consume reset token
+- `GET  /auth/me` — current user profile
+- `PUT  /auth/me` — update profile
+
+### `trips`
+- `GET    /trips` — list current user's trips
+- `POST   /trips` — create trip (auto-generates checklist)
+- `GET    /trips/:id` — trip details
+- `PUT    /trips/:id` — update trip
+- `DELETE /trips/:id` — delete trip + checklist
+- `PUT    /trips/:id/status` — change status
+- `GET    /trips/:id/items` — checklist
+- `GET    /trips/:id/recommendations` — gear suggestions
+- `POST   /trips/:id/ai-items` — AI gear suggestions (Groq)
+
+### `items`
+- `POST   /items` — add custom item
+- `PUT    /items/:id` — toggle packed / edit
+- `DELETE /items/:id` — remove item
+
+### `shared-trips`
+- `GET    /shared-trips/mine` — trips shared with me
+- `POST   /shared-trips/:tripId/invite` — send invite email
+- `POST   /shared-trips/accept/:token` — accept invite
+- (collaborator + role management routes)
+
+### `weather`
+- `GET    /weather?lat=&lon=&start=&end=` — Open-Meteo forecast
+
+### `notifications`
+- `GET    /notifications` — list current user's notifications
+- (mark-read, scheduling helpers)
+
+### `admin` (admin role only)
+- `GET    /admin/users` — list users
+- `GET    /admin/stats` — system stats
+- `PUT    /admin/users/:userId/role` — change role (`user` / `organizer` / `admin`)
+- `PUT    /admin/users/:userId/status` — toggle active flag (legacy)
+- `DELETE /admin/users/:userId` — permanently delete account
+- `POST   /admin/setup` — promote current user to admin (bootstrap)
+
+## Checklist Generation Rules
+
+The smart-checklist engine starts from a base list and adds items per terrain, season, and duration. The full rule set lives in `backend/services/checklistService.js`. Summary:
+
+- **Base** (every trip): backpack, water bottle, first aid kit, headlamp, whistle, map & compass
+- **Mountain**: hiking boots, warm layers, trekking poles
+- **Forest**: bug spray, tarp, long pants
+- **Desert**: extra water, sun hat, sunscreen, sunglasses
+- **Winter**: winter jacket, gloves, warm hat, insulated sleeping bag
+- **Summer**: lightweight clothing, cooling towel, lightweight tent
+- **Fall / Spring**: layered clothing, rain jacket, warm sleeping bag, waterproof boots
+- **1+ nights**: tent, sleeping pad, camping stove, food supplies
+- **3+ nights**: extra batteries, water purification tablets, multi-tool
 
 ## Author
 
-**Patel Hetvi**
+**Hetvi Patel** — original author and primary developer.
 
 ## License
 
