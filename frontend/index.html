@@ -45,9 +45,13 @@ a:hover{color:var(--green-dark)}
 .navbar{background:var(--bg-navbar);border-bottom:1px solid var(--border);
   padding:14px 32px;display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;z-index:10}
-.brand{font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:24px;
-  color:var(--green);text-decoration:none;letter-spacing:-.02em}
-.brand .leaf{display:inline-block;transform:translateY(2px);margin-right:4px}
+.brand{display:inline-flex;align-items:center;gap:10px;
+  font-family:'Playfair Display',Georgia,serif;font-weight:700;font-size:24px;
+  color:var(--green);text-decoration:none;letter-spacing:-.02em;line-height:1}
+.brand-mark{display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:9px;background:var(--green-pale);
+  border:1px solid rgba(45,106,79,.18)}
+.brand-mark svg{display:block}
 .nav-links{display:flex;gap:28px;align-items:center;font-weight:500;font-size:14.5px}
 .nav-links a{color:var(--text-secondary);transition:color .15s}
 .nav-links a:hover,.nav-links a.active{color:var(--green)}
@@ -285,7 +289,15 @@ a:hover{color:var(--green-dark)}
 
 <!-- ============================ NAVBAR ============================ -->
 <nav class="navbar">
-  <a href="#" class="brand"><span class="leaf">&#127794;</span> TrailPack</a>
+  <a href="#" class="brand" aria-label="TrailPack home">
+    <span class="brand-mark" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 20L9 9L13 15L16 11L21 20H3Z" fill="#52B788" stroke="#52B788" stroke-width="1.2" stroke-linejoin="round"/>
+        <circle cx="16.5" cy="6.5" r="1.6" fill="#52B788"/>
+      </svg>
+    </span>
+    <span class="brand-text">TrailPack</span>
+  </a>
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#how">How it works</a>
@@ -482,7 +494,7 @@ a:hover{color:var(--green-dark)}
       <div class="tier-name">Pro</div>
       <div class="tier-tagline">For serious backpackers and frequent campers.</div>
       <div class="tier-price">
-        <span class="amount" id="price-pro">$4.99</span>
+        <span class="amount" id="price-pro">$9.99</span>
         <span class="period" id="period-pro">/ month</span>
       </div>
       <div class="tier-billed" id="billed-pro">Billed monthly &middot; cancel anytime</div>
@@ -503,7 +515,7 @@ a:hover{color:var(--green-dark)}
       <div class="tier-name">Group</div>
       <div class="tier-tagline">For trip leaders, scout troops, and outdoor clubs.</div>
       <div class="tier-price">
-        <span class="amount" id="price-group">$9.99</span>
+        <span class="amount" id="price-group">$19.99</span>
         <span class="period" id="period-group">/ month</span>
       </div>
       <div class="tier-billed" id="billed-group">Billed monthly &middot; cancel anytime</div>
@@ -653,19 +665,19 @@ function setBilling(period) {
   if (period === 'annual') {
     monthlyBtn.classList.remove('active');
     annualBtn.classList.add('active');
-    pricePro.textContent = '$3.99';
+    pricePro.textContent = '$7.99';
     periodPro.textContent = '/ month';
-    billedPro.innerHTML = 'Billed annually ($47.88) &middot; save $12 / yr';
-    priceGroup.textContent = '$7.99';
+    billedPro.innerHTML = 'Billed annually ($95.88) &middot; save $24 / yr';
+    priceGroup.textContent = '$16.99';
     periodGroup.textContent = '/ month';
-    billedGroup.innerHTML = 'Billed annually ($95.88) &middot; save $24 / yr';
+    billedGroup.innerHTML = 'Billed annually ($203.88) &middot; save $36 / yr';
   } else {
     monthlyBtn.classList.add('active');
     annualBtn.classList.remove('active');
-    pricePro.textContent = '$4.99';
+    pricePro.textContent = '$9.99';
     periodPro.textContent = '/ month';
     billedPro.innerHTML = 'Billed monthly &middot; cancel anytime';
-    priceGroup.textContent = '$9.99';
+    priceGroup.textContent = '$19.99';
     periodGroup.textContent = '/ month';
     billedGroup.innerHTML = 'Billed monthly &middot; cancel anytime';
   }
