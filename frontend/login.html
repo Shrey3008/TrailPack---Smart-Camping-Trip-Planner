@@ -703,7 +703,7 @@
         // Honor ?next=<relative path> so flows like /accept-invite can round-trip through login.
         const next = new URLSearchParams(window.location.search).get('next');
         const isSafeNext = typeof next === 'string' && next.startsWith('/') && !next.startsWith('//');
-        window.location.href = isSafeNext ? next : 'index.html';
+        window.location.href = isSafeNext ? next : 'dashboard.html';
 
       } catch (error) {
         errorDiv.textContent = error.message || 'Invalid email or password';

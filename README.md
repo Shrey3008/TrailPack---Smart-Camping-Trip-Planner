@@ -4,11 +4,12 @@ A web app that helps campers and backpackers plan trips by generating smart pack
 
 ## Live Demo
 
-- **Frontend (HTTPS):** https://d1lo74lzwr0k57.cloudfront.net/
+- **Public landing page:** https://d1lo74lzwr0k57.cloudfront.net/
+- **Dashboard (post-login):** https://d1lo74lzwr0k57.cloudfront.net/dashboard.html
 - **Backend API (HTTPS):** https://dk4c01g0h1v43.cloudfront.net/
 - **Region:** `us-east-1`
 
-The frontend and backend are both served via Amazon CloudFront for HTTPS and edge caching. The S3 and Elastic Beanstalk endpoints below still work (HTTP) but the CloudFront URLs are the canonical ones.
+The bare URL serves a marketing landing page (hero, features, pricing, FAQ). Logged-in users are auto-redirected to the dashboard. The frontend and backend are both served via Amazon CloudFront for HTTPS and edge caching. The S3 and Elastic Beanstalk endpoints below still work (HTTP) but the CloudFront URLs are the canonical ones.
 
 <details><summary>Origin endpoints (used internally by CloudFront)</summary>
 
@@ -81,9 +82,13 @@ TrailPack/
 │   └── .env.example                  # Backend env template
 │
 ├── frontend/                         # Static site
+│   ├── index.html                    # Public landing page (hero, features,
+│   │                                   pricing, FAQ) — redirects logged-in
+│   │                                   users to dashboard.html
+│   ├── dashboard.html                # Authenticated dashboard (hero rotation,
+│   │                                   trip stats, recent trips)
 │   ├── login.html, register.html,
 │   │ forgot-password.html            # Auth pages
-│   ├── index.html                    # Dashboard (rotating hero + stats)
 │   ├── my-trips.html                 # Full trips list with filters
 │   ├── create-trip.html              # Plan a new trip
 │   ├── checklist.html                # Active checklist view

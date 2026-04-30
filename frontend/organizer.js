@@ -7,7 +7,7 @@ function checkOrganizerAccess() {
     (window.showToast
       ? window.showToast('Organizer privileges required.', 'error')
       : alert('Access denied. Organizer privileges required.'));
-    setTimeout(() => { window.location.href = 'index.html'; }, 700);
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 700);
     return false;
   }
   return true;

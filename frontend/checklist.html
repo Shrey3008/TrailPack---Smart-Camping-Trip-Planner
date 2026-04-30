@@ -2266,7 +2266,7 @@
       <h1 class="brand-text">TrailPack</h1>
     </div>
     <div class="nav-user">
-      <a href="index.html" class="btn">← Back to Dashboard</a>
+      <a href="dashboard.html" class="btn">← Back to Dashboard</a>
       <a href="profile.html" class="btn">Profile</a>
       <a href="organizer.html" class="btn">Organizer</a>
       <button id="logout-btn" class="btn btn-logout" type="button">Logout</button>
@@ -2571,7 +2571,7 @@
           tripId = pending;
           sessionStorage.removeItem('pendingTripId');
         } else {
-          window.location.href = 'index.html';
+          window.location.href = 'dashboard.html';
           return;
         }
       }
@@ -3204,7 +3204,7 @@
             method: 'PUT',
             body: JSON.stringify({ status: 'active' }),
           });
-          window.location.href = 'index.html';
+          window.location.href = 'dashboard.html';
         } catch (err) {
           tpAlert('Could not start trip: ' + err.message, { variant: 'danger', title: "Couldn't start trip" });
           btn.disabled = false;
@@ -3223,7 +3223,7 @@
         btn.disabled = true;
         try {
           await api('/trips/' + tripId, { method: 'DELETE' });
-          window.location.href = 'index.html';
+          window.location.href = 'dashboard.html';
         } catch (err) {
           tpAlert('Could not cancel trip: ' + err.message, { variant: 'danger', title: "Couldn't cancel trip" });
           btn.disabled = false;

@@ -15,11 +15,18 @@
           "HTTPPort": 80,
           "HTTPSPort": 443,
           "OriginProtocolPolicy": "http-only",
-          "OriginSslProtocols": { "Quantity": 1, "Items": ["TLSv1.2"] },
+          "OriginSslProtocols": {
+            "Quantity": 1,
+            "Items": [
+              "TLSv1.2"
+            ]
+          },
           "OriginReadTimeout": 30,
           "OriginKeepaliveTimeout": 5
         },
-        "CustomHeaders": { "Quantity": 0 },
+        "CustomHeaders": {
+          "Quantity": 0
+        },
         "OriginPath": "",
         "ConnectionAttempts": 3,
         "ConnectionTimeout": 10
@@ -31,23 +38,42 @@
     "ViewerProtocolPolicy": "redirect-to-https",
     "AllowedMethods": {
       "Quantity": 2,
-      "Items": ["GET","HEAD"],
-      "CachedMethods": { "Quantity": 2, "Items": ["GET","HEAD"] }
+      "Items": [
+        "GET",
+        "HEAD"
+      ],
+      "CachedMethods": {
+        "Quantity": 2,
+        "Items": [
+          "GET",
+          "HEAD"
+        ]
+      }
     },
     "Compress": true,
     "CachePolicyId": "658327ea-f89d-4fab-a63d-7e88639e58f6"
   },
-  "DefaultRootObject": "login.html",
+  "DefaultRootObject": "index.html",
   "CustomErrorResponses": {
     "Quantity": 1,
     "Items": [
-      { "ErrorCode": 403, "ResponsePagePath": "/login.html", "ResponseCode": "200", "ErrorCachingMinTTL": 10 }
+      {
+        "ErrorCode": 403,
+        "ResponsePagePath": "/login.html",
+        "ResponseCode": "200",
+        "ErrorCachingMinTTL": 10
+      }
     ]
   },
   "ViewerCertificate": {
     "CloudFrontDefaultCertificate": true,
     "MinimumProtocolVersion": "TLSv1.2_2021"
   },
-  "Restrictions": { "GeoRestriction": { "RestrictionType": "none", "Quantity": 0 } },
+  "Restrictions": {
+    "GeoRestriction": {
+      "RestrictionType": "none",
+      "Quantity": 0
+    }
+  },
   "WebACLId": ""
 }

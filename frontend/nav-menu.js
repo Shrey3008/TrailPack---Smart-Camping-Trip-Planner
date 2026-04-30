@@ -274,7 +274,7 @@
     try {
       const path = (window.location.pathname || '').split(/[?#]/)[0];
       const last = path.split('/').filter(Boolean).pop() || '';
-      if (!last || !/\.html?$/i.test(last)) return 'index.html';
+      if (!last || !/\.html?$/i.test(last)) return 'dashboard.html';
       return last.toLowerCase();
     } catch (_) { return ''; }
   }
@@ -282,7 +282,7 @@
     if (!href) return '';
     const url = String(href).split(/[?#]/)[0];
     const last = url.split('/').filter(Boolean).pop() || '';
-    if (!last) return 'index.html';
+    if (!last) return 'dashboard.html';
     return last.toLowerCase();
   }
   function isCurrentPageHref(href) {
@@ -348,7 +348,7 @@
       brand.setAttribute('role', 'link');
       brand.setAttribute('tabindex', '0');
       brand.setAttribute('aria-label', 'TrailPack — go to dashboard');
-      const goHome = () => { window.location.href = 'index.html'; };
+      const goHome = () => { window.location.href = 'dashboard.html'; };
       brand.addEventListener('click', (e) => {
         // Don't hijack clicks on existing inner anchors/buttons.
         if (e.target.closest('a, button')) return;
