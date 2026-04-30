@@ -3063,9 +3063,13 @@
           submitBtn.disabled = true;
           submitBtn.textContent = '…';
           try {
-            const created = await api('/trips/' + tripId + '/items', {
+            // Backend exposes the create-item route at POST /items (server.js
+            // mounts items.js at both /trips and /items, but only /items has
+            // the matching `router.post('/')` route). The tripId travels in
+            // the body — that's what backend/routes/items.js validates.
+            const created = await api('/items', {
               method: 'POST',
-              body: JSON.stringify({ name, category }),
+              body: JSON.stringify({ tripId, name, category }),
             });
             const newItem = (created && created.item) || created;
             if (newItem && newItem.itemId) {
