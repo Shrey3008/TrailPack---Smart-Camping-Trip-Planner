@@ -1940,6 +1940,72 @@
       border-radius: 9999px; transition: width .4s ease;
     }
     .ct-prog-pct { font-size: .82rem; color: var(--hc-muted, #6b7280); white-space: nowrap; }
+
+    /* ===== Auto-save indicator ===== */
+    /* Lives in the progress row. Toggles between four states via JS:
+       data-state="idle"    : completely invisible (initial load)
+       data-state="saving"  : shows a tiny spinner + "Saving…"
+       data-state="saved"   : shows a green check + "All changes saved"
+       data-state="error"   : shows a red dot + "Couldn't save — retrying"
+       The 'saved' state auto-fades out after a short delay so it doesn't
+       compete with the rest of the UI for attention. */
+    .ct-saved {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--hc-muted, #6b7280);
+      white-space: nowrap;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: transparent;
+      border: 1px solid transparent;
+      opacity: 0;
+      transform: translateY(-2px);
+      transition: opacity .25s ease, transform .25s ease,
+                  background-color .25s ease, color .25s ease, border-color .25s ease;
+      pointer-events: none;
+      user-select: none;
+    }
+    .ct-saved[data-state="saving"],
+    .ct-saved[data-state="saved"],
+    .ct-saved[data-state="error"] {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .ct-saved[data-state="saving"] {
+      color: var(--hc-muted, #6b7280);
+      background: #f4f4f0;
+      border-color: #e8e8e4;
+    }
+    .ct-saved[data-state="saved"] {
+      color: #15803d;
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+    .ct-saved[data-state="error"] {
+      color: #b91c1c;
+      background: #fef2f2;
+      border-color: #fecaca;
+    }
+    .ct-saved__icon {
+      width: 12px; height: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ct-saved[data-state="saving"] .ct-saved__icon {
+      width: 11px; height: 11px;
+      border: 1.5px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: ct-saved-spin .7s linear infinite;
+    }
+    @keyframes ct-saved-spin { to { transform: rotate(360deg); } }
+    /* Hide the icon container when idle so the empty span doesn't add width. */
+    .ct-saved[data-state="idle"] .ct-saved__icon { display: none; }
     .ct-tabs {
       display: flex; gap: 0; flex: 1;
       overflow-x: auto; scrollbar-width: none;
@@ -2306,6 +2372,13 @@
         <span class="ct-prog-label"><b id="ct-prog-packed">0</b> / <span id="ct-prog-total">0</span> packed</span>
         <div class="ct-prog-bar"><div class="ct-prog-fill" id="ct-prog-fill" style="width:0%"></div></div>
         <span class="ct-prog-pct" id="ct-prog-pct">0%</span>
+        <!-- Auto-save indicator. Driven by the api() wrapper below. Tells
+             users their progress is persisted so they can navigate away
+             confidently without needing a manual Save button. -->
+        <span class="ct-saved" id="ct-saved" data-state="idle" role="status" aria-live="polite">
+          <span class="ct-saved__icon" aria-hidden="true"></span>
+          <span class="ct-saved__label">All changes saved</span>
+        </span>
       </div>
       <div class="ct-tabs" id="ct-tabs" role="tablist">
         <button class="ct-tab is-active" type="button" data-filter="all">All</button>
@@ -2576,30 +2649,85 @@
         }
       }
 
-      /* ---------- API wrapper ---------- */
-      const api = async (path, options = {}) => {
-        const res = await fetch(API_URL + path, {
-          ...options,
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json',
-            ...(options.headers || {}),
+      /* ---------- Auto-save indicator helpers ----------
+         These drive the small pill next to the progress bar. Any non-GET
+         request through api() automatically flips the pill to "Saving…",
+         then either "All changes saved" on success or "Couldn't save—
+         retrying" on failure. Pure visual sugar — the actual save semantics
+         are unchanged. */
+      const saveIndicator = (() => {
+        const el = document.getElementById('ct-saved');
+        const label = el ? el.querySelector('.ct-saved__label') : null;
+        let inFlight = 0;        // concurrent save count
+        let savedHideTimer = null;
+
+        const setState = (state, text) => {
+          if (!el) return;
+          el.setAttribute('data-state', state);
+          if (label && text) label.textContent = text;
+        };
+
+        return {
+          start() {
+            inFlight += 1;
+            if (savedHideTimer) { clearTimeout(savedHideTimer); savedHideTimer = null; }
+            setState('saving', 'Saving…');
           },
-        });
-        if (res.status === 401) {
-          sessionStorage.removeItem('authToken');
-          window.location.href = 'login.html';
-          throw new Error('unauthorized');
+          done() {
+            inFlight = Math.max(0, inFlight - 1);
+            // Only flip to "saved" once every concurrent request has settled.
+            if (inFlight > 0) return;
+            setState('saved', 'All changes saved');
+            if (savedHideTimer) clearTimeout(savedHideTimer);
+            savedHideTimer = setTimeout(() => setState('idle', 'All changes saved'), 2200);
+          },
+          fail() {
+            inFlight = Math.max(0, inFlight - 1);
+            if (savedHideTimer) { clearTimeout(savedHideTimer); savedHideTimer = null; }
+            setState('error', "Couldn't save — retry");
+          },
+        };
+      })();
+
+      /* ---------- API wrapper ----------
+         Every non-GET request (PATCH / POST / PUT / DELETE) is treated as a
+         save and drives the auto-save indicator. GET requests don't — they
+         are reads, not user-initiated mutations. */
+      const api = async (path, options = {}) => {
+        const method = (options.method || 'GET').toUpperCase();
+        const isMutation = method !== 'GET';
+        if (isMutation) saveIndicator.start();
+        try {
+          const res = await fetch(API_URL + path, {
+            ...options,
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json',
+              ...(options.headers || {}),
+            },
+          });
+          if (res.status === 401) {
+            sessionStorage.removeItem('authToken');
+            window.location.href = 'login.html';
+            throw new Error('unauthorized');
+          }
+          if (res.status === 204) {
+            if (isMutation) saveIndicator.done();
+            return null;
+          }
+          const text = await res.text();
+          let data = null;
+          try { data = text ? JSON.parse(text) : null; } catch { /* non-JSON */ }
+          if (!res.ok) {
+            const msg = (data && data.message) || ('HTTP ' + res.status);
+            throw new Error(msg);
+          }
+          if (isMutation) saveIndicator.done();
+          return data;
+        } catch (err) {
+          if (isMutation) saveIndicator.fail();
+          throw err;
         }
-        if (res.status === 204) return null;
-        const text = await res.text();
-        let data = null;
-        try { data = text ? JSON.parse(text) : null; } catch { /* non-JSON */ }
-        if (!res.ok) {
-          const msg = (data && data.message) || ('HTTP ' + res.status);
-          throw new Error(msg);
-        }
-        return data;
       };
 
       /* ---------- State ---------- */
