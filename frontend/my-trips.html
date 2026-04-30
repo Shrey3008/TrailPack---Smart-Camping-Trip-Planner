@@ -23,7 +23,7 @@
        .empty-state, the Create Trip modal, etc. -->
   <link rel="stylesheet" href="dashboard-light.css">
 </head>
-<body class="dash-light">
+<body class="dash-light my-trips">
   <!-- Page-local styling: search/sort row above the filter tabs.
        Visuals tuned to match the dashboard's filter-tab + pill aesthetic. -->
   <style>
@@ -93,6 +93,151 @@
       outline: none;
       border-color: var(--green);
       box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+    }
+
+    /* ====================================================================
+       My Trips — compact card redesign.
+       Scoped to body.my-trips so the home dashboard's trip cards stay
+       exactly as they are. Each rule overrides the shared dashboard-light
+       .trip-card baseline with higher specificity (and `!important` since
+       the base file uses `!important` heavily).
+       ==================================================================== */
+
+    /* Responsive grid: 3 cols desktop → 2 cols tablet → 1 col mobile. */
+    body.my-trips .trips-grid {
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 18px !important;
+    }
+    @media (max-width: 1024px) {
+      body.my-trips .trips-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (max-width: 640px) {
+      body.my-trips .trips-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+      }
+    }
+
+    /* Tighter card chrome. */
+    body.my-trips .trip-card { border-radius: 12px !important; }
+    body.my-trips .tp-card-photo { aspect-ratio: 16 / 9 !important; }
+
+    /* Pull the inner edges in (was 20px on every side). */
+    body.my-trips .trip-card > h3,
+    body.my-trips .trip-card > .trip-meta,
+    body.my-trips .trip-card > .trip-date,
+    body.my-trips .trip-card > .tp-progress-block,
+    body.my-trips .trip-card > .trip-actions {
+      padding-left: 16px !important;
+      padding-right: 16px !important;
+    }
+
+    /* Heading: smaller, tighter top margin. */
+    body.my-trips .trip-card > h3 {
+      padding-top: 12px !important;
+      margin: 0 0 6px !important;
+      font-size: 1rem !important;
+      line-height: 1.3 !important;
+    }
+
+    /* Meta badges: smaller pills, smaller gap. */
+    body.my-trips .trip-card > .trip-meta {
+      margin: 0 !important;
+      padding-top: 0 !important;
+      padding-bottom: 4px !important;
+      gap: 5px !important;
+    }
+    body.my-trips .trip-card .trip-meta .trip-badge {
+      font-size: 0.7rem !important;
+      padding: 2px 8px !important;
+      line-height: 1.55 !important;
+    }
+
+    /* Date row — calendar icon + range text on a single line. */
+    body.my-trips .trip-card > .trip-date {
+      padding-top: 6px !important;
+      padding-bottom: 0 !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      font-size: 0.78rem !important;
+      color: #6b7280 !important;
+    }
+    body.my-trips .trip-card > .trip-date svg {
+      flex-shrink: 0;
+      color: #9ca3af;
+    }
+
+    /* Progress block — inserted by dashboard-light.js enhanceCard().
+       Tighten the spacing so it doesn't dominate the compact card. */
+    body.my-trips .trip-card > .tp-progress-block {
+      padding-top: 8px !important;
+      padding-bottom: 10px !important;
+      gap: 5px !important;
+    }
+    body.my-trips .trip-card .tp-progress-label { font-size: 0.74rem !important; }
+    body.my-trips .trip-card .tp-progress-bar  { height: 5px !important; }
+
+    /* ===== Footer action row =====
+       Switch from the legacy stacked layout (full-width primary + tiny
+       text Delete underneath) to a clean side-by-side row. Same buttons,
+       same handlers, same labels — just resized and aligned. */
+    body.my-trips .trip-card > .trip-actions {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: stretch !important;
+      gap: 8px !important;
+      padding-top: 6px !important;
+      padding-bottom: 14px !important;
+      margin-top: auto !important;
+    }
+    body.my-trips .trip-card .trip-actions .btn {
+      flex: 1 1 0 !important;
+      width: auto !important;
+      padding: 8px 12px !important;
+      font-size: 0.82rem !important;
+      font-weight: 600 !important;
+      border-radius: 8px !important;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease,
+                  border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    /* View Checklist — takes the lion's share, stays the primary CTA. */
+    body.my-trips .trip-card .trip-actions .btn.btn-primary {
+      flex: 2 1 0 !important;
+      background: var(--green) !important;
+      color: #ffffff !important;
+      border: 0 !important;
+      box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
+    }
+    body.my-trips .trip-card .trip-actions .btn.btn-primary:hover {
+      background: var(--green-light) !important;
+      box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
+    }
+    /* Delete Trip — same button as before, restyled as a compact danger
+       outline so it still reads destructive but doesn't fight the primary. */
+    body.my-trips .trip-card .trip-actions .btn.btn-danger {
+      flex: 1 1 0 !important;
+      align-self: stretch !important;
+      background: #ffffff !important;
+      color: #dc2626 !important;
+      border: 1px solid #fecaca !important;
+      box-shadow: none !important;
+      text-decoration: none !important;
+    }
+    body.my-trips .trip-card .trip-actions .btn.btn-danger:hover {
+      background: #fef2f2 !important;
+      color: #b91c1c !important;
+      border-color: #fca5a5 !important;
+      text-decoration: none !important;
+    }
+
+    /* On very narrow phones the row would crowd — stack so each button
+       is still a comfortable tap target. */
+    @media (max-width: 380px) {
+      body.my-trips .trip-card > .trip-actions { flex-direction: column !important; }
+      body.my-trips .trip-card .trip-actions .btn { flex: 0 0 auto !important; }
     }
   </style>
 

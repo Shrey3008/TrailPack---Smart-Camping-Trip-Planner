@@ -119,6 +119,57 @@ async function loadStats() {
   }
 }
 
+/* ----------------------------------------------------------------
+   formatTripRange(trip)
+   Renders the trip's date row used on every card.
+     - Both startDate + endDate present  -> "May 1 – 6, 2026" (same
+       month) or "Apr 28 – May 3, 2026" (cross-month).
+     - Only startDate                    -> "Starts May 1, 2026".
+     - Neither                           -> falls back to created date
+       (keeps backwards compatibility with older trips).
+   Stays a pure helper so loadTrips + loadSharedTrips can both reuse
+   it without any backend changes.
+   ---------------------------------------------------------------- */
+function formatTripRange(trip) {
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const parseLocal = (iso) => {
+    if (!iso || typeof iso !== 'string') return null;
+    // ISO date strings like "2026-05-01" must be parsed as local dates,
+    // not UTC, so the day doesn't drift across timezones.
+    const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) {
+      const d = new Date(iso);
+      return isNaN(d) ? null : d;
+    }
+    return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  };
+
+  const start = parseLocal(trip && trip.startDate);
+  const end   = parseLocal(trip && trip.endDate);
+
+  if (start && end) {
+    const sameYear  = start.getFullYear() === end.getFullYear();
+    const sameMonth = sameYear && start.getMonth() === end.getMonth();
+    if (sameMonth) {
+      return `${MONTHS[start.getMonth()]} ${start.getDate()} \u2013 ${end.getDate()}, ${end.getFullYear()}`;
+    }
+    if (sameYear) {
+      return `${MONTHS[start.getMonth()]} ${start.getDate()} \u2013 ${MONTHS[end.getMonth()]} ${end.getDate()}, ${end.getFullYear()}`;
+    }
+    return `${MONTHS[start.getMonth()]} ${start.getDate()}, ${start.getFullYear()} \u2013 ${MONTHS[end.getMonth()]} ${end.getDate()}, ${end.getFullYear()}`;
+  }
+
+  if (start) {
+    return `Starts ${MONTHS[start.getMonth()]} ${start.getDate()}, ${start.getFullYear()}`;
+  }
+
+  // Fallback for legacy trips with no start/end yet.
+  if (trip && trip.createdAt) {
+    return `Created ${new Date(trip.createdAt).toLocaleDateString()}`;
+  }
+  return '';
+}
+
 // Load all trips for dashboard (for backwards compatibility)
 async function loadTrips() {
   const container = document.getElementById('trips-container');
@@ -151,14 +202,15 @@ async function loadTrips() {
           <span class="trip-badge">${trip.duration} days</span>
         </div>
         <div class="trip-date">
-          Created: ${new Date(trip.createdAt).toLocaleDateString()}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>${escapeHtml(formatTripRange(trip))}</span>
         </div>
         <div class="trip-actions">
           <button class="btn btn-primary" onclick="event.stopPropagation(); viewChecklist('${trip.tripId}')">
             View Checklist
           </button>
           <button class="btn btn-danger" onclick="event.stopPropagation(); deleteTrip('${trip.tripId}')">
-            Delete
+            Delete Trip
           </button>
         </div>
       </div>
@@ -194,14 +246,15 @@ async function loadSharedTrips() {
     container.innerHTML = trips.map(trip => `
       <div class="trip-card" data-photo-index="${trip.photoIndex || 0}" onclick="viewChecklist('${trip.tripId}')">
         <h3>${escapeHtml(trip.name)}</h3>
+        <div class="trip-date">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>${escapeHtml(formatTripRange(trip))}</span>
+        </div>
         <div class="trip-meta">
           <span class="trip-badge">${escapeHtml(trip.terrain || '')}</span>
           ${renderSeasonBadge(trip.season)}
           <span class="trip-badge">${trip.duration || 0} days</span>
           <span class="trip-badge" style="background:#E8F5E9;color:#1B4332;">Collaborator</span>
-        </div>
-        <div class="trip-date">
-          Joined: ${trip.sharedSince ? new Date(trip.sharedSince).toLocaleDateString() : '—'}
         </div>
         <div class="trip-actions">
           <button class="btn btn-primary" onclick="event.stopPropagation(); viewChecklist('${trip.tripId}')">
