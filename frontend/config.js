@@ -12,7 +12,7 @@
   const queryOverride = new URLSearchParams(window.location.search).get('api');
 
   const DEFAULT_LOCAL = 'http://localhost:3000';
-  const DEFAULT_PROD = 'https://dk4c01g0h1v43.cloudfront.net';
+  const DEFAULT_PROD = 'https://trailpack-smart-camping-trip-planner.onrender.com';
 
   window.API_URL = queryOverride || metaOverride || (isLocalhost ? DEFAULT_LOCAL : DEFAULT_PROD);
 })();

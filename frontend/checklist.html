@@ -4029,9 +4029,9 @@
           const token = sessionStorage.getItem('authToken');
           const authHeaders = { 'Authorization': `Bearer ${token}` };
           // Resolve API base — prefer window.API_URL set by config.js,
-          // fall back to the prod EB CNAME so this works on the static
-          // S3 frontend even if config.js failed to load.
-          const WX_API_BASE = (window.API_URL || 'http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com').replace(/\/$/, '');
+          // fall back to the prod Render URL so this works on the static
+          // frontend even if config.js failed to load.
+          const WX_API_BASE = (window.API_URL || 'https://trailpack-smart-camping-trip-planner.onrender.com').replace(/\/$/, '');
           const tripRes = await fetch(`${WX_API_BASE}/trips/${tripId}`, {
             headers: authHeaders
           });
