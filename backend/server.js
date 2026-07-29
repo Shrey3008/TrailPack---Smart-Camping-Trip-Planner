@@ -2,26 +2,21 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
+const { connectDB } = require('./db');
 const notificationScheduler = require('./services/notificationScheduler');
-
-// DB handled via DynamoDB client in db.js
 
 const app = express();
 
 // CORS configuration
 // - Always allows requests with no Origin (e.g., same-origin, curl, server-to-server).
 // - Always allows localhost / 127.0.0.1 on any port for local development.
-// - Always allows the prod S3 static-site frontend (TrailPack's public UI),
-//   so the static site → EB backend flow works without env var configuration.
+// - Always allows any *.netlify.app subdomain (TrailPack's public UI on Netlify).
 // - Additional origins can be whitelisted via the CORS_ALLOWED_ORIGINS env var
 //   as a comma-separated list. Supports exact strings or a leading "*." wildcard
 //   to match any subdomain (e.g., "*.netlify.app,https://trailpack.com").
 const defaultOrigins = [
-  // S3 static-website endpoint that serves the production frontend.
-  'http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com',
-  // HTTPS variant in case the bucket is ever fronted by CloudFront/ACM at the
-  // same hostname pattern; harmless when unused.
-  'https://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com',
+  // Netlify-hosted production frontend (any deploy/branch subdomain).
+  '*.netlify.app',
 ];
 
 const extraOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
@@ -78,7 +73,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'TrailPack API is running!' });
 });
 
-// Health check endpoint for Elastic Beanstalk
+// Health check endpoint (used by Render)
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'healthy', 
@@ -113,7 +108,18 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 // Only start listening when run directly (not when required by tests).
+// Connect to MongoDB first — the process should crash loudly (and Render
+// will restart it) rather than serve requests with no database.
 if (require.main === module) {
+  connectDB()
+    .then(() => startServer())
+    .catch(err => {
+      console.error('[db] Failed to connect to MongoDB:', err.message);
+      process.exit(1);
+    });
+}
+
+function startServer() {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 

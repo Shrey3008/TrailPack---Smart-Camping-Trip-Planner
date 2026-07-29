@@ -1,375 +1,159 @@
-// AWS DynamoDB Configuration and Service
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, PutCommand, GetCommand, QueryCommand, DeleteCommand, ScanCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
-const { v4: uuidv4 } = require('uuid');
+// Data service — now backed by MongoDB/Mongoose.
+// Filename kept as dynamoDBService.js so existing requires
+// (middleware/auth.js, services/dashboardService.js) don't change;
+// the exported API is identical to the old DynamoDB version.
+const { User, Trip, Item } = require('../models');
 
-// DynamoDB Client Configuration
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'us-east-1'
-});
+const EXCLUDE = '-_id -__v';
 
-const docClient = DynamoDBDocumentClient.from(client);
+// Convert a freshly created Mongoose doc to a plain object like the old
+// service returned.
+function clean(doc) {
+  if (!doc) return doc;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  delete obj._id;
+  delete obj.__v;
+  return obj;
+}
 
-// Table Names
-const TABLES = {
-  USERS: process.env.DYNAMODB_USERS_TABLE || 'TrailPack-Users',
-  TRIPS: process.env.DYNAMODB_TRIPS_TABLE || 'TrailPack-Trips',
-  ITEMS: process.env.DYNAMODB_ITEMS_TABLE || 'TrailPack-Items'
-};
-
-// DynamoDB Service
-const dynamoDBService = {
-  // User Operations
+const dbService = {
+  // ---------- User operations ----------
   createUser: async (userData) => {
-    const userId = uuidv4();
-    const item = {
-      userId,
-      ...userData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    await docClient.send(new PutCommand({
-      TableName: TABLES.USERS,
-      Item: item
-    }));
-    
-    return item;
+    const user = await User.create(userData);
+    return clean(user);
   },
 
   getUserById: async (userId) => {
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLES.USERS,
-      Key: { userId }
-    }));
-    return result.Item;
+    return User.findOne({ userId }).select(EXCLUDE).lean();
   },
 
   getUserByEmail: async (email) => {
-    try {
-      const result = await docClient.send(new QueryCommand({
-        TableName: TABLES.USERS,
-        IndexName: 'EmailIndex',
-        KeyConditionExpression: 'email = :email',
-        ExpressionAttributeValues: { ':email': email }
-      }));
-      return result.Items && result.Items.length > 0 ? result.Items[0] : null;
-    } catch (error) {
-      console.error('[DynamoDB] getUserByEmail error:', error.message);
-      return null;
-    }
+    if (!email) return null;
+    return User.findOne({ email: String(email).toLowerCase().trim() }).select(EXCLUDE).lean();
   },
 
   updateUser: async (userId, updates) => {
-    const updateExpression = Object.keys(updates).map(key => `#${key} = :${key}`).join(', ');
-    const expressionAttributeNames = Object.keys(updates).reduce((acc, key) => ({
-      ...acc,
-      [`#${key}`]: key
-    }), {});
-    const expressionAttributeValues = Object.entries(updates).reduce((acc, [key, value]) => ({
-      ...acc,
-      [`:${key}`]: value
-    }), {});
-
-    await docClient.send(new UpdateCommand({
-      TableName: TABLES.USERS,
-      Key: { userId },
-      UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
-      ExpressionAttributeNames: {
-        ...expressionAttributeNames,
-        '#updatedAt': 'updatedAt'
-      },
-      ExpressionAttributeValues: {
-        ...expressionAttributeValues,
-        ':updatedAt': new Date().toISOString()
-      }
-    }));
+    await User.updateOne({ userId }, { $set: updates });
   },
 
-  // Trip Operations
+  // ---------- Trip operations ----------
   createTrip: async (userId, tripData) => {
-    const tripId = String(uuidv4());
-    const now = new Date().toISOString();
-    
-    // Build item with explicit string types only - avoid any nested objects
-    const item = {
-      tripId: tripId,
+    const trip = await Trip.create({
       userId: String(userId),
       name: String(tripData.name),
       terrain: String(tripData.terrain),
       season: String(tripData.season),
       duration: parseInt(tripData.duration),
       status: 'planning',
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    // Only add simple optional fields
-    if (tripData.startDate) item.startDate = String(tripData.startDate);
-    if (tripData.endDate) item.endDate = String(tripData.endDate);
-    
-    await docClient.send(new PutCommand({
-      TableName: TABLES.TRIPS,
-      Item: item
-    }));
-    
-    return item;
+      ...(tripData.startDate ? { startDate: String(tripData.startDate) } : {}),
+      ...(tripData.endDate ? { endDate: String(tripData.endDate) } : {}),
+    });
+    return clean(trip);
   },
 
   getTripById: async (tripId) => {
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLES.TRIPS,
-      Key: { tripId }
-    }));
-    return result.Item;
+    return Trip.findOne({ tripId }).select(EXCLUDE).lean();
   },
 
   getTripsByUser: async (userId) => {
-    const result = await docClient.send(new QueryCommand({
-      TableName: TABLES.TRIPS,
-      IndexName: 'UserIdIndex',
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: { ':userId': userId }
-    }));
-    return result.Items || [];
+    return Trip.find({ userId }).select(EXCLUDE).lean();
   },
 
   updateTrip: async (tripId, updates) => {
-    const updateExpression = Object.keys(updates).map(key => `#${key} = :${key}`).join(', ');
-    const expressionAttributeNames = Object.keys(updates).reduce((acc, key) => ({
-      ...acc,
-      [`#${key}`]: key
-    }), {});
-    const expressionAttributeValues = Object.entries(updates).reduce((acc, [key, value]) => ({
-      ...acc,
-      [`:${key}`]: value
-    }), {});
-
-    const result = await docClient.send(new UpdateCommand({
-      TableName: TABLES.TRIPS,
-      Key: { tripId },
-      UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
-      ExpressionAttributeNames: {
-        ...expressionAttributeNames,
-        '#updatedAt': 'updatedAt'
-      },
-      ExpressionAttributeValues: {
-        ...expressionAttributeValues,
-        ':updatedAt': new Date().toISOString()
-      },
-      ReturnValues: 'ALL_NEW'
-    }));
-    
-    return result.Attributes;
+    return Trip.findOneAndUpdate(
+      { tripId },
+      { $set: updates },
+      { new: true }
+    ).select(EXCLUDE).lean();
   },
 
   deleteTrip: async (tripId) => {
-    await docClient.send(new DeleteCommand({
-      TableName: TABLES.TRIPS,
-      Key: { tripId }
-    }));
+    await Trip.deleteOne({ tripId });
   },
 
-  // Checklist Item Operations
+  // ---------- Checklist item operations ----------
   createItem: async (tripId, itemData) => {
-    const itemId = String(uuidv4());
-    const now = new Date().toISOString();
-    
-    const item = {
-      itemId: itemId,
+    const item = await Item.create({
       tripId: String(tripId),
       name: String(itemData.name || ''),
       category: String(itemData.category || ''),
       priority: String(itemData.priority || 'medium'),
-      isChecked: false,
-      createdAt: now,
-      updatedAt: now
-    };
-    
-    await docClient.send(new PutCommand({
-      TableName: TABLES.ITEMS,
-      Item: item
-    }));
-    
-    return item;
+      packed: false,
+    });
+    return clean(item);
   },
 
   getItemById: async (itemId) => {
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLES.ITEMS,
-      Key: { itemId }
-    }));
-    return result.Item;
+    return Item.findOne({ itemId }).select(EXCLUDE).lean();
   },
 
   getItemsByTrip: async (tripId) => {
-    const result = await docClient.send(new QueryCommand({
-      TableName: TABLES.ITEMS,
-      IndexName: 'TripIdIndex',
-      KeyConditionExpression: 'tripId = :tripId',
-      ExpressionAttributeValues: { ':tripId': tripId }
-    }));
-    return result.Items || [];
+    return Item.find({ tripId }).select(EXCLUDE).lean();
   },
 
   updateItem: async (itemId, updates) => {
-    const updateExpression = Object.keys(updates).map(key => `#${key} = :${key}`).join(', ');
-    const expressionAttributeNames = Object.keys(updates).reduce((acc, key) => ({
-      ...acc,
-      [`#${key}`]: key
-    }), {});
-    expressionAttributeNames['#updatedAt'] = 'updatedAt';
-    
-    const expressionAttributeValues = Object.entries(updates).reduce((acc, [key, value]) => ({
-      ...acc,
-      [`:${key}`]: value
-    }), {});
-
-    // Fixed case sensitivity for ExpressionAttributeNames
-    await docClient.send(new UpdateCommand({
-      TableName: TABLES.ITEMS,
-      Key: { itemId },
-      UpdateExpression: `set ${updateExpression}, #updatedAt = :updatedAt`,
-      ExpressionAttributeNames: expressionAttributeNames,
-      ExpressionAttributeValues: {
-        ...expressionAttributeValues,
-        ':updatedAt': new Date().toISOString()
-      }
-    }));
-    
-    return { itemId, ...updates, updatedAt: new Date().toISOString() };
+    return Item.findOneAndUpdate(
+      { itemId },
+      { $set: updates },
+      { new: true }
+    ).select(EXCLUDE).lean();
   },
 
   deleteItem: async (itemId) => {
-    await docClient.send(new DeleteCommand({
-      TableName: TABLES.ITEMS,
-      Key: { itemId }
-    }));
+    await Item.deleteOne({ itemId });
   },
 
-  // User listing and filtering for admin
+  // ---------- Admin: users ----------
   getAllUsers: async (filters = {}) => {
-    const { role, isActive } = filters;
-    
-    let filterExpression = '';
-    const expressionAttributeValues = {};
-    const expressionAttributeNames = {};
-    
-    const conditions = [];
-    
-    if (role) {
-      conditions.push('#role = :role');
-      expressionAttributeNames['#role'] = 'role';
-      expressionAttributeValues[':role'] = role;
-    }
-    
-    if (isActive !== undefined) {
-      conditions.push('#isActive = :isActive');
-      expressionAttributeNames['#isActive'] = 'isActive';
-      expressionAttributeValues[':isActive'] = isActive;
-    }
-    
-    if (conditions.length > 0) {
-      filterExpression = conditions.join(' AND ');
-    }
-    
-    const params = {
-      TableName: TABLES.USERS
-    };
-    
-    if (filterExpression) {
-      params.FilterExpression = filterExpression;
-      params.ExpressionAttributeNames = expressionAttributeNames;
-      params.ExpressionAttributeValues = expressionAttributeValues;
-    }
-    
-    const result = await docClient.send(new ScanCommand(params));
-    return result.Items || [];
+    const query = {};
+    if (filters.role) query.role = filters.role;
+    if (filters.isActive !== undefined) query.isActive = filters.isActive;
+    return User.find(query).select(EXCLUDE).lean();
   },
 
-  // Count users with filters
   countUsers: async (filters = {}) => {
-    const users = await dynamoDBService.getAllUsers(filters);
-    return users.length;
+    const query = {};
+    if (filters.role) query.role = filters.role;
+    if (filters.isActive !== undefined) query.isActive = filters.isActive;
+    return User.countDocuments(query);
   },
 
-  // Count all trips
-  countTrips: async () => {
-    const result = await docClient.send(new ScanCommand({
-      TableName: TABLES.TRIPS,
-      Select: 'COUNT'
-    }));
-    return result.Count || 0;
-  },
+  countTrips: async () => Trip.countDocuments(),
 
-  // Count all items
-  countItems: async () => {
-    const result = await docClient.send(new ScanCommand({
-      TableName: TABLES.ITEMS,
-      Select: 'COUNT'
-    }));
-    return result.Count || 0;
-  },
+  countItems: async () => Item.countDocuments(),
 
-  // Get users by role (for role distribution stats)
   getUsersByRole: async () => {
-    const users = await dynamoDBService.getAllUsers({ isActive: true });
-    const roleStats = {};
-    users.forEach(user => {
-      const role = user.role || 'user';
-      roleStats[role] = (roleStats[role] || 0) + 1;
-    });
-    return Object.entries(roleStats).map(([role, count]) => ({ _id: role, count }));
+    const stats = await User.aggregate([
+      { $match: { isActive: true } },
+      { $group: { _id: { $ifNull: ['$role', 'user'] }, count: { $sum: 1 } } },
+    ]);
+    return stats;
   },
 
-  // Get all trips for admin stats
-  getAllTrips: async () => {
-    const result = await docClient.send(new ScanCommand({
-      TableName: TABLES.TRIPS
-    }));
-    return result.Items || [];
-  },
+  // ---------- Admin: trips ----------
+  getAllTrips: async () => Trip.find({}).select(EXCLUDE).lean(),
 
-  // Get trips by status (for status distribution stats)
   getTripsByStatus: async () => {
-    const trips = await dynamoDBService.getAllTrips();
-    const statusStats = {};
-    trips.forEach(trip => {
-      const status = trip.status || 'planning';
-      statusStats[status] = (statusStats[status] || 0) + 1;
-    });
-    return Object.entries(statusStats).map(([status, count]) => ({ _id: status, count }));
+    const stats = await Trip.aggregate([
+      { $group: { _id: { $ifNull: ['$status', 'planning'] }, count: { $sum: 1 } } },
+    ]);
+    return stats;
   },
 
-  // Get recent users (last 30 days)
   getRecentUsers: async (days = 30) => {
-    const users = await dynamoDBService.getAllUsers();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    
-    return users.filter(user => {
-      const createdAt = new Date(user.createdAt);
-      return createdAt >= cutoffDate;
-    });
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return User.find({ createdAt: { $gte: cutoff } }).select(EXCLUDE).lean();
   },
 
-  // Get recent trips (last 30 days)
   getRecentTrips: async (days = 30) => {
-    const trips = await dynamoDBService.getAllTrips();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
-    
-    return trips.filter(trip => {
-      const createdAt = new Date(trip.createdAt);
-      return createdAt >= cutoffDate;
-    });
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return Trip.find({ createdAt: { $gte: cutoff } }).select(EXCLUDE).lean();
   },
 
-  // Get top users by trip count
   getTopUsers: async (limit = 5) => {
-    const users = await dynamoDBService.getAllUsers({ isActive: true });
-    
-    // Sort by total trips (descending)
+    const users = await User.find({ isActive: true }).select(EXCLUDE).lean();
     return users
       .sort((a, b) => (b.stats?.totalTrips || 0) - (a.stats?.totalTrips || 0))
       .slice(0, limit)
@@ -380,18 +164,13 @@ const dynamoDBService = {
         role: user.role,
         stats: user.stats || { totalTrips: 0, totalItemsPacked: 0 },
         createdAt: user.createdAt,
-        lastLogin: user.lastLogin
+        lastLogin: user.lastLogin,
       }));
   },
 
-  // Get user by ID and return full user object
   getUserByIdFull: async (userId) => {
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLES.USERS,
-      Key: { userId }
-    }));
-    return result.Item;
-  }
+    return User.findOne({ userId }).select(EXCLUDE).lean();
+  },
 };
 
-module.exports = dynamoDBService;
+module.exports = dbService;

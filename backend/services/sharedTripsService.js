@@ -1,30 +1,13 @@
 // Shared-trips service: collaborator management, invitations, and access checks.
-// Uses the same single-table pattern as the rest of the backend.
-//
-// Schema additions:
-//   PK: TRIPPTR#{tripId}         SK: META           — pointer { tripId, ownerId, createdAt }
-//   PK: TRIP#{tripId}            SK: PARTICIPANT#{userId} — accepted collaborator
-//   PK: TRIP#{tripId}            SK: INVITE#{inviteId} — pending invitation
-//   PK: USER#{userId}            SK: SHARED_TRIP#{tripId} — reverse lookup for shared trips
-//
-// Invitations are matched by a random token (UUID). The token is the authoritative
-// lookup key when a user accepts. We also scan by email to show a user their
-// own pending invites if they register/log in with an invited address.
+// MongoDB version. The old TRIPPTR# pointer and SHARED_TRIP# reverse-lookup
+// rows are unnecessary now — Trip.userId is the owner, and the Collaborator
+// collection is queryable from either side.
 
-const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const docClient = require('../db.js');
-const {
-  GetCommand,
-  PutCommand,
-  DeleteCommand,
-  QueryCommand,
-  ScanCommand,
-  UpdateCommand,
-} = require('@aws-sdk/lib-dynamodb');
+const { Trip, Collaborator, Invite } = require('../models');
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 const INVITE_TTL_DAYS = 7;
+const EXCLUDE = '-_id -__v';
 
 function newInviteToken() {
   return crypto.randomBytes(24).toString('hex');
@@ -34,46 +17,17 @@ function daysFromNowISO(days) {
   return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
-// ---------- Trip pointer / access ----------
-
-async function putTripPointer(tripId, ownerId) {
-  await docClient.send(new PutCommand({
-    TableName: TABLE_NAME,
-    Item: {
-      PK: `TRIPPTR#${tripId}`,
-      SK: 'META',
-      tripId,
-      ownerId,
-      createdAt: new Date().toISOString(),
-    },
-  }));
-}
-
-async function deleteTripPointer(tripId) {
-  await docClient.send(new DeleteCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `TRIPPTR#${tripId}`, SK: 'META' },
-  }));
-}
-
-async function getTripPointer(tripId) {
-  const res = await docClient.send(new GetCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `TRIPPTR#${tripId}`, SK: 'META' },
-  }));
-  return res.Item || null;
-}
+// ---------- Trip lookup / access ----------
 
 async function getTrip(tripId) {
-  const ptr = await getTripPointer(tripId);
-  if (!ptr) return null;
-  const res = await docClient.send(new GetCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `USER#${ptr.ownerId}`, SK: `TRIP#${tripId}` },
-  }));
-  if (!res.Item) return null;
-  return { trip: res.Item, ownerId: ptr.ownerId };
+  const trip = await Trip.findOne({ tripId }).select(EXCLUDE).lean();
+  if (!trip) return null;
+  return { trip, ownerId: trip.userId };
 }
+
+// Kept as no-ops for backwards compatibility — pointers don't exist in Mongo.
+async function putTripPointer(_tripId, _ownerId) { /* no-op */ }
+async function deleteTripPointer(_tripId) { /* no-op */ }
 
 /**
  * Resolve a trip and ensure the requesting user can access it.
@@ -81,30 +35,6 @@ async function getTrip(tripId) {
  * @throws { status, message } style errors
  */
 async function assertTripAccess(tripId, userId) {
-  // Fast-path / backwards-compat: try the requester's own
-  // USER#{userId} / TRIP#{tripId} key directly. This handles trips
-  // created before the TRIPPTR pointer feature shipped (which would
-  // otherwise 404 in the pointer lookup below) and saves one round
-  // trip in the common case where the caller is the owner.
-  const ownerDirect = await docClient.send(new GetCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` },
-  }));
-  if (ownerDirect.Item) {
-    // Lazy-backfill the pointer so future pointer-based lookups
-    // (collaborators querying this trip, dashboard shared-trip lists,
-    // etc.) work without further intervention. Best-effort: if the
-    // write fails we still return successfully for the owner.
-    try {
-      const ptr = await getTripPointer(tripId);
-      if (!ptr) await putTripPointer(tripId, userId);
-    } catch (_) { /* non-fatal */ }
-    return { trip: ownerDirect.Item, ownerId: userId, role: 'owner' };
-  }
-
-  // Pointer-based lookup for the non-owner case (collaborators, or
-  // owner queries that somehow missed the direct key — shouldn't
-  // happen but kept defensively).
   const found = await getTrip(tripId);
   if (!found) {
     const err = new Error('Trip not found');
@@ -113,14 +43,8 @@ async function assertTripAccess(tripId, userId) {
   }
   if (found.ownerId === userId) return { ...found, role: 'owner' };
 
-  // Check for an accepted collaborator row.
-  const collab = await docClient.send(new GetCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `TRIP#${tripId}`, SK: `PARTICIPANT#${userId}` },
-  }));
-  if (collab.Item) {
-    return { ...found, role: 'collaborator' };
-  }
+  const collab = await Collaborator.findOne({ tripId, userId }).lean();
+  if (collab) return { ...found, role: 'collaborator' };
 
   const err = new Error('You do not have access to this trip');
   err.status = 403;
@@ -140,115 +64,65 @@ async function assertTripOwner(tripId, userId) {
 // ---------- Collaborators ----------
 
 async function listCollaborators(tripId) {
-  const res = await docClient.send(new QueryCommand({
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-    ExpressionAttributeValues: {
-      ':pk': `TRIP#${tripId}`,
-      ':sk': 'PARTICIPANT#',
-    },
-  }));
-  return (res.Items || []).map(stripKeys);
+  return Collaborator.find({ tripId }).select(EXCLUDE).lean();
 }
 
 async function addCollaborator(tripId, user, invitedBy) {
-  const item = {
-    PK: `TRIP#${tripId}`,
-    SK: `PARTICIPANT#${user.userId}`,
-    userId: user.userId,
-    email: user.email,
-    name: user.name || null,
-    invitedBy: invitedBy || null,
-    joinedAt: new Date().toISOString(),
-  };
-  await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
-
-  // Reverse lookup so the user can list trips shared with them.
-  await docClient.send(new PutCommand({
-    TableName: TABLE_NAME,
-    Item: {
-      PK: `USER#${user.userId}`,
-      SK: `SHARED_TRIP#${tripId}`,
-      tripId,
-      joinedAt: item.joinedAt,
+  const doc = await Collaborator.findOneAndUpdate(
+    { tripId, userId: user.userId },
+    {
+      $setOnInsert: {
+        tripId,
+        userId: user.userId,
+        email: user.email || null,
+        name: user.name || null,
+        invitedBy: invitedBy || null,
+        joinedAt: new Date().toISOString(),
+      },
     },
-  }));
-
-  return stripKeys(item);
+    { upsert: true, new: true }
+  ).select(EXCLUDE).lean();
+  return doc;
 }
 
 async function removeCollaborator(tripId, userId) {
-  await docClient.send(new DeleteCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `TRIP#${tripId}`, SK: `PARTICIPANT#${userId}` },
-  }));
-  await docClient.send(new DeleteCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `USER#${userId}`, SK: `SHARED_TRIP#${tripId}` },
-  }));
+  await Collaborator.deleteOne({ tripId, userId });
 }
 
 // ---------- Invitations ----------
 
 async function createInvite(tripId, { email, invitedBy, invitedByName }) {
-  const inviteId = uuidv4();
-  const token = newInviteToken();
-  const item = {
-    PK: `TRIP#${tripId}`,
-    SK: `INVITE#${inviteId}`,
-    inviteId,
+  const invite = await Invite.create({
     tripId,
     email: (email || '').toLowerCase().trim(),
-    token,
+    token: newInviteToken(),
     invitedBy: invitedBy || null,
     invitedByName: invitedByName || null,
     status: 'pending',
-    createdAt: new Date().toISOString(),
     expiresAt: daysFromNowISO(INVITE_TTL_DAYS),
-  };
-  await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
-  return stripKeys(item);
+  });
+  const obj = invite.toObject();
+  delete obj._id;
+  delete obj.__v;
+  return obj;
 }
 
 async function listPendingInvites(tripId) {
-  const res = await docClient.send(new QueryCommand({
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-    ExpressionAttributeValues: {
-      ':pk': `TRIP#${tripId}`,
-      ':sk': 'INVITE#',
-    },
-  }));
   const now = new Date();
-  return (res.Items || [])
-    .filter(i => i.status === 'pending' && new Date(i.expiresAt) > now)
-    .map(stripKeys)
+  const invites = await Invite.find({ tripId, status: 'pending' }).select(EXCLUDE).lean();
+  return invites
+    .filter(i => new Date(i.expiresAt) > now)
     // Don't leak tokens when listing; owner can still revoke by inviteId.
     .map(i => ({ ...i, token: undefined }));
 }
 
 async function revokeInvite(tripId, inviteId) {
-  await docClient.send(new DeleteCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `TRIP#${tripId}`, SK: `INVITE#${inviteId}` },
-  }));
+  await Invite.deleteOne({ tripId, inviteId });
 }
 
-// Token-based lookup requires a scan (no GSI). Acceptable for MVP.
 async function findInviteByToken(token) {
   if (!token) return null;
-  const res = await docClient.send(new ScanCommand({
-    TableName: TABLE_NAME,
-    FilterExpression: 'begins_with(PK, :tp) AND begins_with(SK, :sp) AND #t = :tk',
-    ExpressionAttributeNames: { '#t': 'token' },
-    ExpressionAttributeValues: {
-      ':tp': 'TRIP#',
-      ':sp': 'INVITE#',
-      ':tk': token,
-    },
-  }));
-  const item = (res.Items || [])[0];
-  return item ? stripKeys(item) : null;
+  return Invite.findOne({ token }).select(EXCLUDE).lean();
 }
 
 async function acceptInvite(token, user) {
@@ -274,18 +148,16 @@ async function acceptInvite(token, user) {
     throw err;
   }
 
-  // Mark invite accepted.
-  await docClient.send(new UpdateCommand({
-    TableName: TABLE_NAME,
-    Key: { PK: `TRIP#${invite.tripId}`, SK: `INVITE#${invite.inviteId}` },
-    UpdateExpression: 'SET #s = :s, acceptedBy = :ub, acceptedAt = :at',
-    ExpressionAttributeNames: { '#s': 'status' },
-    ExpressionAttributeValues: {
-      ':s': 'accepted',
-      ':ub': user.userId,
-      ':at': new Date().toISOString(),
-    },
-  }));
+  await Invite.updateOne(
+    { inviteId: invite.inviteId },
+    {
+      $set: {
+        status: 'accepted',
+        acceptedBy: user.userId,
+        acceptedAt: new Date().toISOString(),
+      },
+    }
+  );
 
   await addCollaborator(invite.tripId, user, invite.invitedBy);
   return { tripId: invite.tripId };
@@ -294,15 +166,7 @@ async function acceptInvite(token, user) {
 // ---------- Shared-trips for a user ----------
 
 async function listSharedTripsForUser(userId) {
-  const res = await docClient.send(new QueryCommand({
-    TableName: TABLE_NAME,
-    KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-    ExpressionAttributeValues: {
-      ':pk': `USER#${userId}`,
-      ':sk': 'SHARED_TRIP#',
-    },
-  }));
-  const rows = res.Items || [];
+  const rows = await Collaborator.find({ userId }).lean();
   const trips = [];
   for (const row of rows) {
     const found = await getTrip(row.tripId);
@@ -311,14 +175,6 @@ async function listSharedTripsForUser(userId) {
   // newest first
   trips.sort((a, b) => new Date(b.sharedSince || 0) - new Date(a.sharedSince || 0));
   return trips;
-}
-
-// ---------- Utilities ----------
-
-function stripKeys(item) {
-  if (!item) return item;
-  const { PK, SK, ...rest } = item;
-  return rest;
 }
 
 module.exports = {

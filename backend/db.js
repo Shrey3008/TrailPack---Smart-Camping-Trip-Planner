@@ -1,14 +1,17 @@
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
+// MongoDB (Atlas) connection — replaces the old DynamoDB client.
+const mongoose = require('mongoose');
 
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+async function connectDB() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI is not set. Add it to your environment (see .env.example).');
   }
-});
+  mongoose.set('strictQuery', true);
+  await mongoose.connect(uri, {
+    dbName: process.env.MONGODB_DB || 'trailpack',
+    serverSelectionTimeoutMS: 10000,
+  });
+  console.log('[db] Connected to MongoDB');
+}
 
-const docClient = DynamoDBDocumentClient.from(client);
-
-module.exports = docClient;
+module.exports = { connectDB, mongoose };

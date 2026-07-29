@@ -1,7 +1,4 @@
-const docClient = require('../db.js');
-const { QueryCommand } = require('@aws-sdk/lib-dynamodb');
-
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
+const { Item } = require('../models');
 
 class ChecklistService {
   constructor() {
@@ -172,19 +169,7 @@ class ChecklistService {
   // Get smart recommendations based on trip context
   async getRecommendations(tripId) {
     try {
-      const result = await docClient.send(new QueryCommand({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': `TRIP#${tripId}`,
-          ':sk': 'ITEM#'
-        }
-      }));
-
-      const items = result.Items || [];
-      const unpackedItems = items.filter(i => !i.packed);
-
-      return unpackedItems;
+      return await Item.find({ tripId, packed: false }).select('-_id -__v').lean();
     } catch (error) {
       console.error('Error getting recommendations:', error);
       return [];
@@ -194,16 +179,7 @@ class ChecklistService {
   // Update trip checklist progress
   async updateTripProgress(tripId) {
     try {
-      const result = await docClient.send(new QueryCommand({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': `TRIP#${tripId}`,
-          ':sk': 'ITEM#'
-        }
-      }));
-
-      const items = result.Items || [];
+      const items = await Item.find({ tripId }).select('-_id -__v').lean();
       const total = items.length;
       const packed = items.filter(i => i.packed).length;
       const percentage = total > 0 ? Math.round((packed / total) * 100) : 0;

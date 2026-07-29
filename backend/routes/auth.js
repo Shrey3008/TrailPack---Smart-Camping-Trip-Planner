@@ -2,24 +2,14 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { v4: uuidv4 } = require('uuid');
-const docClient = require('../db.js');
-const {
-  ScanCommand,
-  PutCommand,
-  GetCommand,
-  UpdateCommand,
-  QueryCommand,
-} = require('@aws-sdk/lib-dynamodb');
+const { User, Trip, Item } = require('../models');
 const { authenticate } = require('../middleware/auth');
-
-const TABLE_NAME = process.env.DYNAMODB_USERS_TABLE || 'TrailPack-Users';
-const TRIPS_TABLE = process.env.DYNAMODB_TABLE_NAME;
 
 // Return the public-safe shape of a user row.
 function publicUser(user) {
   if (!user) return null;
-  const { password, PK, SK, ...rest } = user;
+  const obj = user.toObject ? user.toObject() : { ...user };
+  const { password, securityAnswer, _id, __v, ...rest } = obj;
   return rest;
 }
 
@@ -43,12 +33,8 @@ function normalizeAnswer(answer) {
 // Look up a single user row by email. Centralised so register, login
 // and the forgot-password flow all behave identically.
 async function findUserByEmail(email) {
-  const scanResult = await docClient.send(new ScanCommand({
-    TableName: TABLE_NAME,
-    FilterExpression: 'email = :email',
-    ExpressionAttributeValues: { ':email': email },
-  }));
-  return (scanResult.Items && scanResult.Items[0]) || null;
+  if (!email) return null;
+  return User.findOne({ email: String(email).toLowerCase().trim() }).lean();
 }
 
 // POST /auth/register - Register new user
@@ -71,23 +57,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Security answer cannot be empty' });
     }
 
-    // Check if email already exists using ScanCommand
+    // Check if email already exists
     const existing = await findUserByEmail(email);
     if (existing) {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    // Generate userId
-    const userId = uuidv4();
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Save user with PutCommand
-    const item = {
-      PK: `USER#${userId}`,
-      SK: 'PROFILE',
-      userId,
+    await User.create({
       name,
       email,
       password: hashedPassword,
@@ -98,13 +77,7 @@ router.post('/register', async (req, res) => {
       // are deterministic regardless of casing/whitespace at recovery time.
       securityQuestion,
       securityAnswer: normalizedAnswer,
-      createdAt: new Date().toISOString()
-    };
-
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: item
-    }));
+    });
 
     // Fire-and-forget welcome email. No-ops safely when email isn't configured.
     try {
@@ -116,6 +89,10 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
+    // Duplicate-key safety net (unique index on email).
+    if (error && error.code === 11000) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
     console.error('Registration error:', error);
     res.status(500).json({ message: 'Error registering user' });
   }
@@ -130,20 +107,11 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    // Find user by email using ScanCommand
-    const scanResult = await docClient.send(new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'email = :email',
-      ExpressionAttributeValues: {
-        ':email': email
-      }
-    }));
-
-    if (!scanResult.Items || scanResult.Items.length === 0) {
+    const user = await findUserByEmail(email);
+    if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const user = scanResult.Items[0];
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
@@ -178,39 +146,25 @@ router.get('/me', authenticate, async (req, res) => {
 
     // Fetch a fresh copy of the user record (authenticate already did this but
     // we want the full row including any profile sub-fields).
-    const userRes = await docClient.send(new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { userId },
-    }));
-    const user = publicUser(userRes.Item) || publicUser(req.user);
+    const userDoc = await User.findOne({ userId }).lean();
+    const user = publicUser(userDoc) || publicUser(req.user);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // Build stats from the user's owned trips + their checklist items.
     let totalTrips = 0;
     let completedTrips = 0;
     let totalItemsPacked = 0;
-    if (TRIPS_TABLE) {
-      try {
-        const tripsRes = await docClient.send(new QueryCommand({
-          TableName: TRIPS_TABLE,
-          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-          ExpressionAttributeValues: { ':pk': `USER#${userId}`, ':sk': 'TRIP#' },
-        }));
-        const trips = tripsRes.Items || [];
-        totalTrips = trips.length;
-        completedTrips = trips.filter(t => t.status === 'completed').length;
+    try {
+      const trips = await Trip.find({ userId }).select('tripId status').lean();
+      totalTrips = trips.length;
+      completedTrips = trips.filter(t => t.status === 'completed').length;
 
-        for (const trip of trips) {
-          const itemsRes = await docClient.send(new QueryCommand({
-            TableName: TRIPS_TABLE,
-            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-            ExpressionAttributeValues: { ':pk': `TRIP#${trip.tripId}`, ':sk': 'ITEM#' },
-          }));
-          totalItemsPacked += (itemsRes.Items || []).filter(i => i.packed).length;
-        }
-      } catch (e) {
-        console.warn('[/auth/me] stats aggregation failed:', e.message);
+      const tripIds = trips.map(t => t.tripId);
+      if (tripIds.length > 0) {
+        totalItemsPacked = await Item.countDocuments({ tripId: { $in: tripIds }, packed: true });
       }
+    } catch (e) {
+      console.warn('[/auth/me] stats aggregation failed:', e.message);
     }
 
     res.json({
@@ -236,51 +190,29 @@ router.put('/profile', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const { name, phone, notificationSettings } = req.body || {};
 
-    const sets = [];
-    const names = {};
-    const values = {};
+    const updates = {};
 
     if (typeof name === 'string' && name.trim().length > 0) {
-      sets.push('#name = :name');
-      names['#name'] = 'name';
-      values[':name'] = name.trim();
+      updates.name = name.trim();
     }
     if (phone !== undefined) {
-      sets.push('#profile.#phone = :phone');
-      names['#profile'] = 'profile';
-      names['#phone'] = 'phone';
-      values[':phone'] = String(phone || '');
+      updates['profile.phone'] = String(phone || '');
     }
     if (notificationSettings && typeof notificationSettings === 'object') {
-      sets.push('#profile.#ns = :ns');
-      names['#profile'] = 'profile';
-      names['#ns'] = 'notificationSettings';
-      values[':ns'] = notificationSettings;
+      updates['profile.notificationSettings'] = notificationSettings;
     }
 
-    if (sets.length === 0) {
+    if (Object.keys(updates).length === 0) {
       return res.status(400).json({ message: 'No updatable fields provided' });
     }
 
-    // `profile` needs to exist as a map before nested updates succeed.
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { userId },
-      UpdateExpression: 'SET #profile = if_not_exists(#profile, :empty)',
-      ExpressionAttributeNames: { '#profile': 'profile' },
-      ExpressionAttributeValues: { ':empty': {} },
-    }));
+    const updated = await User.findOneAndUpdate(
+      { userId },
+      { $set: updates },
+      { new: true }
+    ).lean();
 
-    const updateParams = {
-      TableName: TABLE_NAME,
-      Key: { userId },
-      UpdateExpression: 'SET ' + sets.join(', '),
-      ExpressionAttributeNames: names,
-      ExpressionAttributeValues: values,
-      ReturnValues: 'ALL_NEW',
-    };
-    const result = await docClient.send(new UpdateCommand(updateParams));
-    res.json({ user: publicUser(result.Attributes) });
+    res.json({ user: publicUser(updated) });
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ message: 'Error updating profile' });
@@ -298,11 +230,7 @@ router.put('/password', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'New password must be at least 6 characters' });
     }
 
-    const userRes = await docClient.send(new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { userId: req.user.userId },
-    }));
-    const user = userRes.Item;
+    const user = await User.findOne({ userId: req.user.userId }).lean();
     if (!user || !user.password) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -313,12 +241,10 @@ router.put('/password', authenticate, async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { userId: req.user.userId },
-      UpdateExpression: 'SET password = :p, passwordUpdatedAt = :t',
-      ExpressionAttributeValues: { ':p': hashed, ':t': new Date().toISOString() },
-    }));
+    await User.updateOne(
+      { userId: req.user.userId },
+      { $set: { password: hashed, passwordUpdatedAt: new Date().toISOString() } }
+    );
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
@@ -404,12 +330,10 @@ router.post('/forgot/reset-password', async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
-    await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { userId: user.userId },
-      UpdateExpression: 'SET password = :p, passwordUpdatedAt = :t',
-      ExpressionAttributeValues: { ':p': hashed, ':t': new Date().toISOString() },
-    }));
+    await User.updateOne(
+      { userId: user.userId },
+      { $set: { password: hashed, passwordUpdatedAt: new Date().toISOString() } }
+    );
 
     res.json({ message: 'Password updated successfully' });
   } catch (error) {

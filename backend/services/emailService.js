@@ -1,11 +1,9 @@
 const nodemailer = require('nodemailer');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const cron = require('node-cron');
 
 class EmailService {
   constructor() {
     this.transporter = null;
-    this.sesClient = null;
     this.initializeEmailService();
     this.setupScheduledNotifications();
   }
@@ -20,21 +18,8 @@ class EmailService {
       return; // Explicitly disabled — operate as a no-op.
     }
 
-    // Prefer AWS SES when AWS credentials are present.
-    if (process.env.AWS_SES_REGION && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-      this.sesClient = new SESClient({
-        region: process.env.AWS_SES_REGION,
-        credentials: {
-          accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-        }
-      });
-      this.enabled = true;
-      console.log('[email] Using AWS SES transport');
-      return;
-    }
-
-    // Otherwise, Gmail/SMTP if credentials are provided.
+    // Gmail SMTP is the sole transport. EMAIL_PASS must be a Google
+    // "App Password" (regular account passwords won't work with SMTP).
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -63,37 +48,16 @@ class EmailService {
       text: text || this.htmlToText(html)
     };
 
-    if (!this.enabled || (!this.sesClient && !this.transporter)) {
+    if (!this.enabled || !this.transporter) {
       return { skipped: true, reason: 'email service not configured', to: emailData.to, subject };
     }
 
     try {
-      if (this.sesClient) return await this.sendSESEmail(emailData);
-      if (this.transporter) return await this.sendSMTPEmail(emailData);
+      return await this.sendSMTPEmail(emailData);
     } catch (error) {
       console.error('[email] send failed:', error.message);
       return { failed: true, error: error.message };
     }
-  }
-
-  // Send email using AWS SES
-  async sendSESEmail(emailData) {
-    const command = new SendEmailCommand({
-      Source: emailData.from,
-      Destination: {
-        ToAddresses: emailData.to.split(', ').map(email => email.trim())
-      },
-      Message: {
-        Subject: { Data: emailData.subject },
-        Body: {
-          Html: { Data: emailData.html },
-          Text: { Data: emailData.text }
-        }
-      }
-    });
-
-    const result = await this.sesClient.send(command);
-    return { messageId: result.MessageId };
   }
 
   // Send email using SMTP
@@ -400,15 +364,9 @@ class EmailService {
   async checkTripReminders(windowsDays = [7, 3, 1]) {
     try {
       // Late-require to avoid circular deps at module load.
-      const docClient = require('../db.js');
-      const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
-
-      const res = await docClient.send(new ScanCommand({
-        TableName: process.env.DYNAMODB_TABLE_NAME,
-        FilterExpression: 'begins_with(SK, :sk) AND attribute_exists(startDate)',
-        ExpressionAttributeValues: { ':sk': 'TRIP#' },
-      }));
-      const trips = res.Items || [];
+      const { Trip } = require('../models');
+      const trips = await Trip.find({ startDate: { $nin: [null, ''] } })
+        .select('-_id -__v').lean();
 
       const results = [];
       for (const trip of trips) {
@@ -457,14 +415,8 @@ function daysBetweenTodayAnd(dateStr) {
 
 async function lookupUserById(userId) {
   try {
-    const docClient = require('../db.js');
-    const { GetCommand } = require('@aws-sdk/lib-dynamodb');
-    const usersTable = process.env.DYNAMODB_USERS_TABLE || 'TrailPack-Users';
-    const res = await docClient.send(new GetCommand({
-      TableName: usersTable,
-      Key: { userId },
-    }));
-    return res.Item || null;
+    const { User } = require('../models');
+    return await User.findOne({ userId }).select('-_id -__v').lean();
   } catch (e) {
     console.warn('[email] lookupUserById failed:', e.message);
     return null;

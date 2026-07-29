@@ -1,14 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
-const docClient = require('../db.js');
+const { Trip, Item } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
-const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { estimateProvisions } = require('../services/provisionsService');
 const sharedTrips = require('../services/sharedTripsService');
 const aiService = require('../services/aiService');
-
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
 
 // Duplicated from routes/weather.js so POST /trips can expand a
 // trailing 2-letter country code on req.body.location into its full
@@ -198,7 +194,6 @@ router.post('/', authenticate, async (req, res) => {
     }
 
     const userId = req.user.userId;
-    const tripId = uuidv4();
     const parsedDuration = parseInt(duration);
     // Group size: clamp to [1, 50]; default to 1 when missing/invalid.
     const parsedGroupSize = Math.min(50, Math.max(1, parseInt(groupSize, 10) || 1));
@@ -207,11 +202,7 @@ router.post('/', authenticate, async (req, res) => {
     const parsedLat = parseCoord(lat, 90);
     const parsedLon = parseCoord(lon, 180);
 
-    // Save trip with PutCommand
-    const tripItem = {
-      PK: `USER#${userId}`,
-      SK: `TRIP#${tripId}`,
-      tripId,
+    const tripDoc = await Trip.create({
       userId,
       name,
       terrain,
@@ -225,16 +216,11 @@ router.post('/', authenticate, async (req, res) => {
       endDate: endDate || null,
       status: 'planned',
       photoIndex: Math.floor(Math.random() * 15),
-      createdAt: new Date().toISOString()
-    };
-    
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: tripItem
-    }));
-
-    // Write a tripId pointer so collaborators can look up the trip by id alone.
-    await sharedTrips.putTripPointer(tripId, userId);
+    });
+    const tripItem = tripDoc.toObject();
+    delete tripItem._id;
+    delete tripItem.__v;
+    const tripId = tripItem.tripId;
 
     // Generate the initial checklist. Try the Groq-backed AI generator
     // first so the list is tailored to terrain/season/duration/location;
@@ -256,24 +242,12 @@ router.post('/', authenticate, async (req, res) => {
     }
     console.log(`[trips] checklist generated via ${checklistSource} (${checklistItems.length} items) for trip ${tripId}`);
 
-    const itemPromises = checklistItems.map(item => {
-      const itemId = uuidv4();
-      return docClient.send(new PutCommand({
-        TableName: TABLE_NAME,
-        Item: {
-          PK: `TRIP#${tripId}`,
-          SK: `ITEM#${itemId}`,
-          itemId,
-          tripId,
-          name: item.name,
-          category: item.category,
-          packed: false,
-          createdAt: new Date().toISOString()
-        }
-      }));
-    });
-    
-    await Promise.all(itemPromises);
+    await Item.insertMany(checklistItems.map(item => ({
+      tripId,
+      name: item.name,
+      category: item.category,
+      packed: false,
+    })));
     
     res.status(201).json({
       message: 'Trip created successfully',
@@ -289,21 +263,12 @@ router.post('/', authenticate, async (req, res) => {
 router.get('/', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    
-    const result = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-        ':sk': 'TRIP#'
-      }
-    }));
-    
-    const trips = result.Items || [];
-    
-    // Sort by createdAt descending
-    trips.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
+
+    const trips = await Trip.find({ userId })
+      .sort({ createdAt: -1 })
+      .select('-_id -__v')
+      .lean();
+
     res.json({ trips: trips });
   } catch (error) {
     console.error('Error fetching trips:', error);
@@ -315,39 +280,18 @@ router.get('/', authenticate, async (req, res) => {
 router.get('/stats', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    
-    // Query all trips for the user
-    const tripsResult = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-        ':sk': 'TRIP#'
-      }
-    }));
-    
-    const trips = tripsResult.Items || [];
+
+    const trips = await Trip.find({ userId }).select('tripId').lean();
     const totalTrips = trips.length;
-    
-    // Query items for each trip
+
+    const tripIds = trips.map(t => t.tripId);
     let totalItems = 0;
     let packedItems = 0;
-    
-    for (const trip of trips) {
-      const itemsResult = await docClient.send(new QueryCommand({
-        TableName: TABLE_NAME,
-        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-        ExpressionAttributeValues: {
-          ':pk': `TRIP#${trip.tripId}`,
-          ':sk': 'ITEM#'
-        }
-      }));
-      
-      const items = itemsResult.Items || [];
-      totalItems += items.length;
-      packedItems += items.filter(item => item.packed).length;
+    if (tripIds.length > 0) {
+      totalItems = await Item.countDocuments({ tripId: { $in: tripIds } });
+      packedItems = await Item.countDocuments({ tripId: { $in: tripIds }, packed: true });
     }
-    
+
     const packedPercentage = totalItems > 0 ? Math.round((packedItems / totalItems) * 100) : 0;
     
     res.json({
@@ -368,16 +312,10 @@ router.get('/:id/provisions', authenticate, async (req, res) => {
     const userId = req.user.userId;
     const tripId = req.params.id;
 
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` }
-    }));
-
-    if (!result.Item) {
+    const trip = await Trip.findOne({ tripId, userId }).select('-_id -__v').lean();
+    if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
     }
-
-    const trip = result.Item;
     const provisions = estimateProvisions({
       duration: trip.duration,
       terrain: trip.terrain,
@@ -399,20 +337,13 @@ router.get('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    
-    const result = await docClient.send(new GetCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: `TRIP#${tripId}`
-      }
-    }));
-    
-    if (!result.Item) {
+
+    const trip = await Trip.findOne({ tripId, userId }).select('-_id -__v').lean();
+    if (!trip) {
       return res.status(404).json({ message: 'Trip not found' });
     }
-    
-    res.json(result.Item);
+
+    res.json(trip);
   } catch (error) {
     console.error('Error fetching trip:', error);
     res.status(500).json({ message: 'Error fetching trip' });
@@ -426,78 +357,37 @@ router.put('/:id', authenticate, async (req, res) => {
     const tripId = req.params.id;
     const { name, terrain, season, duration, groupSize, status, location, lat, lon, startDate, endDate } = req.body;
     
-    const updateExpressions = [];
-    const expressionAttributeNames = {};
-    const expressionAttributeValues = {};
-    
-    if (name) {
-      updateExpressions.push('#name = :name');
-      expressionAttributeNames['#name'] = 'name';
-      expressionAttributeValues[':name'] = name;
-    }
-    if (terrain) {
-      updateExpressions.push('terrain = :terrain');
-      expressionAttributeValues[':terrain'] = terrain;
-    }
-    if (season) {
-      updateExpressions.push('season = :season');
-      expressionAttributeValues[':season'] = season;
-    }
-    if (duration) {
-      updateExpressions.push('duration = :duration');
-      expressionAttributeValues[':duration'] = parseInt(duration);
-    }
+    const updates = {};
+
+    if (name) updates.name = name;
+    if (terrain) updates.terrain = terrain;
+    if (season) updates.season = season;
+    if (duration) updates.duration = parseInt(duration);
     if (groupSize !== undefined && groupSize !== null && groupSize !== '') {
-      updateExpressions.push('groupSize = :groupSize');
-      expressionAttributeValues[':groupSize'] = Math.min(50, Math.max(1, parseInt(groupSize, 10) || 1));
+      updates.groupSize = Math.min(50, Math.max(1, parseInt(groupSize, 10) || 1));
     }
-    if (status) {
-      updateExpressions.push('#status = :status');
-      expressionAttributeNames['#status'] = 'status';
-      expressionAttributeValues[':status'] = status;
-    }
-    if (location !== undefined) {
-      updateExpressions.push('#loc = :loc');
-      expressionAttributeNames['#loc'] = 'location';
-      expressionAttributeValues[':loc'] = normalizeLocation(location) || null;
-    }
-    if (lat !== undefined) {
-      updateExpressions.push('lat = :lat');
-      expressionAttributeValues[':lat'] = parseCoord(lat, 90);
-    }
-    if (lon !== undefined) {
-      updateExpressions.push('lon = :lon');
-      expressionAttributeValues[':lon'] = parseCoord(lon, 180);
-    }
-    if (startDate !== undefined) {
-      updateExpressions.push('startDate = :startDate');
-      expressionAttributeValues[':startDate'] = startDate || null;
-    }
-    if (endDate !== undefined) {
-      updateExpressions.push('endDate = :endDate');
-      expressionAttributeValues[':endDate'] = endDate || null;
-    }
-    
-    if (updateExpressions.length === 0) {
+    if (status) updates.status = status;
+    if (location !== undefined) updates.location = normalizeLocation(location) || null;
+    if (lat !== undefined) updates.lat = parseCoord(lat, 90);
+    if (lon !== undefined) updates.lon = parseCoord(lon, 180);
+    if (startDate !== undefined) updates.startDate = startDate || null;
+    if (endDate !== undefined) updates.endDate = endDate || null;
+
+    if (Object.keys(updates).length === 0) {
       return res.status(400).json({ message: 'No fields to update' });
     }
-    
-    const updateParams = {
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `USER#${userId}`,
-        SK: `TRIP#${tripId}`
-      },
-      UpdateExpression: 'SET ' + updateExpressions.join(', '),
-      ExpressionAttributeValues: expressionAttributeValues,
-      ReturnValues: 'ALL_NEW'
-    };
-    if (Object.keys(expressionAttributeNames).length > 0) {
-      updateParams.ExpressionAttributeNames = expressionAttributeNames;
+
+    const updated = await Trip.findOneAndUpdate(
+      { tripId, userId },
+      { $set: updates },
+      { new: true }
+    ).select('-_id -__v').lean();
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Trip not found' });
     }
-    const result = await docClient.send(new UpdateCommand(updateParams));
-    
-    res.json(result.Attributes);
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating trip:', error);
     res.status(500).json({ message: 'Error updating trip: ' + error.message });
@@ -517,31 +407,9 @@ router.delete('/:id', authenticate, async (req, res) => {
       return res.status(e.status || 500).json({ message: e.message });
     }
 
-    // Delete the trip
-    await docClient.send(new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` }
-    }));
-
-    // Delete the pointer so this tripId is fully gone.
-    await sharedTrips.deleteTripPointer(tripId);
-
-    // Query all items for the trip
-    const itemsResult = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':pk': `TRIP#${tripId}`,
-        ':sk': 'ITEM#'
-      }
-    }));
-
-    const items = itemsResult.Items || [];
-    const deletePromises = items.map(item => docClient.send(new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: { PK: `TRIP#${tripId}`, SK: `ITEM#${item.itemId}` }
-    })));
-    await Promise.all(deletePromises);
+    // Delete the trip and all of its checklist items.
+    await Trip.deleteOne({ tripId, userId });
+    await Item.deleteMany({ tripId });
 
     // Best-effort: remove collaborator rows + their reverse-lookup entries.
     try {
@@ -638,16 +506,7 @@ router.get('/organizer/dashboard', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
 
-    const tripsResult = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':pk': `USER#${userId}`,
-        ':sk': 'TRIP#'
-      }
-    }));
-
-    const ownedTrips = tripsResult.Items || [];
+    const ownedTrips = await Trip.find({ userId }).select('-_id -__v').lean();
 
     // Attach participant lists to each trip for the UI.
     const tripsWithParticipants = await Promise.all(ownedTrips.map(async (trip) => {
@@ -672,16 +531,7 @@ router.get('/organizer/dashboard', authenticate, async (req, res) => {
 // GET /trips/admin/dashboard - Get admin dashboard (admin only)
 router.get('/admin/dashboard', authenticate, authorize('admin'), async (req, res) => {
   try {
-    // Scan all trips
-    const scanResult = await docClient.send(new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':sk': 'TRIP#'
-      }
-    }));
-    
-    const trips = scanResult.Items || [];
+    const trips = await Trip.find({}).select('-_id -__v').lean();
     res.json(trips);
   } catch (error) {
     console.error('Error fetching admin dashboard:', error);

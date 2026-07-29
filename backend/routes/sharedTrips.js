@@ -3,22 +3,14 @@
 // /shared-trips/mine sit alongside /trips.
 const express = require('express');
 const router = express.Router();
-const { ScanCommand } = require('@aws-sdk/lib-dynamodb');
 const { authenticate } = require('../middleware/auth');
 const sharedTrips = require('../services/sharedTripsService');
-const docClient = require('../db.js');
+const { User } = require('../models');
 
-const USERS_TABLE = process.env.DYNAMODB_USERS_TABLE || 'TrailPack-Users';
-
-// Look up a user by email using a scan (no GSI on email in the users table).
+// Look up a user by email (indexed field in Mongo).
 async function findUserByEmail(email) {
   if (!email) return null;
-  const res = await docClient.send(new ScanCommand({
-    TableName: USERS_TABLE,
-    FilterExpression: 'email = :email',
-    ExpressionAttributeValues: { ':email': email.toLowerCase().trim() },
-  }));
-  return (res.Items || [])[0] || null;
+  return User.findOne({ email: email.toLowerCase().trim() }).lean();
 }
 
 // ---------- Invitations (owner only) ----------

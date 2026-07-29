@@ -4,32 +4,26 @@
 //
 // Design notes:
 // - The scheduler is fail-soft by construction: every external call
-//   (DynamoDB scan, per-trip Get/Put, user lookup, email send) is
-//   wrapped so a single bad row, missing user, or SES hiccup never
-//   crashes the cron job. The top-level run() also has a try/catch
-//   so a totally broken DDB connection still won't take the server
-//   down with it.
-// - Deduplication lives in DynamoDB (TrailPack-Notifications) keyed
-//   by `${userId}#${tripId}#${type}`. We Get before sending; on
-//   success we Put with a 30-day TTL so cleanup is automatic.
-// - Reuses emailService.sendEmail() — the existing SES wrapper that
-//   already handles "service not configured" gracefully (returns
-//   { skipped: true } instead of throwing).
+//   (trip query, user lookup, dedup check, email send) is wrapped so
+//   a single bad row, missing user, or SMTP hiccup never crashes the
+//   cron job. The top-level run() also has a try/catch so a broken
+//   DB connection still won't take the server down with it.
+// - Deduplication lives in the SentReminder collection keyed by
+//   `${userId}#${tripId}#${type}`, with a 30-day Mongo TTL index so
+//   cleanup is automatic.
+// - Reuses emailService.sendEmail() — the SMTP wrapper that handles
+//   "service not configured" gracefully (returns { skipped: true }
+//   instead of throwing).
 
-const docClient = require('../db.js');
-const { ScanCommand, GetCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { User, Trip, SentReminder } = require('../models');
 const emailService = require('./emailService');
 
-const TRIPS_TABLE         = process.env.DYNAMODB_TABLE_NAME;
-const USERS_TABLE         = process.env.DYNAMODB_USERS_TABLE        || 'TrailPack-Users';
-const NOTIFICATIONS_TABLE = process.env.DYNAMODB_NOTIFICATIONS_TABLE || 'TrailPack-Notifications';
-
-// Where the frontend lives. Used to build the "Open checklist" CTA
-// in the email body. Falls back to the production S3 site so the
-// link is still useful when the env var isn't configured.
+// Where the frontend lives (your Netlify site). Used to build the
+// "Open checklist" CTA in the email body.
 const FRONTEND_BASE_URL = (
   process.env.FRONTEND_BASE_URL ||
-  'http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com'
+  process.env.FRONTEND_URL ||
+  'http://localhost:8080'
 ).replace(/\/$/, '');
 
 // 30-day TTL on dedup records — long enough that a re-trigger of the
@@ -54,11 +48,7 @@ function daysUntil(dateStr) {
 async function lookupUser(userId) {
   if (!userId) return null;
   try {
-    const res = await docClient.send(new GetCommand({
-      TableName: USERS_TABLE,
-      Key: { userId },
-    }));
-    return res.Item || null;
+    return await User.findOne({ userId }).select('-_id -__v').lean();
   } catch (err) {
     console.warn(`[scheduler] lookupUser(${userId}) failed:`, err.message);
     return null;
@@ -67,15 +57,12 @@ async function lookupUser(userId) {
 
 async function alreadySent(notificationId) {
   try {
-    const res = await docClient.send(new GetCommand({
-      TableName: NOTIFICATIONS_TABLE,
-      Key: { notificationId },
-    }));
-    return Boolean(res.Item);
+    const doc = await SentReminder.findOne({ notificationId }).lean();
+    return Boolean(doc);
   } catch (err) {
-    // If the table doesn't exist yet (cold deploy) or DDB is having a
-    // bad day, the safe choice is "no record" → we'll attempt to send.
-    // The downside of an extra send beats silently dropping reminders.
+    // If the DB is having a bad day, the safe choice is "no record" →
+    // we'll attempt to send. The downside of an extra send beats
+    // silently dropping reminders.
     console.warn(`[scheduler] alreadySent(${notificationId}) check failed:`, err.message);
     return false;
   }
@@ -83,19 +70,15 @@ async function alreadySent(notificationId) {
 
 async function recordSent({ notificationId, userId, tripId, type }) {
   try {
-    const nowSec = Math.floor(Date.now() / 1000);
-    await docClient.send(new PutCommand({
-      TableName: NOTIFICATIONS_TABLE,
-      Item: {
-        notificationId,
-        userId,
-        tripId,
-        type,
-        sentAt: new Date().toISOString(),
-        // DynamoDB TTL is interpreted as Unix epoch seconds.
-        expiresAt: nowSec + DEDUP_TTL_SECONDS,
-      },
-    }));
+    await SentReminder.create({
+      notificationId,
+      userId,
+      tripId,
+      type,
+      sentAt: new Date().toISOString(),
+      // Mongo TTL index on expiresAt handles cleanup automatically.
+      expiresAt: new Date(Date.now() + DEDUP_TTL_SECONDS * 1000),
+    });
   } catch (err) {
     // Recording failure shouldn't poison the rest of the run — log
     // and keep going. The worst case is a duplicate send next time.
@@ -241,21 +224,11 @@ async function run() {
   const startedAt = new Date().toISOString();
   console.log(`[scheduler] run() starting at ${startedAt}`);
   try {
-    if (!TRIPS_TABLE) {
-      console.warn('[scheduler] DYNAMODB_TABLE_NAME is not set; aborting run');
-      return;
-    }
-
-    // Single-table scan: all trip rows have SK starting with TRIP#.
-    // Filter out cancelled trips and rows missing startDate inline so
-    // we don't burn time iterating them client-side.
-    const res = await docClient.send(new ScanCommand({
-      TableName: TRIPS_TABLE,
-      FilterExpression: 'begins_with(SK, :sk) AND attribute_exists(startDate) AND (attribute_not_exists(#st) OR #st <> :cancelled)',
-      ExpressionAttributeNames:  { '#st': 'status' },
-      ExpressionAttributeValues: { ':sk': 'TRIP#', ':cancelled': 'cancelled' },
-    }));
-    const trips = res.Items || [];
+    // All trips with a startDate that aren't cancelled.
+    const trips = await Trip.find({
+      startDate: { $nin: [null, ''] },
+      status: { $ne: 'cancelled' },
+    }).select('-_id -__v').lean();
     console.log(`[scheduler] scanned ${trips.length} candidate trip(s)`);
 
     let processed = 0;

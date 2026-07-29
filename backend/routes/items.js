@@ -1,28 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { v4: uuidv4 } = require('uuid');
-const docClient = require('../db.js');
+const { Trip, Item } = require('../models');
 const { authenticate } = require('../middleware/auth');
-const { QueryCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb');
 const aiService = require('../services/aiService');
 
-const TABLE_NAME = process.env.DYNAMODB_TABLE_NAME;
+const EXCLUDE = '-_id -__v';
 
 // GET /trips/:id/items - Get all checklist items for a trip
 router.get('/:id/items', authenticate, async (req, res) => {
   try {
     const tripId = req.params.id;
-    
-    const result = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: {
-        ':pk': `TRIP#${tripId}`,
-        ':sk': 'ITEM#'
-      }
-    }));
-    
-    const items = result.Items || [];
+    const items = await Item.find({ tripId }).select(EXCLUDE).lean();
     res.json(items);
   } catch (error) {
     console.error('Error fetching checklist items:', error);
@@ -35,25 +23,22 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const itemId = req.params.id;
     const { tripId, packed } = req.body;
-    
+
     if (!tripId) {
       return res.status(400).json({ message: 'Trip ID is required' });
     }
-    
-    const result = await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `TRIP#${tripId}`,
-        SK: `ITEM#${itemId}`
-      },
-      UpdateExpression: 'SET packed = :packed',
-      ExpressionAttributeValues: {
-        ':packed': packed
-      },
-      ReturnValues: 'ALL_NEW'
-    }));
-    
-    res.json(result.Attributes);
+
+    const updated = await Item.findOneAndUpdate(
+      { itemId, tripId },
+      { $set: { packed } },
+      { new: true }
+    ).select(EXCLUDE).lean();
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating item:', error);
     res.status(500).json({ message: 'Error updating item' });
@@ -65,21 +50,18 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
   try {
     const { tripId, itemId } = req.params;
     const { packed } = req.body;
-    
-    const result = await docClient.send(new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `TRIP#${tripId}`,
-        SK: `ITEM#${itemId}`
-      },
-      UpdateExpression: 'SET packed = :packed',
-      ExpressionAttributeValues: {
-        ':packed': packed
-      },
-      ReturnValues: 'ALL_NEW'
-    }));
-    
-    res.json(result.Attributes);
+
+    const updated = await Item.findOneAndUpdate(
+      { itemId, tripId },
+      { $set: { packed } },
+      { new: true }
+    ).select(EXCLUDE).lean();
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    res.json(updated);
   } catch (error) {
     console.error('Error updating item:', error);
     res.status(500).json({ message: 'Error updating item' });
@@ -90,37 +72,22 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
 router.post('/', authenticate, async (req, res) => {
   try {
     const { tripId, name, category } = req.body;
-    
+
     if (!tripId || !name || !category) {
       return res.status(400).json({ message: 'Trip ID, name, and category are required' });
     }
-    
-    const itemId = uuidv4();
-    
-    await docClient.send(new PutCommand({
-      TableName: TABLE_NAME,
-      Item: {
-        PK: `TRIP#${tripId}`,
-        SK: `ITEM#${itemId}`,
-        itemId,
-        tripId,
-        name,
-        category,
-        packed: false,
-        createdAt: new Date().toISOString()
-      }
-    }));
-    
-    res.status(201).json({
-      PK: `TRIP#${tripId}`,
-      SK: `ITEM#${itemId}`,
-      itemId,
+
+    const itemDoc = await Item.create({
       tripId,
       name,
       category,
       packed: false,
-      createdAt: new Date().toISOString()
     });
+    const item = itemDoc.toObject();
+    delete item._id;
+    delete item.__v;
+
+    res.status(201).json(item);
   } catch (error) {
     console.error('Error adding item:', error);
     res.status(500).json({ message: 'Error adding item' });
@@ -138,21 +105,13 @@ router.post('/:id/ai-items', authenticate, async (req, res) => {
     if (!tripId) return res.status(400).json({ message: 'Trip id is required' });
 
     // Load the trip so we can feed its terrain/season/duration/etc to the model.
-    const tripResult = await docClient.send(new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { PK: `USER#${userId}`, SK: `TRIP#${tripId}` },
-    }));
-    const trip = tripResult && tripResult.Item;
+    const trip = await Trip.findOne({ tripId, userId }).select(EXCLUDE).lean();
     if (!trip) return res.status(404).json({ message: 'Trip not found' });
 
     // Existing items on the trip — used for case-insensitive dedup.
-    const existingResult = await docClient.send(new QueryCommand({
-      TableName: TABLE_NAME,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
-      ExpressionAttributeValues: { ':pk': `TRIP#${tripId}`, ':sk': 'ITEM#' },
-    }));
+    const existingItems = await Item.find({ tripId }).select('name').lean();
     const existingNames = new Set(
-      (existingResult.Items || [])
+      existingItems
         .map(i => String(i && i.name || '').trim().toLowerCase())
         .filter(Boolean)
     );
@@ -161,7 +120,7 @@ router.post('/:id/ai-items', authenticate, async (req, res) => {
     const suggestions = await aiService.generateGearSuggestions(trip);
 
     const inserted = [];
-    const skipped  = [];
+    const skipped = [];
     for (const item of suggestions) {
       const key = String(item.name || '').trim().toLowerCase();
       if (!key) continue;
@@ -170,20 +129,17 @@ router.post('/:id/ai-items', authenticate, async (req, res) => {
       // same AI batch by adding each inserted name to the set.
       if (existingNames.has(key)) { skipped.push(item.name); continue; }
 
-      const itemId = uuidv4();
-      const record = {
-        PK: `TRIP#${tripId}`,
-        SK: `ITEM#${itemId}`,
-        itemId,
+      const doc = await Item.create({
         tripId,
         name: item.name,
         category: item.category,
         priority: item.priority,
         source: 'ai',
         packed: false,
-        createdAt: new Date().toISOString(),
-      };
-      await docClient.send(new PutCommand({ TableName: TABLE_NAME, Item: record }));
+      });
+      const record = doc.toObject();
+      delete record._id;
+      delete record.__v;
       existingNames.add(key);
       inserted.push(record);
     }
@@ -205,19 +161,13 @@ router.delete('/:id', authenticate, async (req, res) => {
   try {
     const itemId = req.params.id;
     const { tripId } = req.body;
-    
+
     if (!tripId) {
       return res.status(400).json({ message: 'Trip ID is required' });
     }
-    
-    await docClient.send(new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        PK: `TRIP#${tripId}`,
-        SK: `ITEM#${itemId}`
-      }
-    }));
-    
+
+    await Item.deleteOne({ itemId, tripId });
+
     res.json({ message: 'Item deleted successfully' });
   } catch (error) {
     console.error('Error deleting item:', error);
