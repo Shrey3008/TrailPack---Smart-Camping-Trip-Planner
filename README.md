@@ -4,19 +4,10 @@ A web app that helps campers and backpackers plan trips by generating smart pack
 
 ## Live Demo
 
-- **Public landing page:** https://d1lo74lzwr0k57.cloudfront.net/
-- **Dashboard (post-login):** https://d1lo74lzwr0k57.cloudfront.net/dashboard.html
-- **Backend API (HTTPS):** https://dk4c01g0h1v43.cloudfront.net/
-- **Region:** `us-east-1`
+- **App:** https://mytrailpack.netlify.app
+- **Backend API:** https://trailpack-smart-camping-trip-planner.onrender.com
 
-The bare URL serves a marketing landing page (hero, features, pricing, FAQ). Logged-in users are auto-redirected to the dashboard. The frontend and backend are both served via Amazon CloudFront for HTTPS and edge caching. The S3 and Elastic Beanstalk endpoints below still work (HTTP) but the CloudFront URLs are the canonical ones.
-
-<details><summary>Origin endpoints (used internally by CloudFront)</summary>
-
-- S3 website: `http://trailpack-frontend-173480719972.s3-website-us-east-1.amazonaws.com`
-- Elastic Beanstalk: `http://trailpack-prod-env-v2.eba-4zfgqhmh.us-east-1.elasticbeanstalk.com`
-
-</details>
+The frontend is a static site on Netlify; the backend is a Node/Express API on Render backed by MongoDB Atlas. The backend is on Render's free tier, so the first request after a period of inactivity can take 30–60s to wake up.
 
 ## Features
 
@@ -34,17 +25,17 @@ The bare URL serves a marketing landing page (hero, features, pricing, FAQ). Log
 - Shared-trips section on the dashboard
 
 ### AI & external data
-- AI gear suggestions via Groq (`POST /trips/:id/ai-items`) — falls back to a no-op if `GROQ_API_KEY` is unset
-- Open-Meteo weather forecast for trip locations (no API key required)
+- AI gear suggestions via Groq (`POST /trips/:id/ai-items`) — falls back to a rule-based generator if `GROQ_API_KEY` is unset
+- Weather forecasts via OpenWeatherMap, with Open-Meteo for geocoding and UV index (no key required)
 - Optional OpenAI integration for legacy AI helpers
 
 ### Notifications
-- Cron-driven email reminders (pre-trip nudges) via AWS SES, gated by `ENABLE_EMAIL_SCHEDULER`
-- Local SMTP / Gmail fallback for development
+- Cron-driven email reminders (pre-trip nudges) via Gmail SMTP (nodemailer), gated by `ENABLE_EMAIL_SCHEDULER`
+- No-ops silently when email isn't configured (`DISABLE_EMAIL=true` or missing credentials)
 
 ### Auth & accounts
 - JWT-based login / register with bcrypt-hashed passwords
-- Forgot-password flow with tokenized email reset
+- Forgot-password flow with a security question (no email dependency required)
 - Three-tier role system: `user`, `organizer`, `admin`
 
 ### Admin console
@@ -56,14 +47,14 @@ The bare URL serves a marketing landing page (hero, features, pricing, FAQ). Log
 
 | Layer | Tech |
 |---|---|
-| Frontend | Vanilla HTML / CSS / JS (no framework) — served from S3, fronted by CloudFront |
-| Backend | Node.js + Express, deployed to Elastic Beanstalk |
-| Database | DynamoDB (single-table for trips/items/collaborators + a separate users table) |
+| Frontend | Vanilla HTML / CSS / JS (no framework) — static hosting on Netlify |
+| Backend | Node.js + Express, deployed to Render |
+| Database | MongoDB Atlas (Mongoose ODM) |
 | Auth | JWT (`jsonwebtoken`) + bcrypt |
-| Email | AWS SES in production, nodemailer/Gmail in dev |
+| Email | Gmail SMTP via nodemailer (no-op if unconfigured) |
 | AI | Groq (primary), OpenAI (legacy) |
-| Weather | Open-Meteo (free, no key) |
-| Hosting | S3 (static site) + Elastic Beanstalk (API) + CloudFront (HTTPS + caching) |
+| Weather | OpenWeatherMap (current + forecast), Open-Meteo (geocoding + UV, no key) |
+| Hosting | Netlify (frontend) + Render (backend API) + MongoDB Atlas (database) |
 
 ## Project Structure
 
@@ -71,12 +62,16 @@ The bare URL serves a marketing landing page (hero, features, pricing, FAQ). Log
 TrailPack/
 ├── backend/                          # Node.js + Express API
 │   ├── server.js                     # App entry, CORS, route mounting
-│   ├── db.js                         # DynamoDB document client
+│   ├── db.js                         # MongoDB (Mongoose) connection
+│   ├── models/                       # Mongoose schemas: User, Trip, Item,
+│   │                                   Notification, Collaborator, Invite,
+│   │                                   SentReminder
 │   ├── routes/                       # admin, ai, auth, items, notifications,
 │   │                                   sharedTrips, trips, weather
 │   ├── middleware/                   # auth (JWT) + adminMiddleware
 │   ├── services/                     # checklist, ai, email, dashboard,
-│   │                                   notification scheduler, dynamoDB,
+│   │                                   notification scheduler, dynamoDBService
+│   │                                   (Mongo-backed, name kept for history),
 │   │                                   provisions, sharedTrips
 │   ├── __tests__/                    # Jest test suite
 │   └── .env.example                  # Backend env template
@@ -105,12 +100,6 @@ TrailPack/
 │   ├── admin.js                      # Admin console logic
 │   └── assets/hero/                  # Rotating hero photos
 │
-├── aws-configs/                      # CloudFront distribution configs
-│   ├── cf-frontend.json              # S3 → CloudFront
-│   └── cf-backend.json               # EB → CloudFront
-│
-├── deploy.sh                         # One-command deploy script
-├── .env.example                      # Root env template (full reference)
 └── README.md
 ```
 
@@ -119,16 +108,14 @@ TrailPack/
 ### Prerequisites
 
 - **Node.js** 18+ (current LTS)
-- **AWS account** with credentials in `~/.aws/credentials` or env vars (the backend talks to DynamoDB even in dev — there is no local DB fallback)
-- **DynamoDB tables** named `TrailPack-Trips` and `TrailPack-Users` in `us-east-1` (or override via env vars)
-- **`aws` CLI** for the deploy script
-- **`eb` CLI** for backend deploys: `pip install --user awsebcli`
+- **MongoDB Atlas** account with a free M0 cluster (or any MongoDB-compatible connection string)
 
 ### 1. Clone and install
 
 ```bash
 git clone https://github.com/Shrey3008/TrailPack---Smart-Camping-Trip-Planner.git
 cd TrailPack---Smart-Camping-Trip-Planner/backend
+git checkout dev   # dev is the actively developed branch
 npm install
 ```
 
@@ -137,13 +124,14 @@ npm install
 ```bash
 cp .env.example .env
 # Open .env and fill in:
-#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY
-#   JWT_SECRET           (any random 32+ char string for dev)
-#   GROQ_API_KEY         (optional — enables AI gear suggestions)
-#   WEATHER_API_KEY      (optional — only for legacy OpenWeather features)
+#   MONGODB_URI          (from Atlas → Connect → Drivers)
+#   MONGODB_DB            (defaults to "trailpack")
+#   JWT_SECRET             (any random 32+ char string, e.g. `openssl rand -hex 32`)
+#   GROQ_API_KEY          (optional — enables AI gear suggestions)
+#   WEATHER_API_KEY      (optional — enables OpenWeatherMap current + forecast)
 ```
 
-The full annotated reference lives in the **root** `.env.example` — it documents every supported variable across CORS, AWS, email, AI, and weather.
+`backend/.env.example` documents every supported variable, including email and CORS options.
 
 ### 3. Run the backend
 
@@ -169,7 +157,7 @@ python3 -m http.server 8080
 
 Open `http://localhost:8080/login.html`.
 
-`config.js` auto-detects `localhost` and points API calls to `http://localhost:3000`. In production builds it points to the backend CloudFront URL — no manual switch needed.
+`config.js` auto-detects `localhost` and points API calls to `http://localhost:3000`. In production it points to the Render backend URL — no manual switch needed.
 
 ### 5. Run tests
 
@@ -178,73 +166,41 @@ cd backend
 npm test
 ```
 
-Jest runs the full route + service suite. Tests use stubbed AWS env vars so they don't hit real DynamoDB.
+Jest runs the route + service suite.
 
 ## Deployment
 
-A single script handles everything:
-
-```bash
-./deploy.sh             # backend (EB) + frontend (S3) + CloudFront invalidations
-./deploy.sh frontend    # frontend only
-./deploy.sh backend     # backend only
-```
-
-The script:
-
-1. Runs `eb deploy trailpack-prod-env-v2` from `backend/`
-2. Syncs `frontend/` to `s3://trailpack-frontend-173480719972/` (excludes `_originals/`, backups, logs, `.DS_Store`)
-3. Submits CloudFront invalidations for both distributions
-4. Prints all public URLs at the end
-
-### AWS architecture
+The app deploys as three independent, free-tier services, each auto-deploying from GitHub:
 
 ```
-                    ┌────────────────────────────┐
-   browser ──HTTPS──▶│  CloudFront  d1lo74...     │──▶ S3 static site
-                    └────────────────────────────┘     (frontend bucket)
-                    
-                    ┌────────────────────────────┐
-   browser ──HTTPS──▶│  CloudFront  dk4c01...     │──▶ Elastic Beanstalk
-                    │  (caching disabled — API)  │     (Node.js API)
-                    └────────────────────────────┘            │
-                                                              ▼
-                                                    ┌──────────────────┐
-                                                    │     DynamoDB     │
-                                                    │ TrailPack-Trips  │
-                                                    │ TrailPack-Users  │
-                                                    └──────────────────┘
-                                                              │
-                                                              ▼
-                                                          AWS SES
-                                                       (transactional email)
+   browser ──HTTPS──▶  Netlify (static frontend)
+                              │
+                              │ fetch (CORS)
+                              ▼
+   browser ──HTTPS──▶  Render (Node.js/Express API)
+                              │
+                              ▼
+                       MongoDB Atlas (M0)
 ```
 
-| Component | AWS resource |
-|---|---|
-| Frontend hosting | S3 bucket `trailpack-frontend-173480719972` (static website) |
-| Frontend CDN | CloudFront `E2DQVML6TDR39D` → `d1lo74lzwr0k57.cloudfront.net` |
-| Backend hosting | Elastic Beanstalk env `trailpack-prod-env-v2` (single t2.micro / t3.micro) |
-| Backend CDN | CloudFront `E1A4XC62OW633P` → `dk4c01g0h1v43.cloudfront.net` (caching disabled) |
-| Database | DynamoDB tables `TrailPack-Trips` and `TrailPack-Users` |
-| Email | AWS SES (`us-east-1`) |
+| Component | Service | Notes |
+|---|---|---|
+| Frontend hosting | Netlify | Publish directory: `frontend`, no build step (static site) |
+| Backend hosting | Render | Root dir: `backend`, build: `npm install`, start: `node server.js`, health check: `/health` |
+| Database | MongoDB Atlas | Free M0 cluster (512 MB) |
+| Email | Gmail SMTP via nodemailer | Set `EMAIL_USER` / `EMAIL_PASS` (Google App Password), or leave unset to no-op |
 
-Free-tier footprint: well under all limits (CloudFront 1 TB out + 10M req/mo are perpetually free; EB on a single micro instance is free for 12 months; DynamoDB 25 GB + 25 RCU/WCU always free; SES 200 emails/day from EC2 always free).
+Both Netlify and Render redeploy automatically on every push to the connected branch (`dev`). There is no manual deploy script — push to Git and the platforms handle the rest.
 
 ### CORS
 
-The backend allowlist is built from:
+The backend allowlist ([backend/server.js](backend/server.js)) is built from:
 
-1. Hardcoded production origins (S3 website + CloudFront frontend) in `backend/server.js`
+1. Any `*.netlify.app` subdomain, hardcoded as a default
 2. Anything in the `CORS_ALLOWED_ORIGINS` env var (comma-separated, supports `*.subdomain` wildcards)
 3. Localhost on any port (always allowed)
 
-To allow a new origin in production:
-
-```bash
-cd backend
-eb setenv CORS_ALLOWED_ORIGINS=https://your-new-origin.example.com
-```
+To allow a new origin in production, set `CORS_ALLOWED_ORIGINS` in the Render dashboard's Environment tab and let it redeploy.
 
 ## API Reference (overview)
 
@@ -253,8 +209,8 @@ All routes are mounted at the backend root. Auth-required routes need `Authoriza
 ### `auth`
 - `POST /auth/register` — create account
 - `POST /auth/login` — get JWT
-- `POST /auth/forgot-password` — email reset link
-- `POST /auth/reset-password` — consume reset token
+- `POST /auth/forgot-password` — get the account's security question
+- `POST /auth/reset-password` — reset password via security answer
 - `GET  /auth/me` — current user profile
 - `PUT  /auth/me` — update profile
 
@@ -281,7 +237,7 @@ All routes are mounted at the backend root. Auth-required routes need `Authoriza
 - (collaborator + role management routes)
 
 ### `weather`
-- `GET    /weather?lat=&lon=&start=&end=` — Open-Meteo forecast
+- `GET    /weather?lat=&lon=&start=&end=` — weather forecast
 
 ### `notifications`
 - `GET    /notifications` — list current user's notifications

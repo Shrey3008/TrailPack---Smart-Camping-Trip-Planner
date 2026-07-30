@@ -48,3 +48,6 @@ AWSCLIV2.pkg
 test-credentials.txt
 *.zip
 *.pkg
+
+# Local reference screenshots (not part of the app)
+screenshots/
