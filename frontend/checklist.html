@@ -4327,9 +4327,10 @@
             } else if (skipped > 0) {
               showToast('All suggestions were already on your list.', 'success');
             } else {
-              // Empty result → either the key is missing on the backend
-              // or Gemini returned nothing parseable. Not an error per se.
-              showToast('No new suggestions right now — try again later.');
+              // A genuine empty result: the model ran and had nothing to add
+              // beyond what's already packed. Backend failures now arrive as
+              // a 503 and are handled by the catch below instead.
+              showToast('No extra gear to suggest — your list already covers this trip.');
             }
           } catch (err) {
             showToast('Could not generate suggestions: ' + err.message, 'error');

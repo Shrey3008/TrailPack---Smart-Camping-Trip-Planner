@@ -291,13 +291,20 @@ class AIService {
 
   // Generate AI-suggested gear items for a specific trip. Returns a
   // sanitized array of { name, category, priority } objects parsed
-  // from the model's JSON response. On any failure (OpenAI error,
-  // bad JSON, missing fields) returns an empty array so the caller
-  // can fall through gracefully — never throws.
+  // from the model's JSON response.
+  //
+  // Throws on hard failure (no key, upstream/auth error, unusable
+  // response) with err.code set to AI_NOT_CONFIGURED or AI_UNAVAILABLE,
+  // so the caller can tell "the AI is broken" apart from "the AI ran and
+  // had nothing to add". A successful call with no suggestions still
+  // returns []. There is no rule-based fallback for this endpoint, so
+  // swallowing errors here would hide outages from users.
   async generateGearSuggestions(trip) {
-    // No Groq key configured → behave exactly like an AI error:
-    // empty array so the caller inserts nothing.
-    if (!this.groq) return [];
+    if (!this.groq) {
+      const err = new Error('AI suggestions are not configured on the server.');
+      err.code = 'AI_NOT_CONFIGURED';
+      throw err;
+    }
     try {
       const prompt =
 `You are a camping gear expert. Suggest 5-8 specific, non-obvious gear items for a camping trip based on the details below. Avoid generic staples (backpack, water bottle, tent, first aid kit, sleeping bag) — the base checklist already covers those. Focus on trip-specific items that a less-experienced camper might forget.
@@ -319,12 +326,24 @@ Trip:
         response_format: { type: 'json_object' },
       });
       const text = response && response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content;
-      if (!text) return [];
+      // An empty or unparseable body means the upstream call did not give
+      // us a usable answer — that is a failure, not "no suggestions".
+      if (!text) {
+        const err = new Error('The AI service returned an empty response.');
+        err.code = 'AI_UNAVAILABLE';
+        throw err;
+      }
 
       // Groq's JSON mode returns clean JSON — no markdown fences, no
       // prose wrapper — so parse the response text directly.
       let parsed;
-      try { parsed = JSON.parse(text); } catch (_) { return []; }
+      try {
+        parsed = JSON.parse(text);
+      } catch (_) {
+        const err = new Error('The AI service returned an unreadable response.');
+        err.code = 'AI_UNAVAILABLE';
+        throw err;
+      }
       const arr = Array.isArray(parsed && parsed.items) ? parsed.items : [];
 
       const ALLOWED_CATS  = new Set(['Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
@@ -339,7 +358,13 @@ Trip:
         }));
     } catch (error) {
       console.error('AI gear suggestions error:', error);
-      return [];
+      // Pass our own typed errors straight through; wrap anything else
+      // (auth failure, rate limit, network) as an upstream outage.
+      if (error && typeof error.code === 'string' && error.code.startsWith('AI_')) throw error;
+      const err = new Error('The AI service is temporarily unavailable.');
+      err.code = 'AI_UNAVAILABLE';
+      err.cause = error;
+      throw err;
     }
   }
 
@@ -352,7 +377,9 @@ Trip:
   // so trips.js can fall back to its rule-based generator.
   async generateBaseChecklist(trip) {
     // No key → return empty so the caller falls back to the rule-based
-    // path. Mirrors the behaviour of generateGearSuggestions().
+    // path. Unlike generateGearSuggestions(), this method stays silent on
+    // failure precisely because trips.js has a rule-based fallback: the
+    // user still gets a checklist, so there is nothing to report.
     if (!this.groq) return [];
 
     // Categories that the existing checklist UI groups items under.

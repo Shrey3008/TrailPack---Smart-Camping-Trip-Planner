@@ -116,8 +116,20 @@ router.post('/:id/ai-items', authenticate, async (req, res) => {
         .filter(Boolean)
     );
 
-    // Ask the model for structured gear suggestions.
-    const suggestions = await aiService.generateGearSuggestions(trip);
+    // Ask the model for structured gear suggestions. A hard failure here
+    // (no key, auth error, upstream outage) must surface as 503 — reporting
+    // it as a successful run with zero results made a dead API key look
+    // identical to "the AI had nothing to suggest".
+    let suggestions;
+    try {
+      suggestions = await aiService.generateGearSuggestions(trip);
+    } catch (aiErr) {
+      const code = (aiErr && aiErr.code) || 'AI_UNAVAILABLE';
+      return res.status(503).json({
+        message: aiErr && aiErr.message ? aiErr.message : 'The AI service is temporarily unavailable.',
+        code,
+      });
+    }
 
     const inserted = [];
     const skipped = [];
