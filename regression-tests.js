@@ -242,7 +242,9 @@ class RegressionTester {
         // Check if dashboard elements exist
         const dashboardContainer = document.querySelector('.dashboard-container');
         const tripsGrid = document.getElementById('trips-grid');
-        const createTripBtn = document.querySelector('button[onclick*="create-trip.html"]');
+        // create-trip.html was removed; the Create Trip modal is opened from
+        // #open-create-trip (or #open-create-trip-empty in the empty state).
+        const createTripBtn = document.querySelector('#open-create-trip, #open-create-trip-empty');
         
         if (dashboardContainer && tripsGrid && createTripBtn) {
           return { 

@@ -422,7 +422,7 @@ document.addEventListener('keydown', (e) => {
 
 // Permanently delete a user account.
 // Per product spec: "Deactivate" prompts for confirmation, then permanently
-// removes the account from DynamoDB so the user can no longer log in. The
+// removes the account from the database so the user can no longer log in. The
 // user must sign up again to regain access.
 async function deleteUserAccount(userId, userName) {
   const label = userName ? `"${userName}"` : 'this user';
