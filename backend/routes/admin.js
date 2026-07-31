@@ -1,7 +1,18 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const { User, Trip, Item } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
+
+// Constant-time compare so the bootstrap token can't be guessed byte-by-byte
+// from response timing. Length is compared first because timingSafeEqual
+// throws on mismatched buffer lengths.
+function safeEquals(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 // Public-safe user shape for admin responses.
 function adminUser(u) {
@@ -144,7 +155,35 @@ router.delete('/users/:userId', authenticate, authorize('admin'), async (req, re
 router.post('/setup', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('[Admin Setup] Attempting to promote user:', userId);
+
+    // SECURITY: this route previously required nothing but a valid login and
+    // unconditionally set role='admin' on the caller, so any registered user
+    // could promote themselves and then list, re-role, deactivate or delete
+    // every account. It is now a genuine one-time bootstrap:
+    //
+    //   1. disabled entirely unless ADMIN_SETUP_TOKEN is configured,
+    //   2. the caller must present that exact token, and
+    //   3. it only works while no administrator exists yet.
+    const configured = process.env.ADMIN_SETUP_TOKEN;
+    if (!configured) {
+      // 404 rather than 403 so a disabled bootstrap isn't advertised.
+      console.warn('[Admin Setup] Blocked: ADMIN_SETUP_TOKEN is not configured');
+      return res.status(404).json({ message: 'Not found' });
+    }
+
+    const provided = (req.body && req.body.setupToken) || req.get('x-admin-setup-token') || '';
+    if (!safeEquals(String(provided), String(configured))) {
+      console.warn('[Admin Setup] Blocked: invalid setup token from user', userId);
+      return res.status(403).json({ message: 'Invalid setup token' });
+    }
+
+    const existingAdmins = await User.countDocuments({ role: 'admin' });
+    if (existingAdmins > 0) {
+      console.warn('[Admin Setup] Blocked: an administrator already exists');
+      return res.status(403).json({ message: 'An administrator already exists' });
+    }
+
+    console.log('[Admin Setup] Bootstrapping first administrator:', userId);
 
     const updated = await User.findOneAndUpdate(
       { userId },
