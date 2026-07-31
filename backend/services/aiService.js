@@ -2,6 +2,19 @@ const axios = require('axios');
 const OpenAI = require('openai');
 const Groq = require('groq-sdk');
 
+// The single checklist vocabulary. Everything that can put an item on a trip —
+// the rule-based generator in routes/trips.js, generateBaseChecklist, and
+// generateGearSuggestions — must emit one of these, otherwise items land in
+// groups the checklist UI renders separately and progress can't reconcile.
+const CHECKLIST_CATEGORIES = [
+  'Essentials',
+  'Clothing',
+  'Shelter',
+  'Food & Water',
+  'Safety',
+  'Tools',
+];
+
 class AIService {
   constructor() {
     // Lazy-tolerant: the OpenAI client constructor throws when the env
@@ -346,7 +359,11 @@ Trip:
       }
       const arr = Array.isArray(parsed && parsed.items) ? parsed.items : [];
 
-      const ALLOWED_CATS  = new Set(['Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
+      // Must match the vocabulary the rule-based generator in routes/trips.js
+      // emits (and generateBaseChecklist below), otherwise AI items can never
+      // land in the same groups as the rest of the checklist. 'Essentials' was
+      // missing here, so no AI suggestion could ever join that category.
+      const ALLOWED_CATS  = new Set(CHECKLIST_CATEGORIES);
       const ALLOWED_PRIOS = new Set(['essential', 'recommended', 'optional']);
 
       return arr
@@ -385,7 +402,7 @@ Trip:
     // Categories that the existing checklist UI groups items under.
     // The model is instructed to only emit these; unknown values are
     // coerced to 'Tools' as a safe default during sanitization.
-    const ALLOWED_CATS = new Set(['Essentials', 'Shelter', 'Clothing', 'Food & Water', 'Safety', 'Tools']);
+    const ALLOWED_CATS = new Set(CHECKLIST_CATEGORIES);
     const MIN_ITEMS = 8;   // anything less and we don't trust the response
     const MAX_ITEMS = 30;  // cap so a runaway response doesn't bloat DDB
 
@@ -549,4 +566,9 @@ Trip context:
   }
 }
 
-module.exports = new AIService();
+const aiService = new AIService();
+// Exposed so the checklist vocabulary has a single importable source of truth
+// (and so tests can assert the AI and rule-based generators agree on it).
+aiService.CHECKLIST_CATEGORIES = CHECKLIST_CATEGORIES;
+
+module.exports = aiService;

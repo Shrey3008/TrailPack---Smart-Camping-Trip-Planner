@@ -419,6 +419,21 @@
       flex: 1;
       font-size: 0.95rem;
     }
+    /* Marks a row that came from the AI generator, now that suggestions live
+       in the same categories as every other item instead of a separate list. */
+    .item-ai-tag {
+      flex: 0 0 auto;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--green, #2d6a4f);
+      background: var(--green-pale, #e6f2eb);
+      border: 1px solid rgba(45, 106, 79, 0.22);
+      border-radius: 999px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .item.packed .item-ai-tag { opacity: 0.55; }
 
     /* ---------- Add item ---------- */
     .add-item-btn {
@@ -2484,25 +2499,14 @@
         </button>
       </div>
       <hr class="ins-card-divider">
-      <div class="sg-filters" id="sg-filters" role="tablist">
-        <button type="button" class="sg-filter active" data-filter="all">All</button>
-        <button type="button" class="sg-filter" data-filter="shelter">🏕️ Shelter</button>
-        <button type="button" class="sg-filter" data-filter="clothing">👕 Clothing</button>
-        <button type="button" class="sg-filter" data-filter="food">🍽️ Food</button>
-        <button type="button" class="sg-filter" data-filter="tools">🔧 Tools</button>
-        <button type="button" class="sg-filter" data-filter="safety">🩺 Safety</button>
-      </div>
-      <div class="sg-list" id="sg-list">
-        <div class="muted-note">Loading gear…</div>
-      </div>
-      <div class="sg-legend" id="sg-legend">
-        <div class="sg-legend-groups">
-          <span class="sg-legend-item"><span class="sg-dot essential"></span>Essential <span class="sg-legend-count" id="sg-count-essential">0</span></span>
-          <span class="sg-legend-item"><span class="sg-dot recommended"></span>Recommended <span class="sg-legend-count" id="sg-count-recommended">0</span></span>
-          <span class="sg-legend-item"><span class="sg-dot optional"></span>Optional <span class="sg-legend-count" id="sg-count-optional">0</span></span>
-        </div>
-        <span><span class="sg-legend-count" id="sg-packed-count">0/0</span> packed</span>
-      </div>
+      <!--
+        This panel used to hold a second copy of the checklist: its own filter
+        set, its own item list and its own "x/y packed" counter, none of which
+        could agree with the main list. Suggestions now go straight into the
+        categorised checklist above (tagged "✨ AI"), so this is just the
+        generator plus a one-line summary of the last run.
+      -->
+      <div class="sg-summary" id="sg-summary"></div>
     </section>
 
     <!-- ===== Quick-add bar + suggestion chips (Hipcamp redesign) ===== -->
@@ -2896,10 +2900,12 @@
         const container = document.getElementById('categories');
         container.innerHTML = '';
         const grouped = {};
-        // Regular/default checklist: skip AI-sourced items. Items with
-        // no `source` field (legacy rows + the base generator) fall
-        // through to the categorized view as before.
-        items.filter(it => it && it.source !== 'ai').forEach(it => {
+        // One list, one taxonomy: AI suggestions are grouped alongside every
+        // other item. They used to be excluded here and rendered in a separate
+        // panel with its own categories and its own progress counter, which
+        // meant two totals that could never agree. AI rows are still marked
+        // individually via item.source === 'ai'.
+        items.forEach(it => {
           const c = it.category || 'General';
           (grouped[c] = grouped[c] || []).push(it);
         });
@@ -3111,6 +3117,15 @@
           '<span class="item-check" aria-hidden="true"></span>' +
           '<span class="item-name"></span>';
         row.querySelector('.item-name').textContent = item.name || '';
+        // AI suggestions now live in the same categories as everything else,
+        // so mark them inline instead of segregating them into their own list.
+        if (item.source === 'ai') {
+          const tag = document.createElement('span');
+          tag.className = 'item-ai-tag';
+          tag.textContent = '✨ AI';
+          tag.title = 'Suggested by AI';
+          row.appendChild(tag);
+        }
         const toggle = () => togglePacked(item, row);
         row.addEventListener('click', toggle);
         row.addEventListener('keydown', (e) => {
@@ -4184,115 +4199,34 @@
       // ---- Card 3: Smart Gear ----
       // Reuses the already-loaded `items` array. Priority is taken from
       // item.priority if present, otherwise inferred from category keywords.
-      const SG_FILTER_MATCH = {
-        shelter:  ['shelter', 'tent', 'sleep'],
-        clothing: ['cloth'],
-        food:     ['food', 'cook', 'kitchen', 'nutrition'],
-        tools:    ['tool', 'gear', 'equipment', 'electronic', 'navigation'],
-        safety:   ['safety', 'first aid', 'medical', 'emergency', 'hygien'],
-      };
-      function sgPriority(item) {
-        if (item && item.priority) {
-          const p = String(item.priority).toLowerCase();
-          if (p === 'essential' || p === 'recommended' || p === 'optional') return p;
-        }
-        const cat = (item && item.category || '').toLowerCase();
-        if (/essential|safety|first[ -]?aid|medical|emergency/.test(cat)) return 'essential';
-        if (/optional|extra|nice[- ]to/.test(cat)) return 'optional';
-        return 'recommended';
-      }
-      function sgMatchesFilter(item, filter) {
-        if (!filter || filter === 'all') return true;
-        const keys = SG_FILTER_MATCH[filter] || [];
-        const cat = (item.category || '').toLowerCase();
-        const name = (item.name || '').toLowerCase();
-        return keys.some(k => cat.includes(k) || name.includes(k));
-      }
-      let sgCurrentFilter = 'all';
+      // The Smart Gear card no longer maintains its own list. Suggestions are
+      // rendered inside the categorised checklist (tagged "✨ AI") and toggled
+      // by the normal item handler, so all that remains here is a one-line
+      // summary of how many AI items the trip currently has. Kept under the
+      // sgRender() name because several call sites already invoke it after the
+      // items array changes.
       function sgRender() {
-        const list = document.getElementById('sg-list');
-        if (!list) return;
-        // Smart Gear List is the AI section: only items with source==='ai'.
-        const aiItems = items.filter(i => i && i.source === 'ai');
-        const visible = aiItems.filter(i => sgMatchesFilter(i, sgCurrentFilter));
-        // Nothing generated yet is a different state from "a filter hid
-        // everything" — the badge and the 0/0 legend only make sense once
-        // suggestions actually exist.
-        const badge  = document.getElementById('sg-ai-badge');
-        const legend = document.getElementById('sg-legend');
-        const untouched = aiItems.length === 0;
-        if (badge)  badge.style.display  = untouched ? 'none' : '';
-        if (legend) legend.style.display = untouched ? 'none' : '';
-        if (untouched) {
-          list.innerHTML =
+        const summary = document.getElementById("sg-summary");
+        if (!summary) return;
+        const aiItems = (Array.isArray(items) ? items : []).filter(i => i && i.source === "ai");
+        const badge = document.getElementById("sg-ai-badge");
+        if (badge) badge.style.display = aiItems.length ? "" : "none";
+
+        if (!aiItems.length) {
+          summary.innerHTML =
             '<div class="sg-empty">' +
               '<span class="sg-empty__icon" aria-hidden="true">🎒</span>' +
               '<div class="sg-empty__title">No suggestions yet</div>' +
-              '<div class="sg-empty__hint">Tap “Generate suggestions” to build a gear list for this trip.</div>' +
+              '<div class="sg-empty__hint">Tap “Generate suggestions” to add gear straight into your checklist.</div>' +
             '</div>';
-        } else if (!visible.length) {
-          list.innerHTML = '<div class="muted-note">No items match this filter.</div>';
-        } else {
-          list.innerHTML = visible.map(it => {
-            const prio = sgPriority(it);
-            const packed = it.packed ? ' packed' : '';
-            return (
-              '<div class="sg-item ' + prio + packed + '" data-sg-id="' + escapeHtml(it.itemId) + '" role="button" tabindex="0" aria-pressed="' + (it.packed ? 'true' : 'false') + '">' +
-                '<span class="sg-check" aria-hidden="true"></span>' +
-                '<span class="sg-name">' + escapeHtml(it.name || '') + '</span>' +
-                '<span class="sg-prio ' + prio + '">' + prio + '</span>' +
-              '</div>'
-            );
-          }).join('');
+          return;
         }
-        // Legend counts (over ALL AI items, not just the filtered view).
-        const counts = { essential: 0, recommended: 0, optional: 0 };
-        aiItems.forEach(it => { counts[sgPriority(it)]++; });
-        document.getElementById('sg-count-essential').textContent   = counts.essential;
-        document.getElementById('sg-count-recommended').textContent = counts.recommended;
-        document.getElementById('sg-count-optional').textContent    = counts.optional;
         const packed = aiItems.filter(i => i.packed).length;
-        document.getElementById('sg-packed-count').textContent = packed + '/' + aiItems.length;
-
-        // Wire per-row clicks
-        list.querySelectorAll('.sg-item').forEach(row => {
-          const id = row.getAttribute('data-sg-id');
-          const item = aiItems.find(x => String(x.itemId) === String(id));
-          if (!item) return;
-          const toggle = () => sgToggle(item);
-          row.addEventListener('click', toggle);
-          row.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
-          });
-        });
-      }
-      async function sgToggle(item) {
-        const next = !item.packed;
-        item.packed = next;
-        // Reflect in the category row (if present) so both views stay in sync.
-        const catRow = document.querySelector('.item[data-item-id="' + CSS.escape(String(item.itemId)) + '"]');
-        if (catRow) {
-          catRow.classList.toggle('packed', next);
-          catRow.setAttribute('aria-pressed', next ? 'true' : 'false');
-        }
-        sgRender();
-        updateProgress();
-        try {
-          await api('/trips/' + tripId + '/items/' + item.itemId, {
-            method: 'PATCH',
-            body: JSON.stringify({ packed: next }),
-          });
-        } catch (err) {
-          // Revert
-          item.packed = !next;
-          if (catRow) {
-            catRow.classList.toggle('packed', item.packed);
-            catRow.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
-          }
-          sgRender();
-          updateProgress();
-          tpAlert('Could not update item: ' + err.message, { variant: 'danger', title: 'Update failed' });
-        }
+        summary.innerHTML =
+          '<div class="sg-empty__hint">' +
+            aiItems.length + ' AI suggestion' + (aiItems.length === 1 ? '' : 's') +
+            ' added to your checklist · ' + packed + ' packed' +
+          '</div>';
       }
       // Wire the "✨ Generate suggestions" button on the Smart Gear
       // card to POST /trips/:id/ai-items. On success we re-fetch the
@@ -4341,18 +4275,10 @@
         });
       }
 
-      function initSmartGearFilters() {
-        const bar = document.getElementById('sg-filters');
-        if (!bar) return;
-        bar.addEventListener('click', (e) => {
-          const btn = e.target.closest('.sg-filter');
-          if (!btn) return;
-          bar.querySelectorAll('.sg-filter').forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          sgCurrentFilter = btn.dataset.filter || 'all';
-          sgRender();
-        });
-      }
+      // The Smart Gear card had its own filter row duplicating the checklist's
+      // category tabs. Suggestions now sit in those categories, so the tabs
+      // above filter them too and this is a no-op kept for the boot call site.
+      function initSmartGearFilters() { /* removed with the parallel gear list */ }
 
       /* ---------- Boot ---------- */
       document.addEventListener('DOMContentLoaded', async () => {
