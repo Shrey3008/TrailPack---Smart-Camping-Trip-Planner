@@ -37,10 +37,12 @@
       try {
         const params = new URLSearchParams(window.location.search);
         const presetName = params.get('create');
-        if (presetName && document.getElementById('tp-ct-overlay')) {
+        // `?create=<trail name>` prefills the name (Discover's "Plan This Trip");
+        // a bare `?create=1` just opens the modal (e.g. from organizer.html).
+        if (presetName !== null && document.getElementById('tp-ct-overlay')) {
           openCreateTripModal();
           const nameInput = document.getElementById('tp-ct-name');
-          if (nameInput) nameInput.value = presetName;
+          if (nameInput && presetName && presetName !== '1') nameInput.value = presetName;
           // Clean the URL so a refresh doesn't keep re-opening it.
           history.replaceState({}, '', window.location.pathname);
         }

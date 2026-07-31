@@ -50,7 +50,7 @@ function updateTripsList(trips) {
         <div class="empty-icon">📅</div>
         <h3>No trips to organize</h3>
         <p>Create a trip or be added as an organizer to see it here.</p>
-        <button class="btn btn-primary" onclick="window.location.href='create-trip.html'">
+        <button class="btn btn-primary" onclick="window.location.href='my-trips.html?create=1'">
           Create New Trip
         </button>
       </div>

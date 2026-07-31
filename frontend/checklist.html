@@ -503,6 +503,13 @@
     }
     .info-card .card-body { font-size: 0.93rem; color: var(--ink); }
     .info-card .muted-note { color: var(--muted); font-size: 0.85rem; }
+    /* .muted-note is only themed inside .info-card, so give the gear list its
+       own muted treatment plus a real empty state. */
+    .sg-list .muted-note { color: var(--muted); font-size: 0.85rem; }
+    .sg-empty { text-align: center; padding: 22px 12px; }
+    .sg-empty__icon { font-size: 1.7rem; line-height: 1; display: block; margin-bottom: 8px; }
+    .sg-empty__title { font-weight: 600; color: var(--ink); font-size: 0.95rem; }
+    .sg-empty__hint { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 
     /* Weather */
     .weather-location {
@@ -2470,7 +2477,7 @@
       <div class="ins-card-head">
         <span class="sg-title-wrap">
           <h3 class="ins-card-title">🎒 Smart Gear List</h3>
-          <span class="sg-ai-badge">✨ AI Generated</span>
+          <span class="sg-ai-badge" id="sg-ai-badge">✨ AI Generated</span>
         </span>
         <button type="button" class="sg-generate-btn" id="sg-generate-btn">
           <span class="sg-generate-label">✨ Generate suggestions</span>
@@ -2488,7 +2495,7 @@
       <div class="sg-list" id="sg-list">
         <div class="muted-note">Loading gear…</div>
       </div>
-      <div class="sg-legend">
+      <div class="sg-legend" id="sg-legend">
         <div class="sg-legend-groups">
           <span class="sg-legend-item"><span class="sg-dot essential"></span>Essential <span class="sg-legend-count" id="sg-count-essential">0</span></span>
           <span class="sg-legend-item"><span class="sg-dot recommended"></span>Recommended <span class="sg-legend-count" id="sg-count-recommended">0</span></span>
@@ -4208,7 +4215,22 @@
         // Smart Gear List is the AI section: only items with source==='ai'.
         const aiItems = items.filter(i => i && i.source === 'ai');
         const visible = aiItems.filter(i => sgMatchesFilter(i, sgCurrentFilter));
-        if (!visible.length) {
+        // Nothing generated yet is a different state from "a filter hid
+        // everything" — the badge and the 0/0 legend only make sense once
+        // suggestions actually exist.
+        const badge  = document.getElementById('sg-ai-badge');
+        const legend = document.getElementById('sg-legend');
+        const untouched = aiItems.length === 0;
+        if (badge)  badge.style.display  = untouched ? 'none' : '';
+        if (legend) legend.style.display = untouched ? 'none' : '';
+        if (untouched) {
+          list.innerHTML =
+            '<div class="sg-empty">' +
+              '<span class="sg-empty__icon" aria-hidden="true">🎒</span>' +
+              '<div class="sg-empty__title">No suggestions yet</div>' +
+              '<div class="sg-empty__hint">Tap “Generate suggestions” to build a gear list for this trip.</div>' +
+            '</div>';
+        } else if (!visible.length) {
           list.innerHTML = '<div class="muted-note">No items match this filter.</div>';
         } else {
           list.innerHTML = visible.map(it => {

@@ -85,7 +85,7 @@ TrailPack/
 │   ├── login.html, register.html,
 │   │ forgot-password.html            # Auth pages
 │   ├── my-trips.html                 # Full trips list with filters
-│   ├── create-trip.html              # Plan a new trip
+│   │                                   (also hosts the Create Trip modal)
 │   ├── checklist.html                # Active checklist view
 │   ├── checklist-preview.html        # Preview before saving
 │   ├── organizer.html                # Manage collaborators

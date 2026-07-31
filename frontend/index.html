@@ -278,6 +278,17 @@ a:hover{color:var(--green-dark)}
   .compare-table{font-size:13px}
   .compare-table th,.compare-table td{padding:10px 12px}
 }
+/* Phones: the navbar has no room for the full-size brand + both CTAs, so it
+   collides / wraps. Shrink the brand and tighten spacing instead. */
+@media (max-width:600px){
+  .navbar{padding:12px 16px}
+  .brand{font-size:19px;gap:8px}
+  .brand-mark{width:28px;height:28px;border-radius:8px}
+  .brand-mark svg{width:18px;height:18px}
+  .nav-links{gap:12px}
+  .nav-links a{white-space:nowrap}
+  .nav-cta{padding:8px 14px}
+}
 </style>
 </head>
 <body>

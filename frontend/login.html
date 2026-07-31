@@ -7,7 +7,7 @@
   <title>Sign in · TrailPack</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <style>
     /* =========================================================================
        TrailPack — Login (premium SaaS redesign).
@@ -112,8 +112,8 @@
       justify-content: center;
     }
     .brand__logo-text {
-      font-family: 'Inter', sans-serif;
-      font-weight: 800;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
       font-size: 1.6rem;
       letter-spacing: -0.01em;
       color: #ffffff;
@@ -208,7 +208,8 @@
       margin-bottom: 8px;
     }
     .pane__mobile-logo-text {
-      font-weight: 800;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 700;
       font-size: 1.2rem;
       color: var(--text-primary);
       letter-spacing: -0.01em;
@@ -302,6 +303,17 @@
       margin-top: 2px;
     }
     .field--error .field__error { display: block; }
+
+    /* Confirmation banner shown after arriving from register.html. */
+    .success-message {
+      background: var(--green-pale, #e6f2eb);
+      color: var(--green, #2d6a4f);
+      border: 1px solid rgba(45, 106, 79, 0.25);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
 
     /* Top-level error banner (kept for JS compatibility — id="error-message"). */
     .error-message {
@@ -598,6 +610,7 @@
           </div>
 
           <div id="error-message" class="error-message" style="display: none;"></div>
+          <div id="success-message" class="success-message" style="display: none;"></div>
 
           <button type="submit" class="btn-submit" id="submit-btn">Sign In</button>
         </form>
@@ -717,6 +730,18 @@
     });
   </script>
   <script>
+    /* Carry the "account created" confirmation over from register.html so the
+       user knows the signup worked and that signing in is the next step. */
+    (function () {
+      if (new URLSearchParams(window.location.search).get('registered') !== '1') return;
+      const el = document.getElementById('success-message');
+      if (!el) return;
+      el.textContent = 'Account created — sign in to get started.';
+      el.style.display = 'block';
+      // Drop the param so a refresh doesn't keep re-showing the banner.
+      history.replaceState({}, '', window.location.pathname);
+    })();
+
     /* =========================================================================
        Rotating quote on the brand panel. Cycles every 5s with a 0.4s fade.
        Pure visual sugar — does not touch auth state.

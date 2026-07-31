@@ -1366,3 +1366,19 @@
       body.dash-light .trip-card .trip-actions { flex-direction: column; }
       body.dash-light .trip-card .trip-actions .btn { width: 100%; }
     }
+
+    /* ---------------------------------------------------------------
+       Overrides for legacy styles.css @media (max-width:768px) rules.
+       That block was written for the pre-redesign layout and stacks the
+       navbar into a centred column and centres section headings, which
+       fights this stylesheet. Keep the redesign's row/left alignment.
+       --------------------------------------------------------------- */
+    @media (max-width: 768px) {
+      body.dash-light .navbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        text-align: left !important;
+        gap: 12px !important;
+      }
+      body.dash-light .section-header { text-align: left !important; }
+    }
