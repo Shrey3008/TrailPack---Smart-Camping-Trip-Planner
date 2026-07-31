@@ -4221,11 +4221,13 @@
             '</div>';
           return;
         }
-        const packed = aiItems.filter(i => i.packed).length;
+        // Deliberately no packed count here: progress belongs to the single
+        // counter at the top of the page. Repeating it was how this card ended
+        // up with a total that drifted out of sync in the first place.
         summary.innerHTML =
           '<div class="sg-empty__hint">' +
             aiItems.length + ' AI suggestion' + (aiItems.length === 1 ? '' : 's') +
-            ' added to your checklist · ' + packed + ' packed' +
+            ' added to your checklist — find them tagged ✨ AI above.' +
           '</div>';
       }
       // Wire the "✨ Generate suggestions" button on the Smart Gear
