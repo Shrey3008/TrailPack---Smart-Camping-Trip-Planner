@@ -1,4 +1,11 @@
-require('dotenv').config();
+// Never load the developer's .env during tests. Doing so pulled the real
+// MONGODB_URI (production Atlas) and GROQ_API_KEY into the test process the
+// moment a test required this file — so the suite made live Groq calls, and a
+// single stray connectDB() would have pointed tests at production data.
+// __tests__/setup.js supplies everything the suite needs.
+if (process.env.NODE_ENV !== 'test') {
+  require('dotenv').config();
+}
 const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
