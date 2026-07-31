@@ -66,50 +66,64 @@ class EmailService {
     return { messageId: result.messageId };
   }
 
+  // Report what actually happened. sendEmail() resolves { skipped: true } when
+  // the service isn't configured and { failed: true } when the transport
+  // throws, so logging "sent" unconditionally misreported both — production
+  // logs claimed mail went out on deploys where email was never wired up.
+  logSendOutcome(result, description) {
+    if (result && result.skipped) {
+      console.log(`[email] Skipped ${description} — ${result.reason}`);
+    } else if (result && result.failed) {
+      console.warn(`[email] Failed ${description}: ${result.error}`);
+    } else {
+      console.log(`[email] Sent ${description}`);
+    }
+    return result;
+  }
+
   // Send trip reminder email
   async sendTripReminder(userEmail, tripDetails, daysUntil) {
     const subject = `Trip Reminder: ${tripDetails.name} in ${daysUntil} days!`;
     const html = this.generateTripReminderHTML(tripDetails, daysUntil);
 
     const result = await this.sendEmail(userEmail, subject, html);
-    console.log(`[email] Trip reminder dispatched to ${userEmail} for trip ${tripDetails.name}`);
-    return result;
+    return this.logSendOutcome(result, `trip reminder to ${userEmail} for trip ${tripDetails.name}`);
   }
 
   // Send weather alert email
   async sendWeatherAlert(userEmail, tripDetails, weatherData) {
     const subject = `Weather Alert for ${tripDetails.name}`;
     const html = this.generateWeatherAlertHTML(tripDetails, weatherData);
-    
-    await this.sendEmail(userEmail, subject, html);
-    console.log(`Weather alert sent to ${userEmail} for trip ${tripDetails.name}`);
+
+    const result = await this.sendEmail(userEmail, subject, html);
+    return this.logSendOutcome(result, `weather alert to ${userEmail} for trip ${tripDetails.name}`);
   }
 
   // Send checklist completion email
   async sendChecklistCompletion(userEmail, tripDetails, progress) {
     const subject = `Checklist Progress Update: ${tripDetails.name}`;
     const html = this.generateChecklistProgressHTML(tripDetails, progress);
-    
-    await this.sendEmail(userEmail, subject, html);
-    console.log(`Checklist progress sent to ${userEmail} for trip ${tripDetails.name}`);
+
+    const result = await this.sendEmail(userEmail, subject, html);
+    return this.logSendOutcome(result, `checklist progress to ${userEmail} for trip ${tripDetails.name}`);
   }
 
   // Send trip sharing invitation
   async sendTripInvitation(userEmail, tripDetails, inviterName, joinLink) {
     const subject = `You're invited to join: ${tripDetails.name}`;
     const html = this.generateTripInvitationHTML(tripDetails, inviterName, joinLink);
-    
-    await this.sendEmail(userEmail, subject, html);
-    console.log(`Trip invitation sent to ${userEmail} for trip ${tripDetails.name}`);
+
+    const result = await this.sendEmail(userEmail, subject, html);
+    return this.logSendOutcome(result, `trip invitation to ${userEmail} for trip ${tripDetails.name}`);
   }
 
   // Send welcome email
   async sendWelcomeEmail(userEmail, userName) {
     const subject = 'Welcome to TrailPack! 🏕️';
     const html = this.generateWelcomeHTML(userName);
-    
-    await this.sendEmail(userEmail, subject, html);
-    console.log(`Welcome email sent to ${userEmail}`);
+
+    const result = await this.sendEmail(userEmail, subject, html);
+    return this.logSendOutcome(result, `welcome email to ${userEmail}`);
   }
 
   // Generate HTML for trip reminder

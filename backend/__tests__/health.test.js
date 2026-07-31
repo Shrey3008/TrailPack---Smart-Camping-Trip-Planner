@@ -30,22 +30,26 @@ describe('CORS preflight', () => {
     expect(res.headers['access-control-allow-origin']).toBe('https://trailpack.com');
   });
 
-  test('blocks unknown origin', async () => {
-    // A rejected origin is routed to the global error handler, which logs the
-    // stack. That is expected here, so silence it to keep the suite output
-    // readable — a passing run shouldn't print a stack trace.
-    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  test('blocks unknown origin with 403 and no allow-origin header', async () => {
+    // The rejection is logged as a [CORS] warning; silence it so a passing run
+    // stays quiet. console.error is spied on separately below to assert that
+    // an expected client error does NOT dump a stack trace.
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
       const res = await request(app)
         .options('/health')
         .set('Origin', 'https://evil.example.com')
         .set('Access-Control-Request-Method', 'GET');
-      // cors() rejects via the error middleware, so no allow-origin header.
+
+      // A disallowed origin is a client error, not a server fault.
+      expect(res.status).toBe(403);
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
+      // Expected rejections must not be logged as server faults.
+      expect(errSpy).not.toHaveBeenCalled();
     } finally {
-      errSpy.mockRestore();
       warnSpy.mockRestore();
+      errSpy.mockRestore();
     }
   });
 });

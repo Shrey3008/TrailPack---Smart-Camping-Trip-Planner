@@ -49,7 +49,13 @@ app.use(cors({
       callback(null, true);
     } else {
       console.warn(`[CORS] Blocked origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      // A disallowed origin is a client error, not a server fault. Tag it so
+      // the error handler answers 403 instead of a generic 500 and skips the
+      // stack trace — the warn above already records everything useful.
+      const err = new Error('Not allowed by CORS');
+      err.status = 403;
+      err.expected = true;
+      callback(err);
     }
   },
   credentials: true,
@@ -99,10 +105,18 @@ app.get('/shared-trips', (req, res) => {
   res.status(200).json({ success: true, trips: [] });
 });
 
-// Error handling middleware
+// Error handling middleware.
+// Errors tagged with `expected` (e.g. a blocked CORS origin) are normal client
+// errors — answer with their status and skip the stack trace so real faults
+// stay visible in the logs. Anything untagged is a genuine 500.
 app.use((err, req, res, next) => {
+  const status = err && err.status;
+  if (err && err.expected && status) {
+    return res.status(status).json({ message: err.message });
+  }
   console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  res.status(status && status >= 400 && status < 600 ? status : 500)
+    .json({ message: 'Something went wrong!' });
 });
 
 const PORT = process.env.PORT || 3000;

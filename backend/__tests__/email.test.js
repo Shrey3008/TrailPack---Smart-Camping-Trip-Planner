@@ -56,6 +56,33 @@ describe('emailService.sendEmail (test env — unconfigured)', () => {
       emailService.sendTripReminder('x@test.com', { name: 'Trip', terrain: 'Forest', duration: 2, season: 'Summer' }, 3)
     ).resolves.not.toThrow();
   });
+
+  test('every wrapper returns the send outcome rather than swallowing it', async () => {
+    const trip = { name: 'Trip', terrain: 'Forest', duration: 2, season: 'Summer' };
+    const outcomes = await Promise.all([
+      emailService.sendWelcomeEmail('x@test.com', 'Test'),
+      emailService.sendTripReminder('x@test.com', trip, 3),
+      emailService.sendWeatherAlert('x@test.com', trip, {}),
+      emailService.sendChecklistCompletion('x@test.com', trip, { packed: 1, total: 2 }),
+      emailService.sendTripInvitation('x@test.com', trip, 'Owner', 'https://example.com/accept'),
+    ]);
+    for (const outcome of outcomes) {
+      expect(outcome).toMatchObject({ skipped: true });
+    }
+  });
+
+  test('logs "Skipped", never "Sent", when the service is unconfigured', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await emailService.sendWelcomeEmail('x@test.com', 'Test');
+      const lines = logSpy.mock.calls.map(args => String(args[0]));
+      expect(lines.some(l => /Skipped welcome email/i.test(l))).toBe(true);
+      // The old code claimed "Welcome email sent to ..." even when it no-opped.
+      expect(lines.some(l => /\bSent\b/.test(l))).toBe(false);
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
 });
 
 describe('emailService.checkTripReminders', () => {
