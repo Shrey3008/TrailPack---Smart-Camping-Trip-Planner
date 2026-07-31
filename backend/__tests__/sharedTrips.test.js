@@ -1,73 +1,56 @@
 // Integration tests for the shared-trips invite/accept flow.
-// Mocks DynamoDBDocumentClient with aws-sdk-client-mock and exercises the
-// HTTP layer via supertest.
-const { mockClient } = require('aws-sdk-client-mock');
-const {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  DeleteCommand,
-  UpdateCommand,
-  QueryCommand,
-  ScanCommand,
-} = require('@aws-sdk/lib-dynamodb');
+//
+// The DynamoDB single-table encoding these tests used to assert on (PARTICIPANT#
+// / SHARED_TRIP# / TRIPPTR# rows) no longer exists — collaborators are now a
+// single Collaborator collection queryable in both directions. Assertions
+// therefore check the persisted documents instead of emitted SDK commands.
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
+const db = require('./helpers/db');
 const { app } = require('../server');
+const { User, Trip, Invite, Collaborator } = require('../models');
 
 const OWNER = { userId: 'owner-1', email: 'owner@test.com', name: 'Owner', role: 'user', isActive: true };
 const INVITEE = { userId: 'user-2', email: 'invitee@test.com', name: 'Invitee', role: 'user', isActive: true };
 const STRANGER = { userId: 'user-9', email: 'stranger@test.com', name: 'Stranger', role: 'user', isActive: true };
 const TRIP_ID = 'trip-abc';
-const TRIP_ITEM = {
-  PK: `USER#${OWNER.userId}`,
-  SK: `TRIP#${TRIP_ID}`,
-  tripId: TRIP_ID,
-  userId: OWNER.userId,
-  name: 'Epic Trip',
-  terrain: 'Mountain',
-  season: 'Summer',
-  duration: 4,
-};
-const PTR_ITEM = {
-  PK: `TRIPPTR#${TRIP_ID}`,
-  SK: 'META',
-  tripId: TRIP_ID,
-  ownerId: OWNER.userId,
-};
 
 function tokenFor(user) {
   return jwt.sign({ userId: user.userId, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 }
 
-// Routes-under-test require authenticate, which in turn calls dynamoDBService.getUserById.
-// That helper uses GetCommand with Key: { userId }. Our handlers also use GetCommand for
-// TRIPPTR and TRIP records, so we key the mock on PK/SK shape.
-function defaultGetHandler(input) {
-  const key = input.Key || {};
-  if (key.userId) {
-    // Users lookup from middleware.
-    if (key.userId === OWNER.userId) return { Item: OWNER };
-    if (key.userId === INVITEE.userId) return { Item: INVITEE };
-    if (key.userId === STRANGER.userId) return { Item: STRANGER };
-    return {};
-  }
-  if (key.PK === `TRIPPTR#${TRIP_ID}` && key.SK === 'META') return { Item: PTR_ITEM };
-  if (key.PK === `USER#${OWNER.userId}` && key.SK === `TRIP#${TRIP_ID}`) return { Item: TRIP_ITEM };
-  // Default: "not a collaborator" / "no such item"
-  return {};
+async function seedInvite(overrides = {}) {
+  return Invite.create({
+    inviteId: 'inv-1',
+    tripId: TRIP_ID,
+    email: INVITEE.email,
+    token: 'good-token-xyz',
+    status: 'pending',
+    invitedBy: OWNER.userId,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    ...overrides,
+  });
 }
 
-beforeEach(() => {
-  ddbMock.reset();
-  ddbMock.on(GetCommand).callsFake(defaultGetHandler);
-  ddbMock.on(PutCommand).resolves({});
-  ddbMock.on(DeleteCommand).resolves({});
-  ddbMock.on(UpdateCommand).resolves({});
-  ddbMock.on(QueryCommand).resolves({ Items: [] });
-  ddbMock.on(ScanCommand).resolves({ Items: [] });
+beforeAll(() => db.connect());
+afterAll(() => db.close());
+
+beforeEach(async () => {
+  await db.clear();
+  await User.create([
+    { ...OWNER, password: 'x' },
+    { ...INVITEE, password: 'x' },
+    { ...STRANGER, password: 'x' },
+  ]);
+  await Trip.create({
+    tripId: TRIP_ID,
+    userId: OWNER.userId,
+    name: 'Epic Trip',
+    terrain: 'Mountain',
+    season: 'Summer',
+    duration: 4,
+  });
 });
 
 describe('POST /trips/:id/invites', () => {
@@ -87,7 +70,7 @@ describe('POST /trips/:id/invites', () => {
     expect(res.status).toBe(400);
   });
 
-  test('201 with a token and invite payload on success', async () => {
+  test('201 with a token and invite payload on success, and persists the invite', async () => {
     const res = await request(app)
       .post(`/trips/${TRIP_ID}/invites`)
       .set('Authorization', `Bearer ${tokenFor(OWNER)}`)
@@ -98,27 +81,47 @@ describe('POST /trips/:id/invites', () => {
     expect(res.body.invite.email).toBe('new-person@test.com');
     expect(res.body.invite.expiresAt).toBeTruthy();
     expect(res.body.acceptUrl).toMatch(/token=/);
-    // Must have written the invite row.
-    const putCalls = ddbMock.commandCalls(PutCommand);
-    expect(putCalls.some(c => (c.args[0].input.Item.SK || '').startsWith('INVITE#'))).toBe(true);
+
+    const stored = await Invite.findOne({ token: res.body.token }).lean();
+    expect(stored).toBeTruthy();
+    expect(stored.tripId).toBe(TRIP_ID);
+    expect(stored.email).toBe('new-person@test.com');
+    expect(stored.status).toBe('pending');
+    expect(stored.invitedBy).toBe(OWNER.userId);
+  });
+
+  test('normalizes the invited email to lowercase', async () => {
+    const res = await request(app)
+      .post(`/trips/${TRIP_ID}/invites`)
+      .set('Authorization', `Bearer ${tokenFor(OWNER)}`)
+      .send({ email: '  MiXeD@Test.COM ' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.invite.email).toBe('mixed@test.com');
+  });
+
+  test('400 when the owner invites themselves', async () => {
+    const res = await request(app)
+      .post(`/trips/${TRIP_ID}/invites`)
+      .set('Authorization', `Bearer ${tokenFor(OWNER)}`)
+      .send({ email: OWNER.email });
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/owner/i);
   });
 
   test('400 when inviting an already-accepted collaborator', async () => {
-    // Existing user lookup finds the invitee.
-    ddbMock.on(ScanCommand).resolves({ Items: [INVITEE] });
-    // Current collaborators include them.
-    ddbMock.on(QueryCommand).callsFake(input => {
-      if (input.ExpressionAttributeValues[':pk'] === `TRIP#${TRIP_ID}`
-        && input.ExpressionAttributeValues[':sk'] === 'PARTICIPANT#') {
-        return { Items: [{ userId: INVITEE.userId, email: INVITEE.email }] };
-      }
-      return { Items: [] };
+    await Collaborator.create({
+      tripId: TRIP_ID,
+      userId: INVITEE.userId,
+      email: INVITEE.email,
+      name: INVITEE.name,
     });
 
     const res = await request(app)
       .post(`/trips/${TRIP_ID}/invites`)
       .set('Authorization', `Bearer ${tokenFor(OWNER)}`)
       .send({ email: INVITEE.email });
+
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/already a collaborator/i);
   });
@@ -126,16 +129,6 @@ describe('POST /trips/:id/invites', () => {
 
 describe('POST /invites/accept', () => {
   const TOKEN = 'good-token-xyz';
-  const INVITE_ITEM = {
-    PK: `TRIP#${TRIP_ID}`,
-    SK: 'INVITE#inv-1',
-    inviteId: 'inv-1',
-    tripId: TRIP_ID,
-    email: INVITEE.email,
-    token: TOKEN,
-    status: 'pending',
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-  };
 
   test('400 when token missing', async () => {
     const res = await request(app)
@@ -146,7 +139,6 @@ describe('POST /invites/accept', () => {
   });
 
   test('404 when token does not match any invite', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [] });
     const res = await request(app)
       .post('/invites/accept')
       .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
@@ -155,7 +147,7 @@ describe('POST /invites/accept', () => {
   });
 
   test('403 when invite was sent to a different email', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [{ ...INVITE_ITEM, email: 'other@test.com' }] });
+    await seedInvite({ email: 'other@test.com' });
     const res = await request(app)
       .post('/invites/accept')
       .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
@@ -164,7 +156,7 @@ describe('POST /invites/accept', () => {
   });
 
   test('400 when invite is expired', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [{ ...INVITE_ITEM, expiresAt: new Date(Date.now() - 1000).toISOString() }] });
+    await seedInvite({ expiresAt: new Date(Date.now() - 1000).toISOString() });
     const res = await request(app)
       .post('/invites/accept')
       .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
@@ -172,8 +164,17 @@ describe('POST /invites/accept', () => {
     expect(res.status).toBe(400);
   });
 
-  test('accepts invite, marks accepted, writes collaborator + reverse lookup', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [INVITE_ITEM] });
+  test('400 when the invite has already been accepted', async () => {
+    await seedInvite({ status: 'accepted' });
+    const res = await request(app)
+      .post('/invites/accept')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
+      .send({ token: TOKEN });
+    expect(res.status).toBe(400);
+  });
+
+  test('accepts invite, marks it accepted, and creates the collaborator row', async () => {
+    await seedInvite();
 
     const res = await request(app)
       .post('/invites/accept')
@@ -183,42 +184,63 @@ describe('POST /invites/accept', () => {
     expect(res.status).toBe(200);
     expect(res.body.tripId).toBe(TRIP_ID);
 
-    // Invite marked accepted
-    const updateCalls = ddbMock.commandCalls(UpdateCommand);
-    const updated = updateCalls.find(c => c.args[0].input.Key.SK === 'INVITE#inv-1');
-    expect(updated).toBeDefined();
+    const invite = await Invite.findOne({ inviteId: 'inv-1' }).lean();
+    expect(invite.status).toBe('accepted');
+    expect(invite.acceptedBy).toBe(INVITEE.userId);
+    expect(invite.acceptedAt).toBeTruthy();
 
-    // Collaborator row + reverse SHARED_TRIP# lookup both written
-    const putItems = ddbMock.commandCalls(PutCommand).map(c => c.args[0].input.Item);
-    expect(putItems.some(i => i.SK === `PARTICIPANT#${INVITEE.userId}`)).toBe(true);
-    expect(putItems.some(i => i.SK === `SHARED_TRIP#${TRIP_ID}`)).toBe(true);
+    // One collaborator row now serves both lookup directions.
+    const collab = await Collaborator.findOne({ tripId: TRIP_ID, userId: INVITEE.userId }).lean();
+    expect(collab).toBeTruthy();
+    expect(collab.email).toBe(INVITEE.email);
+  });
+
+  test('a second accept of the same token is rejected', async () => {
+    await seedInvite();
+    const first = await request(app)
+      .post('/invites/accept')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
+      .send({ token: TOKEN });
+    expect(first.status).toBe(200);
+
+    const second = await request(app)
+      .post('/invites/accept')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
+      .send({ token: TOKEN });
+    expect(second.status).toBe(400);
+
+    // Still exactly one collaborator row.
+    expect(await Collaborator.countDocuments({ tripId: TRIP_ID, userId: INVITEE.userId })).toBe(1);
   });
 });
 
-describe('GET /trips/:id (access control via service)', () => {
-  // This exercises the pointer + owner-check path even though the route itself
-  // is in trips.js — confirms the end-to-end access model.
+describe('GET /trips/:id (access control)', () => {
   test('owner can fetch', async () => {
     const res = await request(app)
       .get(`/trips/${TRIP_ID}`)
       .set('Authorization', `Bearer ${tokenFor(OWNER)}`);
-    // Note: the existing GET /trips/:id in trips.js uses PK: USER#userId so it
-    // still works for the owner. This assertion just confirms we didn't break it.
+
     expect(res.status).toBe(200);
     expect(res.body.tripId).toBe(TRIP_ID);
   });
 });
 
 describe('GET /shared-trips/mine', () => {
-  test('returns reverse-lookup trips for a user', async () => {
-    // User has one SHARED_TRIP# row.
-    ddbMock.on(QueryCommand).callsFake(input => {
-      const pk = input.ExpressionAttributeValues[':pk'];
-      const sk = input.ExpressionAttributeValues[':sk'];
-      if (pk === `USER#${INVITEE.userId}` && sk === 'SHARED_TRIP#') {
-        return { Items: [{ tripId: TRIP_ID, joinedAt: new Date().toISOString() }] };
-      }
-      return { Items: [] };
+  test('returns an empty list when nothing is shared with the user', async () => {
+    const res = await request(app)
+      .get('/shared-trips/mine')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.trips).toEqual([]);
+  });
+
+  test('returns trips shared with the user, with the owner attached', async () => {
+    await Collaborator.create({
+      tripId: TRIP_ID,
+      userId: INVITEE.userId,
+      email: INVITEE.email,
+      name: INVITEE.name,
     });
 
     const res = await request(app)
@@ -227,6 +249,25 @@ describe('GET /shared-trips/mine', () => {
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.trips)).toBe(true);
-    expect(res.body.trips[0]).toMatchObject({ tripId: TRIP_ID, name: 'Epic Trip', ownerId: OWNER.userId });
+    expect(res.body.trips[0]).toMatchObject({
+      tripId: TRIP_ID,
+      name: 'Epic Trip',
+      ownerId: OWNER.userId,
+    });
+  });
+
+  test("does not leak another user's shared trips", async () => {
+    await Collaborator.create({
+      tripId: TRIP_ID,
+      userId: INVITEE.userId,
+      email: INVITEE.email,
+    });
+
+    const res = await request(app)
+      .get('/shared-trips/mine')
+      .set('Authorization', `Bearer ${tokenFor(STRANGER)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.trips).toEqual([]);
   });
 });

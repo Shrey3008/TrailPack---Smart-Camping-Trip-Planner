@@ -31,11 +31,21 @@ describe('CORS preflight', () => {
   });
 
   test('blocks unknown origin', async () => {
-    const res = await request(app)
-      .options('/health')
-      .set('Origin', 'https://evil.example.com')
-      .set('Access-Control-Request-Method', 'GET');
-    // cors() rejects with the error middleware -> 500, and no allow-origin header.
-    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    // A rejected origin is routed to the global error handler, which logs the
+    // stack. That is expected here, so silence it to keep the suite output
+    // readable — a passing run shouldn't print a stack trace.
+    const errSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const res = await request(app)
+        .options('/health')
+        .set('Origin', 'https://evil.example.com')
+        .set('Access-Control-Request-Method', 'GET');
+      // cors() rejects via the error middleware, so no allow-origin header.
+      expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    } finally {
+      errSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
   });
 });

@@ -1,17 +1,30 @@
-// Integration tests for /auth routes with a mocked DynamoDB client.
-const { mockClient } = require('aws-sdk-client-mock');
-const { DynamoDBDocumentClient, ScanCommand, PutCommand } = require('@aws-sdk/lib-dynamodb');
+// Integration tests for /auth register + login against an in-memory MongoDB.
+// Assertions now read the persisted User document instead of inspecting the
+// DynamoDB PutCommand that used to be intercepted.
 const request = require('supertest');
 const bcrypt = require('bcryptjs');
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
-
-// Require app AFTER the mock is installed so the routes use the mocked client.
+const db = require('./helpers/db');
 const { app } = require('../server');
+const { User } = require('../models');
 
-beforeEach(() => {
-  ddbMock.reset();
-});
+// Must be one of ALLOWED_SECURITY_QUESTIONS in routes/auth.js.
+const QUESTION = 'What was the name of your first pet?';
+
+function registerPayload(overrides = {}) {
+  return {
+    name: 'New User',
+    email: 'new@test.com',
+    password: 'secret123',
+    securityQuestion: QUESTION,
+    securityAnswer: 'Rex',
+    ...overrides,
+  };
+}
+
+beforeAll(() => db.connect());
+afterAll(() => db.close());
+beforeEach(() => db.clear());
 
 describe('POST /auth/register', () => {
   test('400 when required fields missing', async () => {
@@ -20,45 +33,85 @@ describe('POST /auth/register', () => {
     expect(res.body.message).toMatch(/required/i);
   });
 
-  test('400 when email already exists', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [{ email: 'dup@test.com' }] });
-    const res = await request(app)
-      .post('/auth/register')
-      .send({ name: 'Dup', email: 'dup@test.com', password: 'secret123' });
+  test('400 when the security question is missing', async () => {
+    const { securityQuestion, ...rest } = registerPayload();
+    const res = await request(app).post('/auth/register').send(rest);
     expect(res.status).toBe(400);
-    expect(res.body.message).toMatch(/already registered/i);
+    expect(res.body.message).toMatch(/security question/i);
   });
 
-  test('201 on successful registration and hashes password', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [] });
-    ddbMock.on(PutCommand).resolves({});
+  test('400 when the security question is not in the allowed list', async () => {
+    const res = await request(app)
+      .post('/auth/register')
+      .send(registerPayload({ securityQuestion: 'Favourite colour?' }));
+    expect(res.status).toBe(400);
+  });
+
+  test('400 when email already exists', async () => {
+    await request(app).post('/auth/register').send(registerPayload({ email: 'dup@test.com' }));
 
     const res = await request(app)
       .post('/auth/register')
-      .send({ name: 'New User', email: 'new@test.com', password: 'secret123' });
+      .send(registerPayload({ email: 'dup@test.com', name: 'Dup' }));
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/already registered/i);
+    expect(await User.countDocuments({ email: 'dup@test.com' })).toBe(1);
+  });
+
+  test('201 on success and persists a hashed password', async () => {
+    const res = await request(app).post('/auth/register').send(registerPayload());
 
     expect(res.status).toBe(201);
     expect(res.body.message).toMatch(/registered/i);
 
-    const putCall = ddbMock.commandCalls(PutCommand)[0];
-    expect(putCall).toBeDefined();
-    const item = putCall.args[0].input.Item;
-    expect(item.email).toBe('new@test.com');
-    expect(item.password).not.toBe('secret123'); // must be hashed
-    expect(item.role).toBe('user');
-    expect(item.isActive).toBe(true);
-    expect(item.userId).toBeTruthy();
+    const stored = await User.findOne({ email: 'new@test.com' }).lean();
+    expect(stored).toBeTruthy();
+    expect(stored.email).toBe('new@test.com');
+    expect(stored.password).not.toBe('secret123'); // must be hashed
+    expect(stored.password).toMatch(/^\$2[aby]\$/);
+    expect(stored.role).toBe('user');
+    expect(stored.isActive).toBe(true);
+    expect(stored.userId).toBeTruthy();
+  });
+
+  test('normalizes email to lowercase and the security answer for recovery', async () => {
+    await request(app)
+      .post('/auth/register')
+      .send(registerPayload({ email: 'MiXeD@Test.COM', securityAnswer: '  ReX  ' }));
+
+    const stored = await User.findOne({ email: 'mixed@test.com' }).lean();
+    expect(stored).toBeTruthy();
+    expect(stored.securityAnswer).toBe('rex');
+  });
+
+  test('never stores the security answer in plain-text casing that breaks matching', async () => {
+    await request(app).post('/auth/register').send(registerPayload({ securityAnswer: 'REX' }));
+    const stored = await User.findOne({ email: 'new@test.com' }).lean();
+    expect(stored.securityQuestion).toBe(QUESTION);
+    expect(stored.securityAnswer).toBe('rex');
   });
 });
 
 describe('POST /auth/login', () => {
+  async function seedUser(overrides = {}) {
+    return User.create({
+      userId: 'u1',
+      name: 'Test User',
+      email: 'u@test.com',
+      password: await bcrypt.hash('right-password', 10),
+      role: 'user',
+      isActive: true,
+      ...overrides,
+    });
+  }
+
   test('400 when fields missing', async () => {
     const res = await request(app).post('/auth/login').send({});
     expect(res.status).toBe(400);
   });
 
   test('401 when user does not exist', async () => {
-    ddbMock.on(ScanCommand).resolves({ Items: [] });
     const res = await request(app)
       .post('/auth/login')
       .send({ email: 'missing@test.com', password: 'whatever' });
@@ -67,10 +120,7 @@ describe('POST /auth/login', () => {
   });
 
   test('401 when password is wrong', async () => {
-    const hashed = await bcrypt.hash('correct-password', 10);
-    ddbMock.on(ScanCommand).resolves({
-      Items: [{ userId: 'u1', email: 'u@test.com', password: hashed, role: 'user' }],
-    });
+    await seedUser();
     const res = await request(app)
       .post('/auth/login')
       .send({ email: 'u@test.com', password: 'wrong-password' });
@@ -78,16 +128,7 @@ describe('POST /auth/login', () => {
   });
 
   test('200 with JWT + user payload on success', async () => {
-    const hashed = await bcrypt.hash('right-password', 10);
-    ddbMock.on(ScanCommand).resolves({
-      Items: [{
-        userId: 'u1',
-        name: 'Test User',
-        email: 'u@test.com',
-        password: hashed,
-        role: 'user',
-      }],
-    });
+    await seedUser();
 
     const res = await request(app)
       .post('/auth/login')
@@ -103,5 +144,14 @@ describe('POST /auth/login', () => {
     });
     // Password must never be returned.
     expect(res.body.user.password).toBeUndefined();
+  });
+
+  test('login is case-insensitive on email', async () => {
+    await seedUser();
+    const res = await request(app)
+      .post('/auth/login')
+      .send({ email: 'U@TEST.COM', password: 'right-password' });
+    expect(res.status).toBe(200);
+    expect(res.body.token).toBeTruthy();
   });
 });

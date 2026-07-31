@@ -1,24 +1,33 @@
 // Integration tests for POST /ai/risk-analysis.
-// The endpoint is pure rule-based logic, but it still sits behind the authenticate
-// middleware which fetches a user from DynamoDB — so we mock the DocumentClient.
-const { mockClient } = require('aws-sdk-client-mock');
-const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
+// The endpoint is pure rule-based logic, but it sits behind the authenticate
+// middleware which loads the user from the database — so we seed a real user
+// into the in-memory Mongo rather than stubbing a client.
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
+const db = require('./helpers/db');
 const { app } = require('../server');
+const { User } = require('../models');
 
-function makeToken(userId = 'u1', role = 'user') {
+const USER = {
+  userId: 'u1',
+  email: 'u@test.com',
+  name: 'U',
+  password: 'irrelevant-hash',
+  role: 'user',
+  isActive: true,
+};
+
+function makeToken(userId = USER.userId, role = 'user') {
   return jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 }
 
-beforeEach(() => {
-  ddbMock.reset();
-  // Authenticate middleware looks up the user; return a valid one by default.
-  ddbMock.on(GetCommand).resolves({
-    Item: { userId: 'u1', email: 'u@test.com', name: 'U', role: 'user', isActive: true },
-  });
+beforeAll(() => db.connect());
+afterAll(() => db.close());
+
+beforeEach(async () => {
+  await db.clear();
+  await User.create(USER);
 });
 
 describe('POST /ai/risk-analysis', () => {
@@ -75,5 +84,14 @@ describe('POST /ai/risk-analysis', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.riskScore).toBeLessThanOrEqual(100);
+  });
+
+  test('401 when the token references a user that no longer exists', async () => {
+    const res = await request(app)
+      .post('/ai/risk-analysis')
+      .set('Authorization', `Bearer ${makeToken('ghost-user')}`)
+      .send({ terrain: 'Forest', season: 'Fall', duration: 2 });
+
+    expect(res.status).toBe(401);
   });
 });

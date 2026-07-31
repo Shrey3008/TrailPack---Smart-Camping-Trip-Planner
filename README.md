@@ -166,7 +166,16 @@ cd backend
 npm test
 ```
 
-Jest runs the route + service suite.
+Jest runs the route + service suite (78 tests).
+
+Tests need **no configuration and no running database** — `mongodb-memory-server`
+spins up a throwaway MongoDB in memory, and the real Mongoose models run against
+it, so schema validation and indexes are genuinely exercised. `server.js` only
+connects and listens when run directly, so importing the app in a test never
+touches your real database.
+
+The first `npm test` on a fresh clone downloads a MongoDB binary (~100 MB, cached
+in `node_modules/.cache`), so it takes noticeably longer than later runs.
 
 ## Deployment
 
