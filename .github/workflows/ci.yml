@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  # Allow running manually from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: backend tests (node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Report every failing combination, not just the first.
+      fail-fast: false
+      matrix:
+        # 20.x is the oldest line the dependencies support; 24.x is what
+        # Render actually runs in production.
+        node-version: ['20.x', '24.x']
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # mongodb-memory-server defaults to node_modules/.cache, which `npm ci`
+      # wipes on every run. Point it somewhere stable so the ~100 MB mongod
+      # download can be cached between builds.
+      MONGOMS_DOWNLOAD_DIR: ${{ github.workspace }}/.mongodb-binaries
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Cache mongod binary
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.mongodb-binaries
+          key: mongod-${{ runner.os }}-${{ hashFiles('backend/package-lock.json') }}
+          restore-keys: |
+            mongod-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test

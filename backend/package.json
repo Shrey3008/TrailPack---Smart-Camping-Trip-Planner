@@ -47,5 +47,8 @@
     "checklist"
   ],
   "author": "Patel Hetvi",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
 }

@@ -1,5 +1,7 @@
 # TrailPack — Smart Camping Trip Planner
 
+[![CI](https://github.com/Shrey3008/TrailPack---Smart-Camping-Trip-Planner/actions/workflows/ci.yml/badge.svg?branch=dev)](https://github.com/Shrey3008/TrailPack---Smart-Camping-Trip-Planner/actions/workflows/ci.yml)
+
 A web app that helps campers and backpackers plan trips by generating smart packing checklists tailored to terrain, season, and duration. Includes trip sharing, collaborative packing, AI-assisted gear suggestions, weather forecasts, email reminders, and an admin console.
 
 ## Live Demo
