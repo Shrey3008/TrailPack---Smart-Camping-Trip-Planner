@@ -163,16 +163,17 @@ describe('PATCH /trips/:tripId/items/:itemId', () => {
 });
 
 describe('DELETE /items/:id', () => {
-  test('400 when tripId is missing from the body', async () => {
+  test('400 when tripId is supplied by neither body nor query', async () => {
     const item = await Item.create({ tripId: TRIP_ID, name: 'Boots' });
     const res = await request(app)
       .delete(`/items/${item.itemId}`)
       .set('Authorization', `Bearer ${tokenFor()}`)
       .send({});
     expect(res.status).toBe(400);
+    expect(await Item.countDocuments({ itemId: item.itemId })).toBe(1);
   });
 
-  test('removes the item', async () => {
+  test('removes the item when tripId comes from the body', async () => {
     const item = await Item.create({ tripId: TRIP_ID, name: 'Boots' });
 
     const res = await request(app)
@@ -184,15 +185,37 @@ describe('DELETE /items/:id', () => {
     expect(await Item.countDocuments({ itemId: item.itemId })).toBe(0);
   });
 
+  // Many HTTP clients and proxies drop DELETE bodies, so the query parameter
+  // is the more portable form. Both must work.
+  test('removes the item when tripId comes from the query string', async () => {
+    const item = await Item.create({ tripId: TRIP_ID, name: 'Boots' });
+
+    const res = await request(app)
+      .delete(`/items/${item.itemId}?tripId=${TRIP_ID}`)
+      .set('Authorization', `Bearer ${tokenFor()}`);
+
+    expect(res.status).toBe(200);
+    expect(await Item.countDocuments({ itemId: item.itemId })).toBe(0);
+  });
+
   test('does not delete an item that belongs to a different trip', async () => {
     const item = await Item.create({ tripId: 'another-trip', name: 'Boots' });
 
-    await request(app)
+    const res = await request(app)
       .delete(`/items/${item.itemId}`)
       .set('Authorization', `Bearer ${tokenFor()}`)
       .send({ tripId: TRIP_ID });
 
+    // Used to answer 200 "deleted successfully" while deleting nothing.
+    expect(res.status).toBe(404);
     expect(await Item.countDocuments({ itemId: item.itemId })).toBe(1);
+  });
+
+  test('404 for an item that does not exist', async () => {
+    const res = await request(app)
+      .delete(`/items/no-such-item?tripId=${TRIP_ID}`)
+      .set('Authorization', `Bearer ${tokenFor()}`);
+    expect(res.status).toBe(404);
   });
 });
 

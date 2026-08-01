@@ -172,13 +172,25 @@ router.post('/:id/ai-items', authenticate, async (req, res) => {
 router.delete('/:id', authenticate, async (req, res) => {
   try {
     const itemId = req.params.id;
-    const { tripId } = req.body;
+    // tripId scopes the delete so an item can only be removed via the trip it
+    // belongs to. It was previously read from the request body only, which is
+    // unusual for DELETE — plenty of HTTP clients, proxies and fetch wrappers
+    // drop DELETE bodies, and the caller just got an opaque 400. Accept it as a
+    // query parameter too; the body is still honoured for existing callers.
+    const tripId = (req.body && req.body.tripId) || req.query.tripId;
 
     if (!tripId) {
-      return res.status(400).json({ message: 'Trip ID is required' });
+      return res.status(400).json({ message: 'Trip ID is required (body or ?tripId=)' });
     }
 
-    await Item.deleteOne({ itemId, tripId });
+    const result = await Item.deleteOne({ itemId, tripId });
+
+    // Previously this answered 200 "Item deleted successfully" even when
+    // nothing matched — so a wrong tripId, or an already-deleted item, looked
+    // like a success. Report the truth instead.
+    if (!result.deletedCount) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
 
     res.json({ message: 'Item deleted successfully' });
   } catch (error) {

@@ -86,7 +86,12 @@ easy to revert.
 
 Independent items; any order. Roughly cheapest first.
 
-1. **Dead CSS from the checklist merge.** Merging the AI gear list left orphaned
+1. ~~**Dead CSS from the checklist merge.**~~ Done — also removed a duplicate
+   `computeProgress()` found alongside it.
+
+   <details><summary>original notes</summary>
+
+   **Dead CSS from the checklist merge.** Merging the AI gear list left orphaned
    selectors in `checklist.html`. Verified by counting CSS rules vs markup uses:
 
    | selector | css refs | markup refs | |
@@ -102,21 +107,22 @@ Independent items; any order. Roughly cheapest first.
    `.sg-summary` has no rule of its own — it renders fine because its contents
    use `.sg-empty__hint`. Either give it a rule or leave it; harmless.
 
-2. **Ragged park-card row (dashboard).** Row 2 of "Top National Parks" mixes
+   </details>
+
+2. ~~**Ragged park-card row (dashboard).**~~ Done — titles clamped to one line;
+   all rows now uniform at 244px.
+
+   original: **Ragged park-card row (dashboard).** Row 2 of "Top National Parks" mixes
    255px and 274px card heights because one title ("White Mountain National
    Forest") wraps to two lines and stretches its grid row. Fix with
    `min-height` on `.disc-card-body`, or clamp titles to one line.
 
-3. **`DELETE /items/:id` requires `tripId` in the request body.** Unconventional
-   for a DELETE and silently 400s without it — I hit this while testing.
-   Consider accepting it as a query param too, keeping the body for
-   compatibility. Covered by `__tests__/items.test.js`, so the tests will need
-   updating alongside.
+3. ~~**`DELETE /items/:id` requires `tripId` in the request body.**~~ Done —
+   accepts `?tripId=` as well, and now answers 404 instead of a false 200 when
+   nothing matched.
 
-4. **Rename `services/dynamoDBService.js`.** Mongo-backed since the migration;
-   the name is now actively misleading. Verified: exactly two requires —
-   `backend/middleware/auth.js:2` and `backend/services/dashboardService.js:1`.
-   (`backend/coverage/` also mentions it but is generated and gitignored.)
+4. ~~**Rename `services/dynamoDBService.js`.**~~ Done — now `dataService.js`,
+   with both requires and the local bindings updated.
 
 5. **Portfolio cosmetics** (separate repo, `~/Desktop/Portfolio`):
    - three tag treatments — `.chip` (cyan, project tech), `.proj-tag` (amber,

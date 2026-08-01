@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const dynamoDBService = require('../services/dynamoDBService');
+const dataService = require('../services/dataService');
 
 // In production a missing JWT_SECRET is a hard error. Locally / in tests we
 // fall back to a well-known dev string so the app still boots.
@@ -22,7 +22,7 @@ const authMiddleware = {
       }
 
       const decoded = jwt.verify(token, JWT_SECRET);
-      const user = await dynamoDBService.getUserById(decoded.userId);
+      const user = await dataService.getUserById(decoded.userId);
 
       if (!user || user.isActive === false) {
         return res.status(401).json({ message: 'User not found or inactive' });
@@ -69,7 +69,7 @@ const authMiddleware = {
       
       if (token) {
         const decoded = jwt.verify(token, JWT_SECRET);
-        const user = await dynamoDBService.getUserById(decoded.userId);
+        const user = await dataService.getUserById(decoded.userId);
         if (user && user.isActive !== false) {
           delete user.password;
           req.user = user;

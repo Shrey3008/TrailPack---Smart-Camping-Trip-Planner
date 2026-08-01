@@ -1,12 +1,12 @@
-const dynamoDBService = require('./dynamoDBService');
+const dataService = require('./dataService');
 
 class DashboardService {
   // Get comprehensive dashboard stats for a user
   async getUserDashboard(userId) {
-    const trips = await dynamoDBService.getTripsByUser(userId);
+    const trips = await dataService.getTripsByUser(userId);
     
     // Get all checklist items for user's trips
-    const allItemsPromises = trips.map(trip => dynamoDBService.getItemsByTrip(trip.tripId));
+    const allItemsPromises = trips.map(trip => dataService.getItemsByTrip(trip.tripId));
     const allItemsArrays = await Promise.all(allItemsPromises);
     const allItems = allItemsArrays.flat();
     
@@ -81,22 +81,22 @@ class DashboardService {
 
   // Get admin dashboard stats
   async getAdminDashboard() {
-    const totalUsers = await dynamoDBService.countUsers({ isActive: true });
-    const totalTrips = await dynamoDBService.countTrips();
-    const totalItems = await dynamoDBService.countItems();
+    const totalUsers = await dataService.countUsers({ isActive: true });
+    const totalTrips = await dataService.countTrips();
+    const totalItems = await dataService.countItems();
     
     // User role distribution
-    const roleStats = await dynamoDBService.getUsersByRole();
+    const roleStats = await dataService.getUsersByRole();
 
     // Trips by status
-    const tripStatusStats = await dynamoDBService.getTripsByStatus();
+    const tripStatusStats = await dataService.getTripsByStatus();
 
     // Recent activity (last 30 days)
-    const newUsers = (await dynamoDBService.getRecentUsers(30)).length;
-    const newTrips = (await dynamoDBService.getRecentTrips(30)).length;
+    const newUsers = (await dataService.getRecentUsers(30)).length;
+    const newTrips = (await dataService.getRecentTrips(30)).length;
 
     // Top active users
-    const topUsers = await dynamoDBService.getTopUsers(5);
+    const topUsers = await dataService.getTopUsers(5);
 
     return {
       overview: {
@@ -114,7 +114,7 @@ class DashboardService {
 
   // Get shared trips for a user (trips where user is a participant)
   async getSharedTrips(userId) {
-    const allTrips = await dynamoDBService.getAllTrips();
+    const allTrips = await dataService.getAllTrips();
     
     // Find trips where user is a participant (not the owner)
     const sharedTrips = allTrips.filter(trip => {
@@ -126,7 +126,7 @@ class DashboardService {
     // Enrich with owner details and user role
     const enrichedTrips = await Promise.all(
       sharedTrips.map(async (trip) => {
-        const owner = await dynamoDBService.getUserById(trip.userId);
+        const owner = await dataService.getUserById(trip.userId);
         const myRole = trip.participants?.find(p => p.userId === userId)?.role || 'participant';
         
         return {
@@ -143,7 +143,7 @@ class DashboardService {
 
   // Get organizer dashboard (for users with organizer role)
   async getOrganizerDashboard(userId) {
-    const allTrips = await dynamoDBService.getAllTrips();
+    const allTrips = await dataService.getAllTrips();
     
     // Get trips where user is owner or organizer
     const organizedTrips = allTrips.filter(trip => {
@@ -169,7 +169,7 @@ class DashboardService {
       organizedTrips.map(async (trip) => {
         const participants = await Promise.all(
           (trip.participants || []).map(async (p) => {
-            const user = await dynamoDBService.getUserById(p.userId);
+            const user = await dataService.getUserById(p.userId);
             return {
               userId: p.userId,
               name: user?.name || 'Unknown',

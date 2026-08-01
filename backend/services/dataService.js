@@ -1,7 +1,9 @@
-// Data service — now backed by MongoDB/Mongoose.
-// Filename kept as dynamoDBService.js so existing requires
-// (middleware/auth.js, services/dashboardService.js) don't change;
-// the exported API is identical to the old DynamoDB version.
+// Data service — backed by MongoDB/Mongoose.
+//
+// Previously named dynamoDBService.js. The name was kept through the DynamoDB
+// -> MongoDB migration so requires did not have to change, but it had become
+// actively misleading: nothing here touches DynamoDB. The exported API is
+// unchanged.
 const { User, Trip, Item } = require('../models');
 
 const EXCLUDE = '-_id -__v';

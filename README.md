@@ -72,8 +72,7 @@ TrailPack/
 │   │                                   sharedTrips, trips, weather
 │   ├── middleware/                   # auth (JWT) + adminMiddleware
 │   ├── services/                     # checklist, ai, email, dashboard,
-│   │                                   notification scheduler, dynamoDBService
-│   │                                   (Mongo-backed, name kept for history),
+│   │                                   notification scheduler, dataService,
 │   │                                   provisions, sharedTrips
 │   ├── __tests__/                    # Jest test suite
 │   └── .env.example                  # Backend env template
