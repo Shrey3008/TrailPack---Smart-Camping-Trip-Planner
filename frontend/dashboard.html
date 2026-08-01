@@ -385,6 +385,36 @@
       </div>
     </div>
 
+    <!--
+      The user's own trips lead the dashboard. Previously this page jumped
+      straight from a row of zeroes to ~40 generic destination cards, so a
+      brand-new user's first screen was all browse content and the primary
+      action (plan a trip) sat far below the fold.
+
+      Markup mirrors my-trips.html so app.js's existing loadTrips() renders it
+      and dashboard-light.js decorates the cards — no duplicate renderer.
+    -->
+    <section class="dashboard-section" id="your-trips-section">
+      <div class="section-header">
+        <div class="section-header-left">
+          <h2>Your Trips</h2>
+          <p class="section-sub">Pick up where you left off, or start something new.</p>
+        </div>
+        <button class="btn btn-primary" id="open-create-trip" type="button">+ Create New Trip</button>
+      </div>
+
+      <div id="trips-container" class="trips-grid">
+        <!-- Trips rendered by app.js; enhanced by dashboard-light.js -->
+      </div>
+
+      <div id="empty-state" class="empty-state" style="display: none;">
+        <div class="empty-icon" aria-hidden="true">🏕️</div>
+        <h3>No trips yet</h3>
+        <p>Plan your first trip and we'll build the packing list for you.</p>
+        <button class="btn btn-primary" id="open-create-trip-empty" type="button">+ Create Your First Trip</button>
+      </div>
+    </section>
+
     <!-- ===== DISCOVER SECTION START ===== -->
 <section id="discoverSection">
 
