@@ -95,22 +95,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-// MOCK ROUTES for Phase 4 compatibility (return empty data to stop 404s)
-app.get('/notifications', (req, res) => {
-  res.status(200).json({ success: true, data: [] });
-});
-
-app.get('/notifications/unread', (req, res) => {
-  res.status(200).json({ success: true, count: 0 });
-});
-
-app.get('/notifications/unread-count', (req, res) => {
-  res.status(200).json({ success: true, data: { unreadCount: 0 } });
-});
-
-app.get('/shared-trips', (req, res) => {
-  res.status(200).json({ success: true, trips: [] });
-});
+// Removed: a block of "Phase 4 compatibility" mock routes returning empty
+// payloads for /notifications, /notifications/unread, /notifications/unread-count
+// and /shared-trips. The notification ones were already unreachable — the
+// router mounted above applies authenticate to every path under /notifications,
+// including unmatched ones, so requests were rejected before reaching them. The
+// /shared-trips mock *was* reachable and answered 200 with an empty list to
+// unauthenticated callers; nothing uses it (the frontend calls
+// /shared-trips/mine, which is a real authenticated route).
 
 // Error handling middleware.
 // Errors tagged with `expected` (e.g. a blocked CORS origin) are normal client
