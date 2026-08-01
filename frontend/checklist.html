@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="stylesheet" href="tokens.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏔️</text></svg>">
@@ -33,8 +34,8 @@
       --row:          #f9f8f5;
       --row-checked:  #e8f5e9;
       --row-checked-ink: #6a9a6e;
-      --radius:       16px;
-      --radius-sm:    10px;
+      
+      
       --shadow-card:  0 2px 12px rgba(0,0,0,0.06);
     }
 
@@ -131,7 +132,7 @@
     /* ---------- Trip header card ---------- */
     .trip-header {
       background: var(--surface);
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-card);
       padding: 24px 26px;
       margin-bottom: 20px;
@@ -277,7 +278,7 @@
     /* ---------- Category cards ---------- */
     .category {
       background: var(--surface);
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-card);
       padding: 20px 22px;
       margin-bottom: 16px;
@@ -511,7 +512,7 @@
     /* ---------- Info cards (weather / provisions / risk / collab) ---------- */
     .info-card {
       background: var(--surface);
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
       box-shadow: var(--shadow-card);
       padding: 20px 22px;
       margin-bottom: 16px;

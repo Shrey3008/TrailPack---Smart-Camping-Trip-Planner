@@ -1,0 +1,27 @@
+/* ============================================================================
+   Design tokens — the single source of truth for values shared across pages.
+
+   Why this file exists: index, login, register, checklist, profile and
+   checklist-preview carried fully self-contained inline styles and loaded no
+   shared stylesheet, so each re-declared its own :root. The result was that
+   `--radius` resolved to five different values depending on which page you were
+   on (10px on login/register, 12px on index/admin, 14px on checklist-preview,
+   16px on checklist/profile) and `--radius-sm` to two (8px or 10px). Nothing
+   was wrong on any single page; the system had simply drifted.
+
+   Load this BEFORE any other stylesheet or inline <style> block.
+   ========================================================================== */
+
+:root {
+  /* Corner radii. One scale, four steps, plus a pill.
+       sm   – inputs, chips, small controls
+       base – cards, buttons, most surfaces
+       lg   – large panels and modals
+       xl   – the landing hero mock only
+       full – pills / fully rounded */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-full: 9999px;
+}
