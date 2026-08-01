@@ -521,7 +521,7 @@
     .info-card .muted-note { color: var(--muted); font-size: 0.85rem; }
     /* .muted-note is only themed inside .info-card, so give the gear list its
        own muted treatment plus a real empty state. */
-    .sg-list .muted-note { color: var(--muted); font-size: 0.85rem; }
+
     .sg-empty { text-align: center; padding: 22px 12px; }
     .sg-empty__icon { font-size: 1.7rem; line-height: 1; display: block; margin-bottom: 8px; }
     .sg-empty__title { font-weight: 600; color: var(--ink); font-size: 0.95rem; }
@@ -1017,86 +1017,11 @@
       cursor: not-allowed;
       transform: none;
     }
-    .sg-filters {
-      display: flex; gap: 6px; flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .sg-filter {
-      background: transparent;
-      border: 1px solid var(--line);
-      border-radius: 9999px;
-      padding: 6px 12px;
-      font-size: 0.82rem;
-      font-weight: 500;
-      color: var(--ink);
-      cursor: pointer;
-      font-family: inherit;
-      transition: background 0.15s, color 0.15s, border-color 0.15s;
-    }
-    .sg-filter:hover { background: var(--green-pale); }
-    .sg-filter.active {
-      background: #2D6A4F;
-      border-color: #2D6A4F;
-      color: #fff;
-    }
-    .sg-list {
-      display: flex; flex-direction: column; gap: 6px;
-      margin-bottom: 12px;
-    }
-    .sg-item {
-      display: flex; align-items: center; gap: 10px;
-      background: #f9f8f5;
-      border-radius: 10px;
-      padding: 11px 14px;
-      border-left: 3px solid #9CA3AF;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s;
-    }
-    .sg-item:hover { background: var(--green-pale); }
-    .sg-item.essential    { border-left-color: #EF4444; }
-    .sg-item.recommended  { border-left-color: #F59E0B; }
-    .sg-item.optional     { border-left-color: #9CA3AF; }
-    .sg-item.packed .sg-name { text-decoration: line-through; color: var(--muted); }
-    .sg-check {
-      width: 20px; height: 20px;
-      border-radius: 5px;
-      border: 2px solid #2D6A4F;
-      background: #fff;
-      display: inline-flex; align-items: center; justify-content: center;
-      font-size: 0.75rem; font-weight: 800;
-      color: transparent;
-      flex-shrink: 0;
-      transition: background 0.15s, color 0.15s;
-    }
-    .sg-item.packed .sg-check { background: #2D6A4F; color: #fff; }
-    .sg-item.packed .sg-check::before { content: '✓'; }
-    .sg-name { flex: 1; font-weight: 500; color: var(--ink); }
-    .sg-prio {
-      font-size: 0.7rem; font-weight: 700;
-      padding: 3px 10px; border-radius: 9999px;
-      text-transform: uppercase; letter-spacing: 0.04em;
-    }
-    .sg-prio.essential   { background: #FEE2E2; color: #991B1B; }
-    .sg-prio.recommended { background: #FEF3C7; color: #8A4C10; }
-    .sg-prio.optional    { background: #E5E7EB; color: #4B5563; }
-    .sg-legend {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 10px; flex-wrap: wrap;
-      font-size: 0.82rem; color: var(--muted);
-      border-top: 1px solid var(--line);
-      padding-top: 10px;
-    }
-    .sg-legend-groups { display: flex; gap: 14px; flex-wrap: wrap; }
-    .sg-legend-item { display: inline-flex; align-items: center; gap: 6px; }
-    .sg-dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      display: inline-block;
-    }
-    .sg-dot.essential   { background: #EF4444; }
-    .sg-dot.recommended { background: #F59E0B; }
-    .sg-dot.optional    { background: #9CA3AF; }
-    .sg-legend-count { color: var(--ink); font-weight: 700; }
+    /* The Smart Gear card no longer renders its own item list, so the rules
+       for .sg-filters, .sg-list, .sg-item, .sg-check, .sg-name, .sg-prio,
+       .sg-dot and .sg-legend* were removed here — the markup they styled is
+       gone. .sg-title-wrap, .sg-ai-badge, .sg-generate-btn and .sg-empty* are
+       still in use and kept above/below. */
 
     /* ---------- Responsive ---------- */
     @media (max-width: 640px) {
@@ -4507,25 +4432,14 @@
         });
       }
 
-      function computeProgress() {
-        // Recalculate totals dynamically every run, including AI-generated
-        // items rendered as .sg-item rows in the Smart Gear card. Using
-        // the live DOM (rather than a cached count) keeps this in sync
-        // with updateProgress() after Generate Suggestions adds items.
-        const items  = document.querySelectorAll('#categories .item, #sg-items .sg-item');
-        const packed = document.querySelectorAll('#categories .item.packed, #sg-items .sg-item.packed');
-        const total = items.length;
-        const p = packed.length;
-        const pct = total ? Math.round((p / total) * 100) : 0;
-        const lbP = document.getElementById('ct-prog-packed');
-        const lbT = document.getElementById('ct-prog-total');
-        const lbPct = document.getElementById('ct-prog-pct');
-        const fill = document.getElementById('ct-prog-fill');
-        if (lbP) lbP.textContent = p;
-        if (lbT) lbT.textContent = total;
-        if (lbPct) lbPct.textContent = pct + '%';
-        if (fill) fill.style.width = pct + '%';
-      }
+      // computeProgress() lived here and wrote the same four counter elements
+      // as updateProgress(), but derived its totals by querying the DOM
+      // (including '#sg-items .sg-item' — a container that no longer exists
+      // after the Smart Gear list was merged into the checklist). Two functions
+      // writing one counter from two different sources is the same split-brain
+      // the merge removed, so refresh() now calls updateProgress(), which reads
+      // the authoritative items array and additionally keeps the Start Trip
+      // button's enabled state in sync.
 
       let scheduled = false;
       function refresh() {
@@ -4535,7 +4449,7 @@
           scheduled = false;
           mirrorSummary();
           buildTabs();
-          computeProgress();
+          updateProgress();
           syncCategoryDropdown();
           renderSuggestChips();
         });

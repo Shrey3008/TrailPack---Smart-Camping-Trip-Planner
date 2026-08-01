@@ -125,6 +125,13 @@
     .disc-card-title {
       font-size: .95rem; font-weight: 700; color: #111;
       margin: 0 0 2px; line-height: 1.25;
+      /* Long names ("White Mountain National Forest") wrapped to two lines and
+         stretched their whole grid row, leaving one row of cards 19px taller
+         than the rest. Clamp to a single line so every card matches. */
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .disc-card-sub {
       font-size: .78rem; color: #6b7280; margin: 0;
