@@ -14,6 +14,14 @@ const notificationScheduler = require('./services/notificationScheduler');
 
 const app = express();
 
+// Render terminates TLS at its edge and forwards with X-Forwarded-For. Trust
+// exactly one proxy hop so req.ip is the real client address rather than the
+// edge's — without this every visitor shares a single rate-limit bucket, which
+// would make the auth throttles both useless and a self-inflicted outage. One
+// hop specifically (not `true`), so a client can't spoof its way to a fresh
+// bucket by sending its own X-Forwarded-For header.
+app.set('trust proxy', 1);
+
 // CORS configuration
 // - Always allows requests with no Origin (e.g., same-origin, curl, server-to-server).
 // - Always allows localhost / 127.0.0.1 on any port for local development.

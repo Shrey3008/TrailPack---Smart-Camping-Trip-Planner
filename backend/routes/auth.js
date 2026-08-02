@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { User, Trip, Item } = require('../models');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, JWT_SECRET } = require('../middleware/auth');
+const { ipLimiter, credentialLimiter } = require('../middleware/rateLimit');
 
 // Return the public-safe shape of a user row.
 function publicUser(user) {
@@ -35,6 +37,13 @@ function normalizeAnswer(answer) {
 async function findUserByEmail(email) {
   if (!email) return null;
   return User.findOne({ email: String(email).toLowerCase().trim() }).lean();
+}
+
+// Password-reset grants. Only the hash goes to the database — see User.js.
+const RESET_TOKEN_TTL_MS = 10 * 60 * 1000;
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
 }
 
 // POST /auth/register - Register new user
@@ -99,7 +108,7 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /auth/login - Login user
-router.post('/login', async (req, res) => {
+router.post('/login', ipLimiter, credentialLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -117,10 +126,19 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Sign JWT
+    // Sign JWT.
+    //
+    // The role is deliberately NOT in the payload. It used to be, and
+    // middleware/auth.js preferred the token's copy over the database's, so
+    // changing someone's role had no effect until their 7-day token expired —
+    // a demoted administrator kept full administrative access. The role now
+    // lives in exactly one place: the user row, read fresh on every request.
+    //
+    // JWT_SECRET comes from the middleware so signing and verification can
+    // never disagree about which secret is in force.
     const token = jwt.sign(
-      { userId: user.userId, role: user.role },
-      process.env.JWT_SECRET,
+      { userId: user.userId },
+      JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -255,18 +273,31 @@ router.put('/password', authenticate, async (req, res) => {
 
 /* ============================================================
    Forgot-password flow (security-question based, no email).
-   Three lightweight, stateless endpoints. The frontend tracks
-   "verified" state in memory only — we deliberately do not issue
-   a reset token here to keep the surface area minimal. The reset
-   endpoint re-validates the answer would be ideal, but per the
-   product spec we trust the SPA flow (Step C is only reachable
-   after Step B succeeds in the same session).
+
+   SECURITY: this flow used to be three independent, stateless
+   endpoints, and /forgot/reset-password accepted { email,
+   newPassword } on its own — it never checked that the caller had
+   answered the security question. "Verified" lived only in the
+   SPA's memory, so anyone who knew an email address could reset
+   that account's password with a single request and log in as the
+   victim. Verified exploitable against production before the fix.
+
+   The step that proves knowledge of the secret now issues the
+   grant that authorises the step that uses it:
+
+     get-question   -> which question to answer (no secrets out)
+     verify-answer  -> on success, a 10-minute single-use resetToken
+     reset-password -> requires that resetToken; consumes it
+
+   Only the SHA-256 hash of the token is stored (see User.js), and
+   both token fields are cleared as part of the same update that
+   writes the new password, so a grant cannot be replayed.
    ============================================================ */
 
 // POST /auth/forgot/get-question
 // Look up a user by email and return their security question.
 // Never returns the answer.
-router.post('/forgot/get-question', async (req, res) => {
+router.post('/forgot/get-question', ipLimiter, async (req, res) => {
   try {
     const { email } = req.body || {};
     if (!email) {
@@ -291,10 +322,11 @@ router.post('/forgot/get-question', async (req, res) => {
 });
 
 // POST /auth/forgot/verify-answer
-// Compare the lowercase+trimmed answer against the stored value.
-// Always returns 200 with { success: boolean } so the frontend can
-// surface a clean message without dealing with HTTP status branching.
-router.post('/forgot/verify-answer', async (req, res) => {
+// Compare the lowercase+trimmed answer against the stored value. Always returns
+// 200 with { success: boolean } so the frontend can surface a clean message
+// without dealing with HTTP status branching. On success it also returns the
+// short-lived resetToken that /forgot/reset-password requires.
+router.post('/forgot/verify-answer', ipLimiter, credentialLimiter, async (req, res) => {
   try {
     const { email, answer } = req.body || {};
     if (!email || answer == null) {
@@ -302,10 +334,36 @@ router.post('/forgot/verify-answer', async (req, res) => {
     }
     const user = await findUserByEmail(email);
     if (!user || !user.securityAnswer) {
+      // A rejected attempt, even though the status is 200 — tell the rate
+      // limiter so it counts against the quota. See middleware/rateLimit.js.
+      res.locals.authAttemptFailed = true;
       return res.json({ success: false });
     }
-    const success = normalizeAnswer(answer) === user.securityAnswer;
-    res.json({ success });
+    // Constant-time compare: both sides are already normalised to lowercase +
+    // trimmed, so a length-guarded timingSafeEqual is a straight swap for ===.
+    const provided = Buffer.from(normalizeAnswer(answer));
+    const stored = Buffer.from(user.securityAnswer);
+    const success = provided.length === stored.length && crypto.timingSafeEqual(provided, stored);
+
+    if (!success) {
+      res.locals.authAttemptFailed = true;
+      return res.json({ success: false });
+    }
+
+    // Issue the grant. Any previously issued token for this account is
+    // overwritten, so only the most recent verification is live.
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    await User.updateOne(
+      { userId: user.userId },
+      {
+        $set: {
+          passwordResetTokenHash: hashResetToken(resetToken),
+          passwordResetExpiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
+        },
+      }
+    );
+
+    res.json({ success: true, resetToken, expiresInSeconds: RESET_TOKEN_TTL_MS / 1000 });
   } catch (error) {
     console.error('forgot/verify-answer error:', error);
     res.status(500).json({ message: 'Error verifying answer' });
@@ -313,26 +371,49 @@ router.post('/forgot/verify-answer', async (req, res) => {
 });
 
 // POST /auth/forgot/reset-password
-// Hash the new password and persist it on the user row. Mirrors the
-// authenticated /auth/password endpoint so behaviour is consistent.
-router.post('/forgot/reset-password', async (req, res) => {
+// Consumes the single-use grant from /forgot/verify-answer and writes the new
+// password. Mirrors the authenticated /auth/password endpoint otherwise.
+router.post('/forgot/reset-password', ipLimiter, credentialLimiter, async (req, res) => {
   try {
-    const { email, newPassword } = req.body || {};
+    const { email, newPassword, resetToken } = req.body || {};
     if (!email || !newPassword) {
       return res.status(400).json({ message: 'Email and newPassword are required' });
+    }
+    if (!resetToken) {
+      return res.status(400).json({ message: 'resetToken is required' });
     }
     if (String(newPassword).length < 8) {
       return res.status(400).json({ message: 'New password must be at least 8 characters' });
     }
-    const user = await findUserByEmail(email);
+
+    // Look the user up *by the grant*, not by email alone. A wrong, expired,
+    // already-used or someone else's token finds nothing and is refused —
+    // deliberately with one generic 401 so this can't be used to probe which
+    // of those it was, or which emails exist.
+    const user = await User.findOne({
+      email: String(email).toLowerCase().trim(),
+      passwordResetTokenHash: hashResetToken(resetToken),
+      passwordResetExpiresAt: { $gt: new Date() },
+    }).lean();
+
     if (!user) {
-      return res.status(404).json({ message: 'No account found with that email' });
+      return res.status(401).json({
+        message: 'This password reset link is invalid or has expired. Please start again.',
+      });
     }
 
     const hashed = await bcrypt.hash(newPassword, 10);
+    // Clearing the grant in the same update is what makes it single-use.
     await User.updateOne(
       { userId: user.userId },
-      { $set: { password: hashed, passwordUpdatedAt: new Date().toISOString() } }
+      {
+        $set: {
+          password: hashed,
+          passwordUpdatedAt: new Date().toISOString(),
+          passwordResetTokenHash: null,
+          passwordResetExpiresAt: null,
+        },
+      }
     );
 
     res.json({ message: 'Password updated successfully' });

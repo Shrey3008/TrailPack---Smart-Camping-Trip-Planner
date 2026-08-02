@@ -15,6 +15,13 @@ const userSchema = new mongoose.Schema({
   securityAnswer: { type: String, default: null },
   passwordUpdatedAt: { type: String, default: null }, // ISO string, parity with old rows
   lastLogin: { type: String, default: null },
+  // Password-reset grant issued by POST /auth/forgot/verify-answer and consumed
+  // by POST /auth/forgot/reset-password. Only the SHA-256 hash of the token is
+  // stored, so a database leak doesn't hand out working reset grants. Both
+  // fields are cleared the moment the token is used, which is what makes the
+  // grant single-use.
+  passwordResetTokenHash: { type: String, default: null },
+  passwordResetExpiresAt: { type: Date, default: null },
   profile: {
     phone: { type: String, default: '' },
     notificationSettings: { type: mongoose.Schema.Types.Mixed, default: {} },
