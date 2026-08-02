@@ -76,81 +76,28 @@ router.get('/weather/:location', async (req, res) => {
   }
 });
 
-// POST /ai/route/optimize - Optimize hiking route
-router.post('/route/optimize', async (req, res) => {
-  try {
-    const { waypoints } = req.body;
-
-    res.json({
-      optimizedRoute: waypoints || [],
-      estimatedTime: '4h 30m'
-    });
-  } catch (error) {
-    console.error('Route optimization error:', error);
-    res.status(500).json({ message: 'Failed to optimize route' });
-  }
-});
-
-// POST /ai/recommendations/personalized - Get personalized recommendations
-router.post('/recommendations/personalized', async (req, res) => {
-  try {
-    res.json({
-      recommendations: [
-        'Bring extra water',
-        'Check trail conditions',
-        'Pack sunscreen'
-      ]
-    });
-  } catch (error) {
-    console.error('Personalized recommendations error:', error);
-    res.status(500).json({ message: 'Failed to generate personalized recommendations' });
-  }
-});
-
-// POST /ai/trip/summary - Generate trip summary
-router.post('/trip/summary', async (req, res) => {
-  try {
-    res.json({
-      summary: 'Trip summary generated',
-      highlights: []
-    });
-  } catch (error) {
-    console.error('Trip summary error:', error);
-    res.status(500).json({ message: 'Failed to generate trip summary' });
-  }
-});
-
-// GET /ai/insights/weather/:tripId - Get weather insights for a specific trip
-router.get('/insights/weather/:tripId', async (req, res) => {
-  try {
-    const { tripId } = req.params;
-
-    res.json({
-      tripId,
-      weatherRisk: 'Low',
-      recommendation: 'Good conditions'
-    });
-  } catch (error) {
-    console.error('Weather insights error:', error);
-    res.status(500).json({ message: 'Failed to get weather insights' });
-  }
-});
-
-// POST /ai/insights/route/:tripId - Get route insights for a specific trip
-router.post('/insights/route/:tripId', async (req, res) => {
-  try {
-    const { tripId } = req.params;
-
-    res.json({
-      tripId,
-      routeInsights: 'Route looks safe',
-      difficulty: 'Moderate'
-    });
-  } catch (error) {
-    console.error('Route insights error:', error);
-    res.status(500).json({ message: 'Failed to get route insights' });
-  }
-});
+// Removed: five hardcoded stub routes that returned invented data as though it
+// were computed —
+//
+//   POST /ai/route/optimize                 "estimatedTime: 4h 30m"
+//   POST /ai/recommendations/personalized   a fixed list of three tips
+//   POST /ai/trip/summary                   "Trip summary generated"
+//   GET  /ai/insights/weather/:tripId       "weatherRisk: Low"
+//   POST /ai/insights/route/:tripId         "routeInsights: Route looks safe"
+//
+// None of them loaded the trip, checked who was asking, or called the AI
+// service. The two /insights routes echoed back whatever :tripId string they
+// were given, so a trip that did not exist — belonging to anyone or no one —
+// still got a confident "Low risk / Good conditions". That is the worst version
+// of the failure mode already fixed in d7a2506 (an AI outage reported as "no
+// suggestions"): safety-shaped output with nothing behind it.
+//
+// Nothing in the frontend calls any of them. The legacy browser harnesses at
+// the repo root (test-phase4.js, regression-tests.js) do, but they were only
+// ever asserting that a stub returns its own constants.
+//
+// The real AI surface is unaffected: POST /ai/risk-analysis below, and
+// POST /trips/:id/ai-items in routes/items.js.
 
 // POST /ai/risk-analysis - Hybrid trip risk analysis.
 //

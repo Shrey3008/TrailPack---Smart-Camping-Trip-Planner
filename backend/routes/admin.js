@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
-const { User, Trip, Item } = require('../models');
+const { User, Trip, Item, Notification, Collaborator, Invite, SentReminder } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
 
 // Constant-time compare so the bootstrap token can't be guessed byte-by-byte
@@ -142,9 +142,40 @@ router.delete('/users/:userId', authenticate, authorize('admin'), async (req, re
       return res.status(400).json({ message: 'Cannot delete your own account' });
     }
 
+    // Confirm the user exists before touching anything. This used to be an
+    // unchecked deleteOne that answered 200 "User deleted successfully" even
+    // for a userId that never existed.
+    const user = await User.findOne({ userId }).lean();
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Delete everything belonging to the account. Previously only the User row
+    // went, leaving their trips, checklist items, collaborator rows, invites
+    // and notifications behind as unreachable orphans — rows no login could
+    // ever reach again, which GET /admin/stats nonetheless kept counting.
+    const ownedTrips = await Trip.find({ userId }).select('tripId').lean();
+    const tripIds = ownedTrips.map(t => t.tripId);
+
+    if (tripIds.length > 0) {
+      await Item.deleteMany({ tripId: { $in: tripIds } });
+      await Collaborator.deleteMany({ tripId: { $in: tripIds } });
+      await Invite.deleteMany({ tripId: { $in: tripIds } });
+      await Trip.deleteMany({ tripId: { $in: tripIds } });
+    }
+
+    // Their own rows elsewhere: access to *other* people's shared trips, plus
+    // per-user notification state.
+    await Collaborator.deleteMany({ userId });
+    await Notification.deleteMany({ userId });
+    await SentReminder.deleteMany({ userId });
+
     await User.deleteOne({ userId });
 
-    res.json({ message: 'User deleted successfully' });
+    res.json({
+      message: 'User deleted successfully',
+      deleted: { trips: tripIds.length },
+    });
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ message: 'Error deleting user' });

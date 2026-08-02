@@ -426,17 +426,16 @@ router.delete('/:id', authenticate, async (req, res) => {
   }
 });
 
-// GET /trips/shared - List trips that have been shared with the current user
-// Uses the reverse-lookup (SHARED_TRIP#) path — O(trips) instead of a full scan.
-router.get('/shared', authenticate, async (req, res) => {
-  try {
-    const trips = await sharedTrips.listSharedTripsForUser(req.user.userId);
-    res.json(trips);
-  } catch (error) {
-    console.error('Error fetching shared trips:', error);
-    res.status(500).json({ message: 'Error fetching shared trips' });
-  }
-});
+// Removed: GET /trips/shared. It was declared *after* GET /trips/:id, and
+// Express matches in declaration order, so `/:id` swallowed the single-segment
+// `/shared` and the route was unreachable — it answered 404 "Trip not found"
+// for its entire life. It also duplicated GET /shared-trips/mine
+// (routes/sharedTrips.js), which is the one the frontend calls and the one the
+// README documents. Two endpoints for the same question, one of them silently
+// broken, is a trap; the working one is enough.
+//
+// The sibling routes are fine: /trips/organizer/dashboard and
+// /trips/admin/dashboard are two segments, so `/:id` never matches them.
 
 // GET /trips/:id/participants - List collaborators on a trip (owner or collaborator)
 router.get('/:id/participants', authenticate, async (req, res) => {

@@ -92,7 +92,16 @@ router.put('/read-all', async (req, res) => {
 // DELETE /notifications/:id - Delete notification
 router.delete('/:id', async (req, res) => {
   try {
-    await Notification.deleteOne({ notifId: req.params.id, userId: req.user.userId });
+    const result = await Notification.deleteOne({ notifId: req.params.id, userId: req.user.userId });
+
+    // This used to answer 200 "Notification deleted" unconditionally, so a
+    // nonexistent id — or another user's notification, which the userId filter
+    // correctly refuses to touch — came back looking like a successful delete.
+    // The data was never at risk; the response was simply untrue.
+    if (!result.deletedCount) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
     res.json({ message: 'Notification deleted' });
   } catch (error) {
     console.error('Delete notification error:', error);
