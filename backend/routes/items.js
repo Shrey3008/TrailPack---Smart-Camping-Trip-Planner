@@ -2,14 +2,45 @@ const express = require('express');
 const router = express.Router();
 const { Trip, Item } = require('../models');
 const { authenticate } = require('../middleware/auth');
+const sharedTrips = require('../services/sharedTripsService');
 const aiService = require('../services/aiService');
 
 const EXCLUDE = '-_id -__v';
+
+// SECURITY: every route in this file takes a tripId from the caller and used to
+// query on it directly, with no check that the trip belonged to the requester.
+// Any authenticated user who knew a tripId could read, re-pack, add to and
+// delete another user's checklist — and a tripId is not a secret: it appears in
+// checklist URLs, in invitation emails, and is shared with every collaborator,
+// including ones whose access was later revoked. Verified exploitable against
+// production before the fix.
+//
+// assertTripAccess() resolves the trip and confirms the caller is its owner or
+// a current collaborator, throwing { status: 404 } when the trip doesn't exist
+// and { status: 403 } when it does but isn't theirs. Collaborators are meant to
+// pack shared trips, so item routes take *access*, not *ownership* — the
+// stricter assertTripOwner is what guards destructive trip-level operations in
+// routes/trips.js.
+async function requireTripAccess(req, res, tripId) {
+  if (!tripId) {
+    res.status(400).json({ message: 'Trip ID is required' });
+    return false;
+  }
+  try {
+    await sharedTrips.assertTripAccess(tripId, req.user.userId);
+    return true;
+  } catch (e) {
+    res.status(e.status || 500).json({ message: e.message });
+    return false;
+  }
+}
 
 // GET /trips/:id/items - Get all checklist items for a trip
 router.get('/:id/items', authenticate, async (req, res) => {
   try {
     const tripId = req.params.id;
+    if (!(await requireTripAccess(req, res, tripId))) return;
+
     const items = await Item.find({ tripId }).select(EXCLUDE).lean();
     res.json(items);
   } catch (error) {
@@ -24,9 +55,7 @@ router.put('/:id', authenticate, async (req, res) => {
     const itemId = req.params.id;
     const { tripId, packed } = req.body;
 
-    if (!tripId) {
-      return res.status(400).json({ message: 'Trip ID is required' });
-    }
+    if (!(await requireTripAccess(req, res, tripId))) return;
 
     const updated = await Item.findOneAndUpdate(
       { itemId, tripId },
@@ -50,6 +79,8 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
   try {
     const { tripId, itemId } = req.params;
     const { packed } = req.body;
+
+    if (!(await requireTripAccess(req, res, tripId))) return;
 
     const updated = await Item.findOneAndUpdate(
       { itemId, tripId },
@@ -76,6 +107,7 @@ router.post('/', authenticate, async (req, res) => {
     if (!tripId || !name || !category) {
       return res.status(400).json({ message: 'Trip ID, name, and category are required' });
     }
+    if (!(await requireTripAccess(req, res, tripId))) return;
 
     const itemDoc = await Item.create({
       tripId,
@@ -182,6 +214,7 @@ router.delete('/:id', authenticate, async (req, res) => {
     if (!tripId) {
       return res.status(400).json({ message: 'Trip ID is required (body or ?tripId=)' });
     }
+    if (!(await requireTripAccess(req, res, tripId))) return;
 
     const result = await Item.deleteOne({ itemId, tripId });
 
