@@ -4451,6 +4451,12 @@
             escapeHtml(err.message) + '</div>';
         }
       });
+
+      // updateProgress() is the authoritative progress writer — it derives its
+      // totals from the items array rather than from the DOM. The second script
+      // block's refresh() needs it, and that block is a separate IIFE, so the
+      // function is not otherwise reachable from there.
+      window.updateProgress = updateProgress;
     })();
   </script>
 
@@ -4632,7 +4638,10 @@
           scheduled = false;
           mirrorSummary();
           buildTabs();
-          updateProgress();
+          // Optional call: block 1 runs at parse time so this is always
+          // defined by the time an observer fires, but degrading beats
+          // throwing if the blocks are ever reordered.
+          window.updateProgress?.();
           syncCategoryDropdown();
           renderSuggestChips();
         });
