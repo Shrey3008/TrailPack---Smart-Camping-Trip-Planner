@@ -290,7 +290,156 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
 }
 
 /* ---------------------------------------------------------------------------
-   7. Canvas.
+   7. Small screens: horizontal overflow and tap targets.
+
+   Measured at 375px before this block: the dashboard's scrollWidth was 589px
+   against a 375px viewport — 214px of sideways scroll on the app's main page.
+
+   The cause was isolated by bisection rather than guessed at. Hiding
+   .disc-card, .disc-pill or .tp-ct-overlay individually changed nothing;
+   hiding main.container dropped scrollWidth straight to 375. Walking down from
+   there, the single owner is the trail-search pill bar: a nowrap flex row whose
+   fields carry min-width 136px and 126px plus a nowrap button, measuring
+   clientWidth 280 / scrollWidth 542, with overflow-x visible so the excess
+   spills into the document.
+
+   Worth recording because it was the obvious suspect and is innocent:
+   .tp-ct-overlay contributes nothing. It is position:fixed with inset:0, so it
+   cannot extend the document, and hiding it left scrollWidth at 589. Nothing
+   here touches the overlay or the create-trip modal.
+
+   Every rule below needs !important because the bar and its fields are styled
+   with inline style attributes, which no external stylesheet can otherwise beat.
+   ------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  /* Stack the pill into rows instead of letting it run off the side. */
+  .disc-searchbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    height: auto !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 6px !important;
+  }
+
+  /* Each field becomes a full-width row. The min-widths are what overflowed,
+     so they have to go, not just shrink. */
+  .disc-searchbar > div:not([style*="width:1px"]) {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: none !important;
+    height: 48px !important;
+    padding: 0 14px !important;
+  }
+
+  /* The 1px vertical hairlines separated columns; stacked, they become
+     horizontal rules. Matched on the inline width they are drawn with, so the
+     selector says which elements it means. */
+  .disc-searchbar > div[style*="width:1px"] {
+    width: 100% !important;
+    height: 1px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .disc-searchbar > button {
+    width: auto !important;
+    justify-content: center !important;
+    height: 46px !important;
+    margin: 6px !important;
+  }
+
+  /* Fixed 380px, which is wider than the viewport it opens over. */
+  #discoverLocDropdown {
+    width: min(380px, calc(100vw - 32px)) !important;
+  }
+
+  /* ----- Tap targets -----
+     60 interactive elements measured under the 44px minimum. The one that
+     mattered: "Delete Trip" was 73x23px with 4px of padding, sitting directly
+     under the full-width "View Checklist" — a destructive control smaller than
+     a fingertip, adjacent to the primary action, that cascades to every item on
+     the trip. It now clears 44px and is pushed away from the button above it. */
+  .trip-card .btn,
+  .trip-actions .btn,
+  .disc-pill,
+  main.container button,
+  main.container .btn {
+    min-height: 44px;
+  }
+
+  .trip-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .trip-actions .btn-danger {
+    /* Separated from the primary action so a near-miss is a miss, not a delete. */
+    margin-top: 4px;
+    font-size: 0.9rem;
+  }
+
+  /* The create-trip form sits inside the overlay, outside main.container, so
+     the rule above does not reach it. Its fields measured 39-43px. */
+  .tp-ct-modal input,
+  .tp-ct-modal select,
+  .tp-ct-modal button {
+    min-height: 44px !important;
+  }
+
+  /* The Start/End date row ran off the side of the modal. .tp-ct-row is a
+     two-column grid, and `1fr` is really `minmax(auto, 1fr)` — the auto floor
+     is the item's min-content width, and a date input's min-content is ~166px
+     because of "mm/dd/yyyy" plus the picker icon. Two of those plus the gap
+     needs 343px inside a 287px content box, so the End date field pushed past
+     the modal edge. Letting the items shrink removes the floor; the other two
+     .tp-ct-row grids already fit and are unaffected. Pre-existing, not caused
+     by the min-height above — it was simply only visible once I looked at this
+     modal on a narrow screen. */
+  .tp-ct-modal .tp-field {
+    min-width: 0;
+  }
+
+  .tp-hamburger {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Checklist header bar overran the viewport by 4px at 375. The cause is
+     specifically #ct-saved ("All changes saved"): a white-space:nowrap span
+     inside .ct-prog, which is a nowrap flex row — the text cannot shrink and
+     cannot wrap, so it pushes past the edge. Letting .ct-prog wrap moves the
+     saved indicator onto its own line instead of truncating it, which matters
+     because a half-rendered "All changes sav…" would undermine the one thing
+     that label exists to communicate. */
+  .checklist-tabs {
+    flex-wrap: wrap !important;
+    row-gap: 10px;
+  }
+  .ct-prog {
+    flex-wrap: wrap !important;
+    row-gap: 8px;
+  }
+
+  /* The destination input is 17px inside a 48px row that carries the click
+     handler, so the row was always the real target. Filling it removes the
+     mismatch between what looks tappable and what is.
+     height:100% on the input alone does nothing — its wrapper is auto-height,
+     so the percentage has nothing to resolve against. The wrapper has to
+     stretch first, which is why both rules are here. */
+  #discoverLocField > div {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+  }
+  #discoverLocInput {
+    flex: 1 !important;
+    min-height: 28px !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   8. Canvas.
 
    A few surfaces still sat on pure white next to the warm canvas, which shows
    up as a faint cold rectangle. Scoped to page-level containers so genuinely

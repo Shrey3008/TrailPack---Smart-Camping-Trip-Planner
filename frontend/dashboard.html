@@ -439,7 +439,13 @@
 
       <!-- Search Bar -->
       <div style="position:relative; width:100%;">
-        <div style="display:flex; align-items:center; background:#fff; border:1.5px solid #d1d5db; border-radius:9999px; height:52px; box-shadow:0 3px 12px rgba(0,0,0,.08);">
+        <!-- disc-searchbar is a styling hook only: this row is a nowrap flex
+             pill whose fields carry fixed min-widths, so below ~640px it
+             measured 542px inside a 280px column and pushed the whole page
+             sideways. It had no class to target and its styles are inline, so
+             theme.css needs both a handle and !important. No JS reads this
+             class; the handlers hang off the child ids. -->
+        <div class="disc-searchbar" style="display:flex; align-items:center; background:#fff; border:1.5px solid #d1d5db; border-radius:9999px; height:52px; box-shadow:0 3px 12px rgba(0,0,0,.08);">
 
           <!-- Location Field -->
           <div id="discoverLocField" onclick="toggleLocDropdown(event)" style="display:flex; align-items:center; gap:10px; padding:0 20px; cursor:pointer; flex:2.2; height:100%; border-radius:9999px; border:none; background:none;">
