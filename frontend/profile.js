@@ -1,29 +1,64 @@
 // Profile JavaScript
 
+// Write to an element only if the page actually has it.
+//
+// These helpers exist because a single missing element used to take the whole
+// profile down with it. loadProfile() wrote to `stat-completed` and
+// `stat-member-since`, neither of which exists in profile.html — so
+// getElementById returned null, assigning to .textContent on null threw, and
+// every line after it was skipped. The visible result was a profile page that
+// reported "Gear Items 0" for an account with items packed, and notification
+// checkboxes that never reflected saved settings, while the only clue was a
+// console error and a generic "Failed to load profile data".
+//
+// Populating a display field is not worth aborting a page over, so a field the
+// markup does not have is now a no-op rather than a thrown TypeError.
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+  return Boolean(el);
+}
+
+function setValue(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.value = value;
+  return Boolean(el);
+}
+
+function setChecked(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.checked = value;
+  return Boolean(el);
+}
+
 // Load profile data
 async function loadProfile() {
   try {
     const userData = await apiCallWithAuth('/auth/me');
     const user = userData.user;
-    
+
     // Update form fields
-    document.getElementById('profile-name').value = user.name || '';
-    document.getElementById('profile-email').value = user.email || '';
-    document.getElementById('profile-role').value = user.role || 'user';
-    document.getElementById('profile-phone').value = user.profile?.phone || '';
-    
-    // Update stats
-    document.getElementById('stat-total-trips').textContent = user.stats?.totalTrips || 0;
-    document.getElementById('stat-completed').textContent = user.stats?.completedTrips || 0;
-    document.getElementById('stat-items-packed').textContent = user.stats?.totalItemsPacked || 0;
-    document.getElementById('stat-member-since').textContent = user.stats?.joinedAt 
-      ? new Date(user.stats.joinedAt).toLocaleDateString() 
-      : '-';
-    
+    setValue('profile-name', user.name || '');
+    setValue('profile-email', user.email || '');
+    setValue('profile-role', user.role || 'user');
+    setValue('profile-phone', user.profile?.phone || '');
+
+    // Update stats.
+    //
+    // Only the tiles this page actually renders. The former writes to
+    // `stat-completed` and `stat-member-since` are gone rather than guarded:
+    // there is no completed-trips tile in the markup, and "member since" is
+    // already rendered into #hero-since by the inline script in profile.html,
+    // in a friendlier format than this did. `stat-shared-trips` is likewise
+    // filled there, from the shared-trips endpoint this response has no count
+    // for.
+    setText('stat-total-trips', user.stats?.totalTrips || 0);
+    setText('stat-items-packed', user.stats?.totalItemsPacked || 0);
+
     // Update notification settings
-    document.getElementById('email-notifications').checked = user.profile?.notificationSettings?.email !== false;
-    document.getElementById('checklist-reminders').checked = user.profile?.notificationSettings?.checklistReminders !== false;
-    
+    setChecked('email-notifications', user.profile?.notificationSettings?.email !== false);
+    setChecked('checklist-reminders', user.profile?.notificationSettings?.checklistReminders !== false);
+
   } catch (error) {
     console.error('Error loading profile:', error);
     showMessage('profile-message', 'Failed to load profile data', 'error');
