@@ -178,6 +178,63 @@ touches your real database.
 The first `npm test` on a fresh clone downloads a MongoDB binary (~100 MB, cached
 in `node_modules/.cache`), so it takes noticeably longer than later runs.
 
+### 6. Verify notifications against a live backend
+
+`npm test` covers the notification code in-process. [verify-notify.js](verify-notify.js)
+covers something the unit tests structurally cannot: that the in-app notification
+paths actually fire against a *deployed* backend, with real auth, real CORS and
+real data.
+
+```bash
+node verify-notify.js
+```
+
+It needs **two distinct accounts**, read from the environment and never printed:
+
+```bash
+export TRAILPACK_A_EMAIL=...      # trip owner
+export TRAILPACK_A_PASSWORD=...
+export TRAILPACK_B_EMAIL=...      # collaborator — must be a different account
+export TRAILPACK_B_PASSWORD=...
+```
+
+Two accounts are required, not merely convenient. Both notification call sites
+skip self-notification (`targetUserId !== req.user.userId`), so one account
+testing against itself produces nothing at all — which looks like a failure but
+is correct behaviour. The script refuses to run in that case rather than
+reporting misleading results.
+
+What it asserts, end to end:
+
+| Flow | Action | Expected |
+|---|---|---|
+| 1 | B accepts A's invite | A gains one `trip-invitation`; **B gains none** |
+| 2 | A adds B via `POST /trips/:id/participants` | B gains one `trip-invitation`; **A gains none** |
+| 3 | Reminder scheduler | time-gated — see `--scheduler-fixture` below |
+
+The negative assertions carry as much weight as the positive ones: they are what
+prove a notification reached the *right* party rather than merely existing. Trip
+names carry a random per-run id, so a leftover notification from an earlier run
+cannot produce a false pass.
+
+Options:
+
+| Flag | Effect |
+|---|---|
+| `--no-cleanup` | keep the trips and notifications the run created (default is to delete only what it created, each logged) |
+| `--scheduler-fixture` | create a trip dated so the 3-day reminder fires on the next scheduler run, and keep it |
+| `--api <url>` | target a different backend (defaults to the Render deployment) |
+
+Exit status is 0 only if every assertion passed, so it works in CI or a
+pre-release check.
+
+Two things to know before running it. Login is rate limited to 8 attempts per
+(IP, email) per 15 minutes and 40 per IP, and the script logs in twice per run —
+so roughly four runs per account per window. And the scheduler flow cannot be
+triggered on demand: `--scheduler-fixture` only sets up the trip, which then
+fires at 09:00 America/New_York. The `SentReminder` dedup row it writes is not
+exposed by any endpoint; only the backend logs show it.
+
 ## Deployment
 
 The app deploys as three independent, free-tier services, each auto-deploying from GitHub:
