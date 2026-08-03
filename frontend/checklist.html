@@ -2374,12 +2374,17 @@
 
     <!-- ======== Inserted Card 2: Calorie & Water ======== -->
     <section class="ins-card ins-card-white" id="cw-card" aria-label="Calorie and water estimator">
-      <div class="ins-card-head">
-        <h3 class="ins-card-title">🔥 Calorie &amp; Water Estimator</h3>
-        <span class="cw-head-meta" id="cw-meta">— people · — days</span>
-      </div>
-      <hr class="ins-card-divider">
-      <div class="cw-tiles">
+      <!-- Collapsible: the tallest panel on the page (two tiles, three progress
+           bars, three macro pills). .ins-card-head becomes the <summary> and
+           keeps its class, so #cw-meta and every cw-* id below stay exactly
+           where JS expects them. -->
+      <details class="tp-collapse" open>
+        <summary class="ins-card-head">
+          <h3 class="ins-card-title">🔥 Calorie &amp; Water Estimator</h3>
+          <span class="cw-head-meta" id="cw-meta">— people · — days</span>
+        </summary>
+        <hr class="ins-card-divider">
+        <div class="cw-tiles">
         <div class="cw-tile">
           <div class="cw-tile-top">💧 Water</div>
           <div class="cw-tile-big" id="cw-water-big">—</div>
@@ -2408,11 +2413,12 @@
           <div class="cw-bar-note" id="cw-pro-note" hidden>Tracking begins when trip starts</div>
         </div>
       </div>
-      <div class="cw-pills">
-        <div class="cw-pill"><span class="cw-pill-label">Protein</span><span class="cw-pill-val" id="cw-pill-protein">— g</span></div>
-        <div class="cw-pill"><span class="cw-pill-label">Carbs</span><span class="cw-pill-val" id="cw-pill-carbs">— g</span></div>
-        <div class="cw-pill"><span class="cw-pill-label">Fats</span><span class="cw-pill-val" id="cw-pill-fats">— g</span></div>
-      </div>
+        <div class="cw-pills">
+          <div class="cw-pill"><span class="cw-pill-label">Protein</span><span class="cw-pill-val" id="cw-pill-protein">— g</span></div>
+          <div class="cw-pill"><span class="cw-pill-label">Carbs</span><span class="cw-pill-val" id="cw-pill-carbs">— g</span></div>
+          <div class="cw-pill"><span class="cw-pill-label">Fats</span><span class="cw-pill-val" id="cw-pill-fats">— g</span></div>
+        </div>
+      </details>
     </section>
 
     <!-- ======== Inserted Card 3: Smart Gear ======== -->

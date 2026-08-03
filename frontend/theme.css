@@ -240,7 +240,57 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
 }
 
 /* ---------------------------------------------------------------------------
-   6. Canvas.
+   6. Profile hero.
+
+   Every other signed-in page opens on a full-bleed photograph — dashboard,
+   my-trips and checklist all do. Profile opened on a flat sage panel inset to
+   the 880px container, so it was both the only page with no photography and the
+   only one whose banner stopped short of the window edge.
+
+   Full-bleed uses the standard negative-margin trick: 50% resolves against the
+   container's content box, so `50% - 50vw` reaches the viewport edge, and the
+   padding puts the content back on the container's own left edge (880 - 48
+   gutters = 832 content, hence 416). Below 880px the two cancel out to exactly
+   the container padding, so small screens are unaffected.
+
+   The photo is darkened by a green wash rather than a neutral one, so the
+   banner still reads as the sage surface it replaces. Text flips to light,
+   which is why the overrides below exist — the page's own rules set dark ink
+   for a pale background.
+   ------------------------------------------------------------------------- */
+.profile-hero {
+  margin-inline: calc(50% - 50vw);
+  padding: 56px max(24px, calc(50vw - 416px));
+  /* Two washes, not one. The flat green tint alone left the name sitting over
+     the bright tent fabric at the left of the frame, where white type lost its
+     contrast; the horizontal scrim darkens exactly the side the text occupies
+     and fades out across the rest of the photo. */
+  background-image:
+    linear-gradient(90deg, rgba(12, 34, 25, 0.62) 0%, rgba(12, 34, 25, 0.34) 45%, rgba(12, 34, 25, 0.12) 100%),
+    linear-gradient(rgba(20, 51, 38, 0.62), rgba(20, 51, 38, 0.62)),
+    url('https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1600&q=80');
+  background-size: cover;
+  background-position: center 55%;
+  border-bottom: none;
+  color: #fff;
+}
+.profile-hero .hero-name,
+.profile-hero .hero-meta strong { color: #fff; }
+.profile-hero .hero-email { color: rgba(255, 255, 255, 0.82); }
+.profile-hero .hero-meta {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+/* The initials disc sat on a pale panel; on the photo it needs its own edge to
+   separate from whatever is behind it. */
+.profile-hero .avatar-circle {
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+/* ---------------------------------------------------------------------------
+   7. Canvas.
 
    A few surfaces still sat on pure white next to the warm canvas, which shows
    up as a faint cold rectangle. Scoped to page-level containers so genuinely
