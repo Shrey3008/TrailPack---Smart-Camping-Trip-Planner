@@ -119,6 +119,72 @@ describe('POST /auth/forgot/verify-answer is throttled', () => {
   });
 });
 
+// These are the cases the suite was missing when fix 4 shipped: supertest talks
+// to the app directly, so every request looked like it came from 127.0.0.1 and
+// the tests passed while production scattered each caller across buckets. They
+// pin the header the limiter actually keys on.
+describe('the caller is identified by cf-connecting-ip, not req.ip', () => {
+  async function failedLogin(headers) {
+    const req = request(app).post('/auth/login');
+    Object.entries(headers).forEach(([k, v]) => req.set(k, v));
+    return req.send({ email: USER.email, password: 'wrong' });
+  }
+
+  test('attempts from one client accumulate even as the proxy hop changes', async () => {
+    // Exactly the production shape: a stable client behind a rotating
+    // Render-internal address. Old behaviour: every request a fresh bucket.
+    const codes = [];
+    for (let i = 0; i < CREDENTIAL_LIMIT + 2; i++) {
+      const res = await failedLogin({
+        'cf-connecting-ip': '203.0.113.7',
+        'x-forwarded-for': `203.0.113.7, 104.23.209.13, 10.31.138.${i}`,
+      });
+      codes.push(res.status);
+    }
+    expect(codes).toContain(429);
+  });
+
+  test('two different clients behind the same proxy keep separate quotas', async () => {
+    for (let i = 0; i < CREDENTIAL_LIMIT + 2; i++) {
+      await failedLogin({
+        'cf-connecting-ip': '203.0.113.7',
+        'x-forwarded-for': '203.0.113.7, 104.23.209.13, 10.31.138.132',
+      });
+    }
+    // Same Render-internal hop, different real client: must not be locked out
+    // by the first client's failures.
+    const res = await failedLogin({
+      'cf-connecting-ip': '198.51.100.4',
+      'x-forwarded-for': '198.51.100.4, 104.23.209.13, 10.31.138.132',
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test('a forged x-forwarded-for does not buy a fresh bucket', async () => {
+    const codes = [];
+    for (let i = 0; i < CREDENTIAL_LIMIT + 2; i++) {
+      // Render appends rather than filters, so a client can prepend anything it
+      // likes. Cloudflare overwrites cf-connecting-ip, so the key holds.
+      const res = await failedLogin({
+        'cf-connecting-ip': '203.0.113.7',
+        'x-forwarded-for': `10.0.0.${i}, 203.0.113.7, 104.23.209.13, 10.31.138.132`,
+      });
+      codes.push(res.status);
+    }
+    expect(codes).toContain(429);
+  });
+
+  test('falls back to req.ip when no Cloudflare headers are present', async () => {
+    // Local development and this suite see no proxy headers at all.
+    const codes = [];
+    for (let i = 0; i < CREDENTIAL_LIMIT + 2; i++) {
+      const res = await request(app).post('/auth/login').send({ email: USER.email, password: 'wrong' });
+      codes.push(res.status);
+    }
+    expect(codes).toContain(429);
+  });
+});
+
 describe('the limiter does not break ordinary use', () => {
   test('a handful of failed logins still answer 401', async () => {
     for (let i = 0; i < 3; i++) {

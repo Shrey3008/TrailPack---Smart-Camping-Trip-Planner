@@ -14,12 +14,15 @@ const notificationScheduler = require('./services/notificationScheduler');
 
 const app = express();
 
-// Render terminates TLS at its edge and forwards with X-Forwarded-For. Trust
-// exactly one proxy hop so req.ip is the real client address rather than the
-// edge's — without this every visitor shares a single rate-limit bucket, which
-// would make the auth throttles both useless and a self-inflicted outage. One
-// hop specifically (not `true`), so a client can't spoof its way to a fresh
-// bucket by sending its own X-Forwarded-For header.
+// Render terminates TLS at its edge and forwards with X-Forwarded-For. Trusting
+// one hop keeps req.protocol/req.secure correct behind the proxy.
+//
+// It does NOT make req.ip the client address, despite the obvious reading.
+// Measured in production, the chain arrives as
+// `<client>, <cloudflare edge>, <render internal>`, so req.ip resolves to the
+// Render-internal hop, which changes between requests. Anything that needs to
+// identify the caller must not use req.ip here — see middleware/rateLimit.js,
+// which keys on cf-connecting-ip for exactly this reason.
 app.set('trust proxy', 1);
 
 // CORS configuration
@@ -88,27 +91,6 @@ app.use('/ai', require('./routes/ai'));
 app.use('/notifications', require('./routes/notifications'));
 app.use('/admin', require('./routes/admin'));
 app.use('/weather', require('./routes/weather'));
-
-// TEMPORARY DIAGNOSTIC — remove once the rate limiter's client-IP source is
-// settled. The auth throttles key on req.ip, and on Render that is landing on a
-// Cloudflare edge address that changes between requests, so counters scatter
-// across buckets and the throttle fires only by luck. This reports the actual
-// forwarding chain so the correct source can be chosen rather than guessed.
-// Authenticated, and it echoes only the caller's own request metadata.
-app.get('/debug/forwarded', require('./middleware/auth').authenticate, (req, res) => {
-  res.json({
-    reqIp: req.ip,
-    reqIps: req.ips,
-    trustProxySetting: app.get('trust proxy fn') ? 'configured' : 'unset',
-    headers: {
-      'x-forwarded-for': req.get('x-forwarded-for') || null,
-      'cf-connecting-ip': req.get('cf-connecting-ip') || null,
-      'true-client-ip': req.get('true-client-ip') || null,
-      'x-real-ip': req.get('x-real-ip') || null,
-      'cf-ray': req.get('cf-ray') || null,
-    },
-  });
-});
 
 // Root endpoint
 app.get('/', (req, res) => {

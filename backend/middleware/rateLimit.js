@@ -54,10 +54,40 @@ function buildLimiter({ windowMs, limit, keyGenerator, message }) {
   });
 }
 
+// Which address identifies the caller.
+//
+// NOT req.ip. Render fronts services with Cloudflare and its own load balancer,
+// and its proxy appends to X-Forwarded-For rather than replacing it, so the
+// chain arrives as:
+//
+//   <client>, <cloudflare edge>, <render internal>
+//
+// With `trust proxy: 1` Express resolves req.ip to the rightmost entry — a
+// Render-internal address that changes between requests (10.31.138.132,
+// 10.30.20.131, ... observed in production). Keying on it scattered each
+// caller's attempts across buckets, so the throttle fired only by coincidence:
+// eleven consecutive failed logins all returned 401, and RateLimit-Remaining
+// oscillated 7, 6, 7, 7 instead of counting down.
+//
+// The leftmost X-Forwarded-For entry is the real client, but a client can send
+// its own X-Forwarded-For and Render will keep it — so it is forgeable, which
+// is disqualifying for a security control.
+//
+// cf-connecting-ip is set by Cloudflare, which overwrites any value the client
+// supplies, and it holds a single address rather than a position in a list that
+// shifts when a client prepends entries. Measured stable across requests where
+// req.ip was not. true-client-ip is Cloudflare's enterprise alias for the same
+// value and is accepted as a fallback; req.ip is the last resort so that local
+// development and the test suite, which see no Cloudflare headers, still key on
+// something sane.
+function clientAddress(req) {
+  return req.get('cf-connecting-ip') || req.get('true-client-ip') || req.ip;
+}
+
 // `ipKeyGenerator` normalises IPv6 addresses to a /56 subnet — without it a
 // single IPv6 client can trivially rotate through addresses in its own prefix.
 function ipKey(req) {
-  return ipKeyGenerator(req.ip);
+  return ipKeyGenerator(clientAddress(req));
 }
 
 function emailOf(req) {
