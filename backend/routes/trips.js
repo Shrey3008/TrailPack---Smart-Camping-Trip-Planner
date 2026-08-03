@@ -4,6 +4,7 @@ const { Trip, Item } = require('../models');
 const { authenticate, authorize } = require('../middleware/auth');
 const { estimateProvisions } = require('../services/provisionsService');
 const sharedTrips = require('../services/sharedTripsService');
+const { notify } = require('../services/notify');
 const aiService = require('../services/aiService');
 
 // Duplicated from routes/weather.js so POST /trips can expand a
@@ -474,6 +475,17 @@ router.post('/:id/participants', authenticate, async (req, res) => {
       { userId: targetUserId, email: email || null, name: name || null },
       req.user.userId
     );
+
+    // Being added to someone else's trip is otherwise silent — the collaborator
+    // has no way to discover it except by noticing a new entry in their shared
+    // trips. Fail-soft; the participant is already added.
+    if (targetUserId !== req.user.userId) {
+      const found = await sharedTrips.getTrip(tripId);
+      const tripName = found ? found.trip.name : 'a trip';
+      const who = req.user.name || 'Someone';
+      await notify(targetUserId, 'trip-invitation', `${who} added you to "${tripName}".`);
+    }
+
     res.json({ message: 'Participant added successfully' });
   } catch (error) {
     console.error('Error adding participant:', error);

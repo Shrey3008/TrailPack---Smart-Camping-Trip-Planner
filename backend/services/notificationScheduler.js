@@ -17,6 +17,7 @@
 
 const { User, Trip, SentReminder } = require('../models');
 const emailService = require('./emailService');
+const { notify } = require('./notify');
 
 // Where the frontend lives (your Netlify site). Used to build the
 // "Open checklist" CTA in the email body.
@@ -165,9 +166,19 @@ Safe travels! 🌲
 
 // Map daysUntil → notification type + email builder. Adding a new
 // window (e.g. 7 days out) is a one-line change here.
+// `build` produces the email; `inApp` produces the one-line copy shown in the
+// notification bell, which has no room for the full email body.
 const REMINDERS = {
-  3: { type: 'pre-trip',      build: buildPreTripEmail      },
-  1: { type: 'packing-nudge', build: buildPackingNudgeEmail },
+  3: {
+    type: 'pre-trip',
+    build: buildPreTripEmail,
+    inApp: trip => `${trip.name} starts in 3 days — time to check your packing list.`,
+  },
+  1: {
+    type: 'packing-nudge',
+    build: buildPackingNudgeEmail,
+    inApp: trip => `${trip.name} starts tomorrow. Make sure everything is packed.`,
+  },
 };
 
 // ---------- Per-trip processing ----------
@@ -202,20 +213,31 @@ async function processTrip(trip) {
 
   const { subject, html, text } = reminder.build(user, trip);
 
+  // In-app notification first. It is a delivery channel in its own right, and
+  // must not depend on SMTP being configured — if anything, an unconfigured
+  // mail transport is exactly when the in-app copy matters most.
+  await notify(userId, reminder.type, reminder.inApp(trip));
+
   try {
     const result = await emailService.sendEmail(user.email, subject, html, text);
     if (result && result.skipped) {
-      // sendEmail returns { skipped: true } when SES/SMTP isn't
-      // configured (local dev, missing creds). Don't poison the
-      // dedup table in that case — let the next real run try again.
+      // sendEmail returns { skipped: true } when SMTP isn't configured
+      // (local dev, missing creds).
       console.log(`[scheduler] Email service not configured; would have sent ${reminder.type} to ${user.email} for trip ${tripId}`);
-      return;
+    } else {
+      console.log(`[scheduler] Sent ${reminder.type} reminder to ${user.email} for trip ${tripId}`);
     }
-    console.log(`[scheduler] Sent ${reminder.type} reminder to ${user.email} for trip ${tripId}`);
-    await recordSent({ notificationId, userId, tripId, type: reminder.type });
   } catch (err) {
     console.error(`[scheduler] Failed to send ${reminder.type} for trip ${tripId} to ${user.email}:`, err.message);
   }
+
+  // Dedup covers both channels, and is now recorded even when the email was
+  // skipped. Previously a skip deliberately left the table untouched so a
+  // later, properly configured run could retry the mail — but the in-app
+  // notification has already been delivered by that point, so retrying would
+  // add a duplicate row the user actually sees. A missed email is quieter than
+  // a duplicated notification.
+  await recordSent({ notificationId, userId, tripId, type: reminder.type });
 }
 
 // ---------- Public entry point ----------

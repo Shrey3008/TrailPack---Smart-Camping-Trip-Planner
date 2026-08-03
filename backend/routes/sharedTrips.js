@@ -5,6 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate } = require('../middleware/auth');
 const sharedTrips = require('../services/sharedTripsService');
+const { notify } = require('../services/notify');
 const { User } = require('../models');
 
 // Look up a user by email (indexed field in Mongo).
@@ -170,6 +171,16 @@ router.post('/invites/accept', authenticate, async (req, res) => {
       email: req.user.email,
       name: req.user.name,
     });
+
+    // Tell the owner someone joined. Fail-soft by construction (see
+    // services/notify.js) — the invite is already accepted at this point and
+    // must not be undone by a notification write.
+    const found = await sharedTrips.getTrip(result.tripId);
+    if (found && found.ownerId !== req.user.userId) {
+      const who = req.user.name || req.user.email || 'Someone';
+      await notify(found.ownerId, 'trip-invitation', `${who} joined your trip "${found.trip.name}".`);
+    }
+
     res.json({ message: 'Invitation accepted', tripId: result.tripId });
   } catch (error) {
     if (error.status) {
