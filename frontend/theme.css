@@ -1,0 +1,254 @@
+/* ============================================================================
+   TrailPack theme layer — shared visual corrections across every app page.
+
+   Companion to tokens.css. tokens.css holds raw values; this file holds the
+   shared *decisions* that were drifting per page: which greens, which photo
+   belongs to which terrain, how a card photo is cropped, how interactive
+   surfaces move under the cursor.
+
+   Load this LAST — after every stylesheet and after any inline <style> block —
+   because checklist.html and profile.html style themselves inline, and an
+   equal-specificity rule only wins if it comes later. Rules that must beat a
+   style attribute written by JS are marked !important and say why.
+
+   Scope: presentation only. No selector here depends on markup this file
+   changes, and nothing renames or removes an id or class that JS reads.
+   ========================================================================== */
+
+:root {
+  /* Green scale. Four steps that stay distinguishable side by side, so a row of
+     stat cards can be varied without reaching outside the palette. */
+  --tp-green-900: #1b4332;
+  --tp-green-700: #2d6a4f;
+  --tp-green-500: #40916c;
+  --tp-green-300: #74c69d;
+  --tp-green-100: #d8f3e3;
+
+  /* Warm off-white. Never #fff — pure white reads clinical against the
+     photography and is the thing the design brief calls out by name. */
+  --tp-canvas: #f8f7f4;
+  --tp-surface: #fffdfa;
+
+  --tp-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --tp-duration: 180ms;
+  --tp-duration-slow: 320ms;
+}
+
+/* ---------------------------------------------------------------------------
+   1. Motion.
+
+   Hover and focus states existed but snapped instantly on most surfaces. One
+   shared transition on the properties that actually animate — never `all`,
+   which would drag layout properties into the transition and cause jank.
+   ------------------------------------------------------------------------- */
+a,
+button,
+.btn,
+.card,
+.stat-card,
+.trip-card,
+.disc-card,
+input,
+select,
+textarea,
+summary {
+  transition:
+    background-color var(--tp-duration) var(--tp-ease),
+    border-color var(--tp-duration) var(--tp-ease),
+    color var(--tp-duration) var(--tp-ease),
+    box-shadow var(--tp-duration) var(--tp-ease),
+    transform var(--tp-duration) var(--tp-ease);
+}
+
+.trip-card:hover,
+.disc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(27, 67, 50, 0.12);
+}
+
+/* A visible, on-brand focus ring everywhere, replacing the browser default. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--tp-green-500);
+  outline-offset: 2px;
+}
+
+/* Anyone who has asked their OS to reduce motion gets none of the above. */
+@media (prefers-reduced-motion: reduce) {
+  a, button, .btn, .card, .stat-card, .trip-card, .disc-card,
+  input, select, textarea, summary {
+    transition: none;
+  }
+  .trip-card:hover,
+  .disc-card:hover {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   2. Stat card accents — greens only.
+
+   dashboard-light.css assigned each stat card a different hue (#d97706 orange,
+   #2563eb blue, #7c3aed purple). Four unrelated hues on one row read as four
+   unrelated things, and none of them belong to the palette. Same four cards,
+   one family, still distinguishable.
+
+   The data-accent attribute is left exactly as JS writes it — only the colour
+   it maps to changes.
+   ------------------------------------------------------------------------- */
+body.dash-light .stat-card[data-accent="green"]::before  { background: var(--tp-green-900); }
+body.dash-light .stat-card[data-accent="orange"]::before { background: var(--tp-green-700); }
+body.dash-light .stat-card[data-accent="blue"]::before   { background: var(--tp-green-500); }
+body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-green-300); }
+
+/* ---------------------------------------------------------------------------
+   3. Trip card photography.
+
+   Two systems were competing. dashboard-light.css carries a terrain-matched
+   set (the result of the earlier miscategorisation fix), but dashboard-light.js
+   overwrites it from a per-terrain pool indexed by trip.photoIndex, and that
+   pool is not terrain-accurate: a Desert trip at index 8 renders a blurred
+   figure pressing against frosted glass, and a Forest trip at index 5 renders a
+   storm over dead scrub. photoIndex is assigned randomly at trip creation, so
+   which trips look wrong is luck of the draw.
+
+   The pool lives in JavaScript, which this pass must not touch, so the photo is
+   pinned here from the terrain instead. !important is required specifically
+   because JS writes the URL to the element's style attribute.
+
+   Trade-off, deliberate: every trip of a given terrain now shows the same
+   photo, where the pool intended variety. Correct-and-repeated beats varied-
+   and-occasionally-alarming. Restoring variety means curating the pool in
+   dashboard-light.js — a JS change, so out of scope here.
+   ------------------------------------------------------------------------- */
+.tp-card-photo[data-terrain] {
+  background-image: url('https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=900&q=80') !important;
+}
+.tp-card-photo[data-terrain="mountain"],
+.tp-card-photo[data-terrain="mountains"] {
+  background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900&q=80') !important;
+}
+.tp-card-photo[data-terrain="forest"],
+.tp-card-photo[data-terrain="woods"],
+.tp-card-photo[data-terrain="jungle"] {
+  background-image: url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=900&q=80') !important;
+}
+.tp-card-photo[data-terrain="desert"],
+.tp-card-photo[data-terrain="dunes"] {
+  background-image: url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=900&q=80') !important;
+}
+/* Water terrains. These must be listed even though the catch-all above would
+   otherwise cover them: the catch-all is !important, so without these three it
+   outranks the beach/coast/lake rules dashboard-light.css already had, and
+   those trips silently fall back to the generic campsite photo. Same URL the
+   original rule used. Every terrain the create-trip form offers — Mountain,
+   Forest, Desert, Beach, Lake — now resolves to its own photo. */
+.tp-card-photo[data-terrain="beach"],
+.tp-card-photo[data-terrain="coast"],
+.tp-card-photo[data-terrain="lake"] {
+  background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&q=80') !important;
+}
+
+/* Full-bleed crop: edge to edge across the top of the card, square top corners
+   against the card's rounded shell, one fixed ratio so a row of cards lines up
+   however long the titles are. Previously each photo sized itself and rows came
+   out ragged. */
+.tp-card-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  border-radius: var(--radius) var(--radius) 0 0;
+  /* Warm placeholder while the photo loads, instead of a bare grey rectangle. */
+  background-color: var(--tp-green-100);
+  overflow: hidden;
+  transition: transform var(--tp-duration-slow) var(--tp-ease);
+}
+.trip-card { overflow: hidden; }
+.trip-card:hover .tp-card-photo { transform: scale(1.03); }
+
+/* ---------------------------------------------------------------------------
+   4. Checklist AI controls.
+
+   The Smart Gear badge and its generate button were a violet gradient
+   (#8b5cf6 -> #a855f7) — the loudest colour on a page whose every other control
+   is green, which read as a promotion rather than a feature.
+
+   The macro bars in the calorie estimator (water blue / calories orange /
+   protein violet) are deliberately left alone: those hues encode which value is
+   which, so collapsing them into one family would cost real information.
+   ------------------------------------------------------------------------- */
+.sg-ai-badge,
+.sg-generate-btn {
+  background: linear-gradient(135deg, var(--tp-green-700), var(--tp-green-500)) !important;
+}
+.sg-generate-btn:hover {
+  background: linear-gradient(135deg, var(--tp-green-900), var(--tp-green-700)) !important;
+  box-shadow: 0 6px 16px rgba(45, 106, 79, 0.28);
+}
+
+/* ---------------------------------------------------------------------------
+   5. Collapsible section pattern.
+
+   For dense pages. Uses native <details>/<summary> so it works with no
+   JavaScript at all, keyboard-operable and screen-reader-labelled for free.
+   Content stays in the DOM when closed, so anything JS reads or writes inside
+   still resolves.
+   ------------------------------------------------------------------------- */
+.tp-collapse {
+  border-top: 1px solid rgba(27, 67, 50, 0.1);
+  margin-top: 4px;
+}
+.tp-collapse > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 2px;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--tp-green-900);
+  border-radius: var(--radius-sm);
+}
+.tp-collapse > summary::-webkit-details-marker { display: none; }
+.tp-collapse > summary:hover { color: var(--tp-green-700); }
+/* Chevron, rotated by the open state rather than by script. */
+.tp-collapse > summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--tp-duration) var(--tp-ease);
+}
+.tp-collapse[open] > summary::after { transform: rotate(-135deg); }
+.tp-collapse__count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--tp-green-700);
+  background: var(--tp-green-100);
+  padding: 2px 9px;
+  border-radius: var(--radius-full);
+}
+
+/* ---------------------------------------------------------------------------
+   6. Canvas.
+
+   A few surfaces still sat on pure white next to the warm canvas, which shows
+   up as a faint cold rectangle. Scoped to page-level containers so genuinely
+   white surfaces (inputs, modals) are untouched.
+   ------------------------------------------------------------------------- */
+body.dash-light,
+body.my-trips,
+body.profile-page,
+body.admin-page {
+  background: var(--tp-canvas);
+}

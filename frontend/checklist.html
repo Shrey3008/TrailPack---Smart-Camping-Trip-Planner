@@ -2267,6 +2267,8 @@
       }
     }
   </style>
+  <!-- Shared theme layer. Loaded last so it can correct pages that style themselves inline. -->
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body class="checklist-page">
   <nav class="navbar" aria-label="Main">
@@ -2481,24 +2483,35 @@
 
     <!-- Risk -->
     <section class="info-card" id="risk-card">
-      <div class="category-head">
-        <h3 class="category-title">⚠️ Risk Analysis</h3>
-      </div>
-      <hr class="category-divider">
-      <div class="card-body" id="risk-body">
-        <div class="muted-note">Loading risk analysis…</div>
-      </div>
+      <!-- Collapsible via native <details>: no script, keyboard-operable, and
+           the body stays in the DOM when closed so #risk-body still resolves.
+           .category-head moves from a div to the <summary> — same class, same
+           selector, so nothing that queries it changes. Open by default: this
+           is safety information, so it should cost a click to hide, not to
+           see. -->
+      <details class="tp-collapse" open>
+        <summary class="category-head">
+          <h3 class="category-title">⚠️ Risk Analysis</h3>
+        </summary>
+        <hr class="category-divider">
+        <div class="card-body" id="risk-body">
+          <div class="muted-note">Loading risk analysis…</div>
+        </div>
+      </details>
     </section>
 
     <!-- Collaborators -->
     <section class="info-card" id="collab-card">
-      <div class="category-head">
-        <h3 class="category-title">👥 Trip Collaborators</h3>
-      </div>
-      <hr class="category-divider">
-      <div class="card-body" id="collab-body">
-        <div class="muted-note">Loading collaborators…</div>
-      </div>
+      <!-- Same collapsible treatment as the risk card above. -->
+      <details class="tp-collapse" open>
+        <summary class="category-head">
+          <h3 class="category-title">👥 Trip Collaborators</h3>
+        </summary>
+        <hr class="category-divider">
+        <div class="card-body" id="collab-body">
+          <div class="muted-note">Loading collaborators…</div>
+        </div>
+      </details>
     </section>
       </aside><!-- /.checklist-side -->
     </div><!-- /.checklist-body -->

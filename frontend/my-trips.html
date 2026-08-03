@@ -23,6 +23,8 @@
        .navbar, .dashboard-section, .trips-grid, .trip-card, .filter-tabs,
        .empty-state, the Create Trip modal, etc. -->
   <link rel="stylesheet" href="dashboard-light.css">
+  <!-- Shared theme layer. Loaded last so it can correct pages that style themselves inline. -->
+  <link rel="stylesheet" href="theme.css">
 </head>
 <body class="dash-light my-trips">
   <!-- Page-local styling: search/sort row above the filter tabs.
@@ -121,7 +123,11 @@
 
     /* Tighter card chrome. */
     body.my-trips .trip-card { border-radius: 12px !important; }
-    body.my-trips .tp-card-photo { aspect-ratio: 16 / 9 !important; }
+    /* Matches the 3/2 crop theme.css sets for trip cards everywhere else. This
+       page used to force 16/9, so the same card was a different shape here than
+       on the dashboard. Changed to agree with the system rather than out-
+       specify it. */
+    body.my-trips .tp-card-photo { aspect-ratio: 3 / 2 !important; }
 
     /* Pull the inner edges in (was 20px on every side). */
     body.my-trips .trip-card > h3,
