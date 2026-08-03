@@ -89,6 +89,27 @@ app.use('/notifications', require('./routes/notifications'));
 app.use('/admin', require('./routes/admin'));
 app.use('/weather', require('./routes/weather'));
 
+// TEMPORARY DIAGNOSTIC — remove once the rate limiter's client-IP source is
+// settled. The auth throttles key on req.ip, and on Render that is landing on a
+// Cloudflare edge address that changes between requests, so counters scatter
+// across buckets and the throttle fires only by luck. This reports the actual
+// forwarding chain so the correct source can be chosen rather than guessed.
+// Authenticated, and it echoes only the caller's own request metadata.
+app.get('/debug/forwarded', require('./middleware/auth').authenticate, (req, res) => {
+  res.json({
+    reqIp: req.ip,
+    reqIps: req.ips,
+    trustProxySetting: app.get('trust proxy fn') ? 'configured' : 'unset',
+    headers: {
+      'x-forwarded-for': req.get('x-forwarded-for') || null,
+      'cf-connecting-ip': req.get('cf-connecting-ip') || null,
+      'true-client-ip': req.get('true-client-ip') || null,
+      'x-real-ip': req.get('x-real-ip') || null,
+      'cf-ray': req.get('cf-ray') || null,
+    },
+  });
+});
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.json({ message: 'TrailPack API is running!' });
