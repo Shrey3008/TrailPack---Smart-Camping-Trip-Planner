@@ -11,7 +11,12 @@
   // in frontend/config.js.
   "$schema": "node_modules/wrangler/config-schema.json",
 
-  "name": "trailpack-frontend",
+  // Must match the Worker that Cloudflare's Git integration already created,
+  // which it named after the GitHub repository rather than after this file.
+  // The dashboard overrides a mismatched name on its own builds, so the old
+  // value deployed fine — but `npx wrangler deploy` run locally would honour
+  // it and create a second, separate Worker on a different URL.
+  "name": "trailpack---smart-camping-trip-planner",
   "compatibility_date": "2026-08-03",
 
   "assets": {
