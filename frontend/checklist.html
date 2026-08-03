@@ -691,6 +691,53 @@
     .tp-toast.success { background: var(--green); color: #fff; }
     .tp-toast.error   { background: var(--danger); color: #fff; }
 
+    /* Toast with an inline action (currently: Undo after removing an item). */
+    .tp-toast { display: inline-flex; align-items: center; gap: 14px; }
+    .tp-toast__action {
+      /* The toast itself is pointer-events:none so it never blocks the page.
+         The button has to opt back in or it cannot be clicked at all. */
+      pointer-events: auto;
+      border: none;
+      background: rgba(255, 255, 255, 0.2);
+      color: inherit;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 5px 13px;
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .tp-toast__action:hover { background: rgba(255, 255, 255, 0.34); }
+    .tp-toast__action:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+    /* Remove control on a checklist row. Hidden until the row is hovered or
+       something inside it has focus, so the list stays calm — but always
+       present for keyboard and touch users, who get no hover. */
+    .item { position: relative; }
+    .item-del {
+      margin-left: auto;
+      flex-shrink: 0;
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none;
+      border-radius: 9999px;
+      background: transparent;
+      color: var(--muted, #9aa3af);
+      font-size: 17px; line-height: 1;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+    }
+    .item:hover .item-del,
+    .item:focus-within .item-del { opacity: 1; }
+    .item-del:hover { background: rgba(220, 38, 38, 0.1); color: var(--danger, #dc2626); }
+    .item-del:focus-visible { opacity: 1; outline: 2px solid var(--danger, #dc2626); outline-offset: 2px; }
+    /* No hover on touch, so never hide it there. */
+    @media (hover: none) {
+      .item-del { opacity: 1; width: 44px; height: 44px; }
+    }
+
     /* ===========================================================
        Custom modal — replaces native alert() / confirm() so popups
        match the app theme (no S3 hostname, no white system chrome).
@@ -3071,12 +3118,102 @@
           tag.title = 'Suggested by AI';
           row.appendChild(tag);
         }
+        // Remove control. The whole row is the packed/unpacked toggle, so this
+        // button has to stop the click from reaching it — otherwise removing an
+        // item would also flip its packed state on the way out.
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'item-del';
+        del.textContent = '×';
+        del.setAttribute('aria-label', `Remove ${item.name || 'item'}`);
+        del.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removeItem(item);
+        });
+        del.addEventListener('keydown', (e) => {
+          // The row handles Space/Enter as "toggle packed"; keep those from
+          // bubbling when focus is on the remove button.
+          if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();
+        });
+        row.appendChild(del);
+
         const toggle = () => togglePacked(item, row);
         row.addEventListener('click', toggle);
         row.addEventListener('keydown', (e) => {
           if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
         });
         return row;
+      }
+
+      // Remove an item, with an immediate undo.
+      //
+      // The delete is optimistic — the row disappears at once and the request
+      // follows — because waiting on the network to remove something the user
+      // just asked to remove feels broken. If the request fails the item is put
+      // back and the failure is surfaced.
+      //
+      // Undo re-creates the item rather than resurrecting it: DELETE is final
+      // server-side, so the restored row gets a new itemId. Everything the user
+      // can see (name, category, packed state) is preserved.
+      async function removeItem(item) {
+        const index = items.findIndex(i => i.itemId === item.itemId);
+        if (index === -1) return;
+
+        const snapshot = { ...item };
+        items.splice(index, 1);
+        renderCategories();
+        updateProgress();
+
+        try {
+          await api('/items/' + encodeURIComponent(item.itemId) + '?tripId=' + encodeURIComponent(tripId), {
+            method: 'DELETE',
+          });
+        } catch (err) {
+          items.splice(index, 0, snapshot);   // put it back where it was
+          renderCategories();
+          updateProgress();
+          tpAlert('Could not remove item: ' + err.message, { variant: 'danger', title: 'Remove failed' });
+          return;
+        }
+
+        showToast(`Removed "${snapshot.name}"`, 'default', {
+          label: 'Undo',
+          onClick: () => restoreItem(snapshot, index),
+        });
+      }
+
+      async function restoreItem(snapshot, index) {
+        try {
+          const created = await api('/items', {
+            method: 'POST',
+            body: JSON.stringify({
+              tripId,
+              name: snapshot.name,
+              category: snapshot.category,
+            }),
+          });
+          const restored = created && created.itemId ? created : { ...snapshot, itemId: undefined };
+
+          // Carry the packed state across; POST /items always creates unpacked.
+          if (snapshot.packed && restored.itemId) {
+            try {
+              await api('/trips/' + tripId + '/items/' + restored.itemId, {
+                method: 'PATCH',
+                body: JSON.stringify({ packed: true }),
+              });
+              restored.packed = true;
+            } catch (_) {
+              // Item is back, just unpacked — better than not back at all.
+            }
+          }
+
+          items.splice(Math.min(index, items.length), 0, restored);
+          renderCategories();
+          updateProgress();
+          showToast(`Restored "${snapshot.name}"`, 'success');
+        } catch (err) {
+          tpAlert('Could not restore item: ' + err.message, { variant: 'danger', title: 'Restore failed' });
+        }
       }
 
       async function togglePacked(item, row) {
@@ -3331,15 +3468,42 @@
 
       /* ---------- Toast ---------- */
       let toastTimer = null;
-      function showToast(message, variant = 'default') {
+      // `action` is optional: { label, onClick }. It renders a button inside the
+      // toast so a destructive change can be reversed straight away, without
+      // hunting for an undo elsewhere on the page. Existing two-argument calls
+      // are unaffected — they simply render no button.
+      function showToast(message, variant = 'default', action = null) {
         const el = document.getElementById('tp-toast');
         if (!el) return;
-        el.textContent = message;
+
+        el.textContent = '';
+        const msg = document.createElement('span');
+        msg.className = 'tp-toast__msg';
+        msg.textContent = message;
+        el.appendChild(msg);
+
+        const hide = () => { el.classList.remove('show'); clearTimeout(toastTimer); };
+
+        if (action && action.label && typeof action.onClick === 'function') {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'tp-toast__action';
+          btn.textContent = action.label;
+          btn.addEventListener('click', () => {
+            // Dismiss before running: this is the last chance to reverse
+            // something, and a live button left on screen invites a second click.
+            hide();
+            action.onClick();
+          });
+          el.appendChild(btn);
+        }
+
         el.classList.remove('success', 'error');
         if (variant === 'success' || variant === 'error') el.classList.add(variant);
         el.classList.add('show');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+        // An undo needs longer than a plain acknowledgement to be reachable.
+        toastTimer = setTimeout(hide, action ? 7000 : 2800);
       }
 
       /* ---------- Custom modal (replaces native alert/confirm) ---------- */
