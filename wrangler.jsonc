@@ -1,0 +1,31 @@
+{
+  // Cloudflare Workers config for TrailPack's frontend.
+  //
+  // This is an assets-only Worker: there is no `main` entry-point script,
+  // which Wrangler supports for static sites with no server-side logic.
+  // The frontend is plain HTML/CSS/JS with no build step, so the source
+  // directory is served directly — nothing is compiled into a dist/.
+  //
+  // The backend is separate (Node/Express on Render) and is not deployed
+  // by this config; the frontend reaches it over CORS via window.API_URL
+  // in frontend/config.js.
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  "name": "trailpack-frontend",
+  "compatibility_date": "2026-08-03",
+
+  "assets": {
+    "directory": "./frontend",
+
+    // Both values below are the current Wrangler defaults, set explicitly so
+    // the intent survives a future change of default.
+
+    // "/login" serves login.html; "/login.html" 307-redirects to "/login".
+    // Existing links that point at *.html keep working, via that redirect.
+    "html_handling": "auto-trailing-slash",
+
+    // TrailPack is a multi-page app, not a single-page app: an unknown path
+    // is a genuine 404 and must not be rewritten to index.html.
+    "not_found_handling": "none"
+  }
+}
