@@ -4452,11 +4452,16 @@
         }
       });
 
+      // Exports for the third script block, which is a separate IIFE and
+      // cannot otherwise reach anything declared in here.
+      //
       // updateProgress() is the authoritative progress writer — it derives its
-      // totals from the items array rather than from the DOM. The second script
-      // block's refresh() needs it, and that block is a separate IIFE, so the
-      // function is not otherwise reachable from there.
+      // totals from the items array rather than from the DOM.
+      // categorySlug() is the single definition of the slug that ties a tab's
+      // data-filter to a panel's data-category; buildTabs() needs the same one
+      // rather than a second copy that could drift.
       window.updateProgress = updateProgress;
+      window.categorySlug = categorySlug;
     })();
   </script>
 
@@ -4606,7 +4611,13 @@
           // Strip leading emoji + space for cleaner tabs
           title = title.replace(/^[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]+\s*/u, '');
           if (!cat.id) cat.id = `cat-${i}`;
-          const slug = cat.dataset.category || categorySlug(title);
+          // buildCategoryCard() always sets data-category, so the fallback is
+          // unreachable today — but it is the only thing standing between a
+          // card built some other way and a throw inside refresh(), which
+          // would take syncCategoryDropdown() and renderSuggestChips() down
+          // with it. The trailing 'general' matches categorySlug's own default
+          // so the chain degrades to a usable slug rather than undefined.
+          const slug = cat.dataset.category || window.categorySlug?.(title) || 'general';
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'ct-tab';
