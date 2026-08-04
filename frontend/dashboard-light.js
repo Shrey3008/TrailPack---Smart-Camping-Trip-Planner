@@ -464,6 +464,62 @@
       ov.style.display = 'flex';
       requestAnimationFrame(() => ov.classList.add('open'));
       setTimeout(() => document.getElementById('tp-ct-name')?.focus(), 120);
+      populateCloneOptions();
+    }
+
+    // Fill the "start from a past trip" dropdown.
+    //
+    // Fetched on open rather than once at page load so a trip created earlier
+    // in the session is offered without a refresh. Fails quietly: the field
+    // stays hidden and the modal behaves exactly as it did before this
+    // existed, because being unable to clone is not a reason to block creating
+    // a trip from scratch.
+    //
+    // There is nothing to exclude here — the trip being created does not exist
+    // yet, so it cannot appear in its own source list.
+    async function populateCloneOptions() {
+      const field = document.getElementById('tp-ct-clone-field');
+      const select = document.getElementById('tp-ct-clone');
+      if (!field || !select) return;
+
+      let trips = [];
+      try {
+        const res = await apiCallWithAuth('/trips');
+        trips = Array.isArray(res?.trips) ? res.trips : (Array.isArray(res) ? res : []);
+      } catch (_) {
+        field.hidden = true;
+        return;
+      }
+
+      if (!trips.length) { field.hidden = true; return; }
+
+      // Newest first, matching the order the dashboard lists them in.
+      select.innerHTML = '<option value="">Generate a new checklist</option>';
+      trips.forEach(t => {
+        if (!t || !t.tripId) return;
+        const opt = document.createElement('option');
+        opt.value = t.tripId;
+        const bits = [t.terrain, t.season].filter(Boolean).join(' · ');
+        opt.textContent = bits ? `${t.name} (${bits})` : t.name;
+        select.appendChild(opt);
+      });
+      field.hidden = false;
+      updateCloneHint();
+    }
+
+    // Tells the user what picking a source actually does, before they commit —
+    // the checklist is copied verbatim and no AI generation runs, which is a
+    // surprise otherwise given the modal's subtitle promises a generated list.
+    function updateCloneHint() {
+      const select = document.getElementById('tp-ct-clone');
+      const hint = document.getElementById('tp-ct-clone-hint');
+      if (!select || !hint) return;
+      if (select.value) {
+        hint.textContent = 'Its checklist will be copied over — weights included, everything unpacked. No new checklist is generated.';
+        hint.hidden = false;
+      } else {
+        hint.hidden = true;
+      }
     }
 
     // Public helper used by Discover trail cards + map popups. Opens the
@@ -516,6 +572,7 @@
       const ov = document.getElementById('tp-ct-overlay');
       ov.addEventListener('click', (e) => { if (e.target === ov) closeCreateTripModal(); });
       document.getElementById('tp-ct-cancel').addEventListener('click', closeCreateTripModal);
+      document.getElementById('tp-ct-clone')?.addEventListener('change', updateCloneHint);
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && ov.classList.contains('open')) closeCreateTripModal();
       });
@@ -544,6 +601,8 @@
           body.lat = parseFloat(latVal);
           body.lon = parseFloat(lonVal);
         }
+        const cloneFrom = document.getElementById('tp-ct-clone')?.value || '';
+        if (cloneFrom) body.cloneFromTripId = cloneFrom;
 
         try {
           // Reuse the shared helper from app.js so auth headers stay consistent.
@@ -554,6 +613,17 @@
           const tripId = result?.trip?.tripId || result?.tripId;
           if (tripId) {
             sessionStorage.setItem('tripJustCreated', '1');
+            // The page navigates away immediately, so a toast here would be
+            // destroyed before it could be read. Hand the clone result to the
+            // checklist instead, which reports it once the copied list is on
+            // screen — which is also where it makes sense to read about.
+            if (result?.checklistSource === 'cloned') {
+              sessionStorage.setItem('tripCloneSummary', JSON.stringify({
+                copied: result?.counts?.copied ?? 0,
+                assignmentsCleared: result?.counts?.assignmentsCleared ?? 0,
+                assignmentsKept: result?.counts?.assignmentsKept ?? 0,
+              }));
+            }
             window.location.href = `checklist.html?tripId=${tripId}`;
             return;
           }

@@ -3508,6 +3508,49 @@
         return row;
       }
 
+      /* ---------- Clone result ---------- */
+
+      // Report what a clone actually did, once the copied list is on screen.
+      //
+      // The count of copied items is reassurance. The cleared assignments are
+      // the part that has to be said out loud: an item assigned to someone on
+      // the old trip comes across unassigned, because that person is not on
+      // this trip yet and routes/items.js will not hold an assignment for
+      // somebody who cannot open it. Unexplained, that reads as the clone
+      // having lost data.
+      //
+      // Read-and-clear, so it appears once for the trip it describes and not
+      // again on the next visit.
+      function reportCloneSummary() {
+        let summary;
+        try {
+          const raw = sessionStorage.getItem('tripCloneSummary');
+          if (!raw) return;
+          sessionStorage.removeItem('tripCloneSummary');
+          summary = JSON.parse(raw);
+        } catch (_) { return; }
+        if (!summary) return;
+
+        const copied = Number(summary.copied) || 0;
+        const cleared = Number(summary.assignmentsCleared) || 0;
+        if (!copied && !cleared) return;
+
+        const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+        if (cleared > 0) {
+          // tpAlert rather than a toast: a toast times out, and this is the one
+          // thing about the new list that is not self-evident from looking at it.
+          tpAlert(
+            `${plural(copied, 'item was', 'items were')} copied over, unpacked and ready. ` +
+            `${plural(cleared, 'item is', 'items are')} unassigned — the people they were assigned to ` +
+            `are not on this trip yet. Invite them and you can hand the items back over.`,
+            { variant: 'info', title: 'Copied from your other trip' }
+          );
+        } else {
+          showToast(`${plural(copied, 'item', 'items')} copied over — everything unpacked and ready.`, 'success');
+        }
+      }
+
       /* ---------- Per-item weight ---------- */
 
       function applyWeightChip(btn, grams) {
@@ -5239,6 +5282,7 @@
           initSmartGearFilters();
           initSmartGearGenerate();
           sgRender();
+          reportCloneSummary();
         } catch (err) {
           document.getElementById('categories').innerHTML =
             '<div class="empty"><strong>Could not load checklist</strong>' +

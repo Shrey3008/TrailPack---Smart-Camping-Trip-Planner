@@ -767,6 +767,18 @@
           <input id="tp-ct-name" name="name" required placeholder="e.g. Rocky Mountain Weekend">
         </div>
 
+        <!-- Start from a past trip. Hidden entirely until the trip list has
+             loaded and turns out to be non-empty: a first-time user has
+             nothing to clone, and an empty dropdown is a dead end that has to
+             be read before it can be dismissed. -->
+        <div class="tp-field" id="tp-ct-clone-field" hidden>
+          <label for="tp-ct-clone">Start from a past trip</label>
+          <select id="tp-ct-clone" name="cloneFromTripId">
+            <option value="">Generate a new checklist</option>
+          </select>
+          <p class="tp-date-hint" id="tp-ct-clone-hint" hidden></p>
+        </div>
+
         <div class="tp-ct-row">
           <div class="tp-field">
             <label for="tp-ct-terrain">Terrain</label>
