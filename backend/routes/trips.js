@@ -6,6 +6,7 @@ const { estimateProvisions } = require('../services/provisionsService');
 const sharedTrips = require('../services/sharedTripsService');
 const { notify } = require('../services/notify');
 const aiService = require('../services/aiService');
+const weightRules = require('../services/weightService');
 
 // Duplicated from routes/weather.js so POST /trips can expand a
 // trailing 2-letter country code on req.body.location into its full
@@ -243,11 +244,17 @@ router.post('/', authenticate, async (req, res) => {
     }
     console.log(`[trips] checklist generated via ${checklistSource} (${checklistItems.length} items) for trip ${tripId}`);
 
+    // Seeded here as well as on AI gear suggestions. Almost every item on a new
+    // trip comes from this path, so weighing only the later suggestions would
+    // leave a fresh checklist showing a total built from a handful of its rows.
+    // Unrecognised names stay null and are reported as `unweighed` by
+    // GET /trips/:id/weight rather than counted as zero.
     await Item.insertMany(checklistItems.map(item => ({
       tripId,
       name: item.name,
       category: item.category,
       packed: false,
+      weight: weightRules.estimateWeightGrams(item.name),
     })));
     
     res.status(201).json({
@@ -333,6 +340,122 @@ router.get('/:id/provisions', authenticate, async (req, res) => {
   }
 });
 
+// GET /trips/:id/weight - Pack weight rollup for a trip
+//
+// One aggregation, three answers, via $facet: the overall total, the breakdown
+// by category, and the base/consumable split. Doing it in Mongo rather than
+// summing in JS keeps it a single round trip and one pass over the items, and
+// the classification rules are simple enough to express in the pipeline.
+//
+// Every gram figure is an integer. Items with no recorded weight contribute
+// nothing to the totals but ARE counted separately as `unweighed`, because a
+// total computed over half a checklist is misleading unless the caller can see
+// how much of the list it actually covers.
+router.get('/:id/weight', authenticate, async (req, res) => {
+  try {
+    const tripId = req.params.id;
+    try {
+      await sharedTrips.assertTripAccess(tripId, req.user.userId);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+
+    const trip = await Trip.findOne({ tripId }).select('-_id weightTarget').lean();
+
+    // Mirrors services/weightService.js. Kept as literals here because the
+    // pipeline runs server-side in Mongo and cannot call into JS — the unit
+    // tests assert the two agree, so a rule added in one place and not the
+    // other is caught rather than silently diverging.
+    const DURABLE_IN_FOOD = weightRules.DURABLE_IN_FOOD_RE.source;
+    const CONSUMABLE_ANYWHERE = weightRules.CONSUMABLE_ANYWHERE_RE.source;
+
+    const [facets] = await Item.aggregate([
+      { $match: { tripId } },
+      {
+        $addFields: {
+          // null weight contributes 0 to sums but is tracked separately below.
+          _grams: { $ifNull: ['$weight', 0] },
+          _hasWeight: { $cond: [{ $eq: [{ $ifNull: ['$weight', null] }, null] }, 0, 1] },
+          _consumable: {
+            $cond: [
+              { $regexMatch: { input: { $ifNull: ['$name', ''] }, regex: CONSUMABLE_ANYWHERE, options: 'i' } },
+              true,
+              {
+                $and: [
+                  { $eq: ['$category', weightRules.CONSUMABLE_CATEGORY] },
+                  { $not: [{ $regexMatch: { input: { $ifNull: ['$name', ''] }, regex: DURABLE_IN_FOOD, options: 'i' } }] },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      {
+        $facet: {
+          totals: [{
+            $group: {
+              _id: null,
+              totalGrams: { $sum: '$_grams' },
+              items: { $sum: 1 },
+              weighed: { $sum: '$_hasWeight' },
+            },
+          }],
+          byCategory: [
+            {
+              $group: {
+                _id: { $ifNull: ['$category', ''] },
+                grams: { $sum: '$_grams' },
+                items: { $sum: 1 },
+                weighed: { $sum: '$_hasWeight' },
+              },
+            },
+            { $sort: { grams: -1, _id: 1 } },
+          ],
+          split: [{
+            $group: {
+              _id: '$_consumable',
+              grams: { $sum: '$_grams' },
+              items: { $sum: 1 },
+            },
+          }],
+        },
+      },
+    ]);
+
+    const totals = (facets && facets.totals && facets.totals[0]) || { totalGrams: 0, items: 0, weighed: 0 };
+    const splitRows = (facets && facets.split) || [];
+    const consumable = splitRows.find(r => r._id === true) || { grams: 0, items: 0 };
+    const base = splitRows.find(r => r._id === false) || { grams: 0, items: 0 };
+
+    res.json({
+      unit: 'g',
+      totalGrams: totals.totalGrams || 0,
+      targetGrams: trip && trip.weightTarget != null ? trip.weightTarget : null,
+      counts: {
+        items: totals.items || 0,
+        weighed: totals.weighed || 0,
+        // The honest caveat on every figure above.
+        unweighed: (totals.items || 0) - (totals.weighed || 0),
+      },
+      byCategory: ((facets && facets.byCategory) || []).map(c => ({
+        category: c._id || 'Uncategorised',
+        grams: c.grams || 0,
+        items: c.items || 0,
+        unweighed: (c.items || 0) - (c.weighed || 0),
+      })),
+      split: {
+        baseGrams: base.grams || 0,
+        baseItems: base.items || 0,
+        consumableGrams: consumable.grams || 0,
+        consumableItems: consumable.items || 0,
+      },
+    });
+  } catch (error) {
+    console.error('Error computing trip weight:', error);
+    res.status(500).json({ message: 'Error computing trip weight' });
+  }
+});
+
 // GET /trips/:id - Get a single trip
 router.get('/:id', authenticate, async (req, res) => {
   try {
@@ -356,8 +479,8 @@ router.put('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
-    const { name, terrain, season, duration, groupSize, status, location, lat, lon, startDate, endDate } = req.body;
-    
+    const { name, terrain, season, duration, groupSize, status, location, lat, lon, startDate, endDate, weightTarget } = req.body;
+
     const updates = {};
 
     if (name) updates.name = name;
@@ -373,6 +496,12 @@ router.put('/:id', authenticate, async (req, res) => {
     if (lon !== undefined) updates.lon = parseCoord(lon, 180);
     if (startDate !== undefined) updates.startDate = startDate || null;
     if (endDate !== undefined) updates.endDate = endDate || null;
+    // Grams. Explicit null (or '') clears the budget, which is different from
+    // omitting the key — omitting leaves whatever target the trip already had.
+    if (weightTarget !== undefined) {
+      const grams = weightTarget === null || weightTarget === '' ? null : Math.max(0, parseInt(weightTarget, 10));
+      updates.weightTarget = Number.isFinite(grams) ? grams : null;
+    }
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ message: 'No fields to update' });

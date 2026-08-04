@@ -5,6 +5,7 @@ const { authenticate } = require('../middleware/auth');
 const sharedTrips = require('../services/sharedTripsService');
 const aiService = require('../services/aiService');
 const { queueAssignmentNotice, cancelAssignmentNotice } = require('../services/assignmentNotifier');
+const { estimateWeightGrams } = require('../services/weightService');
 
 const EXCLUDE = '-_id -__v';
 
@@ -115,9 +116,10 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
     const body = req.body || {};
     const wantsPacked = Object.prototype.hasOwnProperty.call(body, 'packed');
     const wantsAssignee = Object.prototype.hasOwnProperty.call(body, 'assignedTo');
+    const wantsWeight = Object.prototype.hasOwnProperty.call(body, 'weight');
 
-    if (!wantsPacked && !wantsAssignee) {
-      return res.status(400).json({ message: 'Nothing to update: send packed and/or assignedTo' });
+    if (!wantsPacked && !wantsAssignee && !wantsWeight) {
+      return res.status(400).json({ message: 'Nothing to update: send packed, assignedTo and/or weight' });
     }
     if (!(await requireTripAccess(req, res, tripId))) return;
 
@@ -144,6 +146,19 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
     const $set = {};
     if (wantsPacked) $set.packed = body.packed;
     if (wantsAssignee) $set.assignedTo = nextAssignee;
+    if (wantsWeight) {
+      // Grams, integer, never negative. null clears it back to "unknown",
+      // which is distinct from 0 ("weighed, negligible") — see models/Item.js.
+      if (body.weight === null || body.weight === '') {
+        $set.weight = null;
+      } else {
+        const grams = parseInt(body.weight, 10);
+        if (!Number.isFinite(grams) || grams < 0) {
+          return res.status(400).json({ message: 'weight must be a non-negative number of grams, or null' });
+        }
+        $set.weight = grams;
+      }
+    }
 
     const updated = await Item.findOneAndUpdate(
       { itemId, tripId },
@@ -286,6 +301,11 @@ router.post('/:id/ai-items', authenticate, async (req, res) => {
         priority: item.priority,
         source: 'ai',
         packed: false,
+        // Seed a plausible weight so a generated list has a usable total
+        // instead of a column of blanks. Returns null for anything the rules
+        // do not recognise — a wrong weight quietly corrupts every total that
+        // includes it, while a missing one is visible and correctable.
+        weight: estimateWeightGrams(item.name),
       });
       const record = doc.toObject();
       delete record._id;

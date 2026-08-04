@@ -20,6 +20,10 @@ const tripSchema = new mongoose.Schema({
   // 'in_progress', 'completed', 'cancelled' — no enum to avoid breaking rows.
   status: { type: String, default: 'planned' },
   photoIndex: { type: Number, default: 0 },
+  // Pack weight budget in GRAMS, matching Item.weight. Null means the trip has
+  // no target, which is the default — the weight panel then reports totals
+  // without a goal to measure against rather than inventing one.
+  weightTarget: { type: Number, default: null, min: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Trip', tripSchema);
