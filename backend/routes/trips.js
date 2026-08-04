@@ -195,6 +195,7 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
+    const cloneFromTripId = req.body.cloneFromTripId || null;
     const userId = req.user.userId;
     const parsedDuration = parseInt(duration);
     // Group size: clamp to [1, 50]; default to 1 when missing/invalid.
@@ -223,6 +224,44 @@ router.post('/', authenticate, async (req, res) => {
     delete tripItem._id;
     delete tripItem.__v;
     const tripId = tripItem.tripId;
+
+    // Cloning short-circuits generation entirely. Someone who picked a past
+    // trip has told us what they want the list to be; asking the model for a
+    // second opinion and merging would produce a list they did not choose.
+    if (cloneFromTripId) {
+      let copied;
+      try {
+        copied = await cloneChecklist(cloneFromTripId, tripId, userId);
+      } catch (e) {
+        // The trip itself already exists at this point. Rolling it back would
+        // be worse than reporting the failure — the caller can retry the copy,
+        // but a half-created trip that vanished is confusing.
+        await Trip.deleteOne({ tripId });
+        return res.status(e.status || 500).json({ message: e.message });
+      }
+      // Inherit the source's weight budget. POST /trips has no weightTarget
+      // field of its own, so there is nothing to conflict with, and a target is
+      // reusable planning data by the same argument the item weights are —
+      // someone who packs to 12 kg is likely to pack to 12 kg again.
+      const source = await Trip.findOne({ tripId: cloneFromTripId }).select('-_id weightTarget').lean();
+      if (source && source.weightTarget != null) {
+        await Trip.updateOne({ tripId }, { $set: { weightTarget: source.weightTarget } });
+        tripItem.weightTarget = source.weightTarget;
+      }
+
+      console.log(`[trips] checklist cloned from ${cloneFromTripId} (${copied.length} items) for trip ${tripId}`);
+      return res.status(201).json({
+        message: 'Trip created successfully',
+        trip: tripItem,
+        checklistSource: 'cloned',
+        clonedFrom: cloneFromTripId,
+        counts: {
+          copied: copied.length,
+          assignmentsKept: copied.filter(d => d.assignedTo).length,
+          assignmentsCleared: copied.filter(d => !d.assignedTo).length,
+        },
+      });
+    }
 
     // Generate the initial checklist. Try the Groq-backed AI generator
     // first so the list is tailored to terrain/season/duration/location;
@@ -339,6 +378,64 @@ router.get('/:id/provisions', authenticate, async (req, res) => {
     res.status(500).json({ message: 'Error estimating provisions' });
   }
 });
+
+// Copy one trip's checklist onto another.
+//
+// What carries over and what does not is the whole design here.
+//
+//   name, category, priority   copied — this is the list itself
+//   weight                     copied — a tent weighs the same in June as in
+//                              September; re-weighing the same gear every trip
+//                              is exactly the drudgery this is meant to remove
+//   packed                     reset to false — a new trip starts unpacked, and
+//                              inheriting a packed list would show a finished
+//                              trip nobody has packed for
+//   source                     rewritten to 'cloned', so the checklist can tell
+//                              a copied row from one the model proposed. An AI
+//                              row copied forward is no longer a suggestion,
+//                              it is a decision the user already made.
+//   assignedTo                 copied ONLY when the assignee can see the
+//                              destination trip — see below.
+//
+// Assignment is the awkward one. routes/items.js guarantees that an item's
+// assignedTo is always somebody with access to that trip; the assign endpoint
+// refuses anything else. A brand-new trip has exactly one member, its owner, so
+// copying assignments verbatim would plant rows pointing at people who cannot
+// open the trip — breaking the invariant through a side door, and showing the
+// owner a checklist assigned to names that are not on it. Assignments are
+// therefore filtered against the destination's actual membership: in practice
+// the cloner's own assignments survive and everyone else's are cleared.
+//
+// Throws { status } like the shared-trip helpers.
+async function cloneChecklist(sourceTripId, destTripId, destOwnerId) {
+  // Access, not ownership: a collaborator who helped build a list should be
+  // able to start their own trip from it, which is the same bar every other
+  // item route applies.
+  await sharedTrips.assertTripAccess(sourceTripId, destOwnerId);
+
+  const sourceItems = await Item.find({ tripId: sourceTripId }).select('-_id -__v').lean();
+  if (!sourceItems.length) return [];
+
+  // Who may hold an assignment on the destination. A freshly created trip has
+  // only its owner, but the check is written generally so cloning into an
+  // existing shared trip stays correct.
+  const destCollaborators = await sharedTrips.listCollaborators(destTripId);
+  const canBeAssigned = new Set([destOwnerId, ...destCollaborators.map(c => c.userId)]);
+
+  const docs = sourceItems.map(item => ({
+    tripId: destTripId,
+    name: item.name,
+    category: item.category,
+    priority: item.priority,
+    source: 'cloned',
+    packed: false,
+    weight: item.weight ?? null,
+    assignedTo: item.assignedTo && canBeAssigned.has(item.assignedTo) ? item.assignedTo : null,
+  }));
+
+  await Item.insertMany(docs);
+  return docs;
+}
 
 // GET /trips/:id/weight - Pack weight rollup for a trip
 //
