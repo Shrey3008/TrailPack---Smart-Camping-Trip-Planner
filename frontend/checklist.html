@@ -436,6 +436,127 @@
     }
     .item.packed .item-ai-tag { opacity: 0.55; }
 
+    /* ---------- Assignment: who is carrying this ----------
+       Same circular avatar as .collab-row .avatar, sized down to sit inside a
+       row without changing its height. Unassigned is a dashed outline rather
+       than a filled circle, so an unclaimed item reads as an empty slot to fill
+       instead of as a person. */
+    .item-assignee {
+      flex: 0 0 auto;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: var(--green, #2d6a4f);
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      transition: transform 0.12s, box-shadow 0.12s;
+    }
+    .item-assignee:hover { transform: scale(1.08); box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.15); }
+    .item-assignee:focus-visible { outline: 2px solid var(--green-light); outline-offset: 2px; }
+    .item-assignee.is-unassigned {
+      background: transparent;
+      color: var(--muted, #6b7280);
+      border: 1.5px dashed var(--dashed, #d4d1ca);
+      font-weight: 600;
+    }
+    .item-assignee.is-unassigned:hover {
+      border-color: var(--green, #2d6a4f);
+      color: var(--green, #2d6a4f);
+    }
+    .item.packed .item-assignee { opacity: 0.6; }
+
+    /* Assignment menu. Positioned in the layer above rows; anchored in JS. */
+    .assign-menu {
+      position: absolute;
+      z-index: 60;
+      min-width: 208px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: var(--surface, #fff);
+      border: 1px solid var(--line, #e8e8e4);
+      border-radius: var(--radius, 12px);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      padding: 6px;
+    }
+    .assign-menu__opt {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%;
+      padding: 8px 10px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm, 8px);
+      font-family: inherit;
+      font-size: 0.88rem;
+      color: var(--ink, #1a1a1a);
+      text-align: left;
+      cursor: pointer;
+    }
+    .assign-menu__opt:hover { background: var(--green-pale, #d8f3dc); }
+    .assign-menu__opt:focus-visible { outline: 2px solid var(--green-light); outline-offset: -2px; }
+    .assign-menu__opt.is-current { font-weight: 700; }
+    .assign-menu__opt.is-current::after {
+      content: '✓';
+      margin-left: auto;
+      color: var(--green, #2d6a4f);
+    }
+    .assign-menu__dot {
+      width: 24px; height: 24px; flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--green, #2d6a4f); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700;
+    }
+    .assign-menu__dot.is-unassigned {
+      background: transparent;
+      color: var(--muted, #6b7280);
+      border: 1.5px dashed var(--dashed, #d4d1ca);
+    }
+    .assign-menu__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* "Mine" filter. A separate axis from the category tabs — it hides
+       individual rows, then hides any category left with nothing visible. */
+    .item[data-hidden-by-mine="true"] { display: none !important; }
+    .category[data-hidden-by-mine="true"] { display: none !important; }
+
+    /* Per-person packed breakdown under the progress bar. */
+    .ct-prog-people {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .ct-prog-people:empty { display: none; }
+    .ct-person {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px 3px 4px;
+      border-radius: 999px;
+      background: var(--row, #f9f8f5);
+      border: 1px solid var(--line, #e8e8e4);
+      font-size: 0.74rem;
+      color: var(--ink-soft, #4a4a4a);
+      white-space: nowrap;
+    }
+    .ct-person__dot {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--green, #2d6a4f); color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700;
+    }
+    .ct-person__dot.is-unassigned {
+      background: transparent;
+      color: var(--muted, #6b7280);
+      border: 1.5px dashed var(--dashed, #d4d1ca);
+    }
+    .ct-person__count { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .ct-person.is-done { border-color: rgba(45, 106, 79, 0.35); background: var(--green-pale, #d8f3dc); }
+
     /* ---------- Add item ---------- */
     .add-item-btn {
       margin-top: 12px;
@@ -2377,6 +2498,9 @@
           <span class="ct-saved__label">All changes saved</span>
         </span>
       </div>
+      <!-- Per-person packed breakdown. Populated by updateProgress(); stays
+           empty (and CSS-hidden) on trips where nothing is assigned. -->
+      <div class="ct-prog-people" id="ct-prog-people"></div>
       <div class="ct-tabs" id="ct-tabs" role="tablist">
         <button class="ct-tab is-active" type="button" data-filter="all">All</button>
       </div>
@@ -2737,6 +2861,33 @@
       let trip = null;
       let items = [];
 
+      // Everyone who can be assigned an item: the owner first, then
+      // collaborators. Loaded once, after the trip itself, because the owner's
+      // identity comes from the trip and the rest from /participants.
+      // Empty until then — rows render an unassigned slot and the avatars are
+      // filled in afterwards rather than blocking the first paint.
+      let tripMembers = [];
+
+      // Who is looking at the page. Read the same way loadCollaborators() does.
+      const currentUser = (() => {
+        try { return JSON.parse(sessionStorage.getItem('currentUser') || 'null') || {}; }
+        catch { return {}; }
+      })();
+      const currentUserId = currentUser.userId || null;
+
+      function memberById(userId) {
+        if (!userId) return null;
+        return tripMembers.find(m => m.userId === userId) || null;
+      }
+
+      // A member's display name, degrading through the fields that may be
+      // missing on a collaborator row rather than showing "undefined".
+      function memberLabel(member, { self = true } = {}) {
+        if (!member) return 'Unassigned';
+        if (self && member.userId === currentUserId) return 'Me';
+        return member.name || member.email || 'Trip member';
+      }
+
       /* ---------- Date helpers ---------- */
       // Shared formatter so the hero, sidebar, and CSV export all speak
       // the same language ("May 15, 2026").
@@ -2886,6 +3037,75 @@
 
         const startBtn = document.getElementById('start-trip-btn');
         if (startBtn) startBtn.disabled = !(total > 0 && packed === total);
+
+        renderPersonBreakdown();
+      }
+
+      // Per-person packed counts, shown under the main bar.
+      //
+      // Deliberately silent when nothing is assigned: a solo trip, or a shared
+      // trip nobody has divided up yet, would otherwise get a single
+      // "Unassigned 0/12" pill that says nothing the main bar has not already
+      // said. It appears the moment the first item is assigned.
+      function renderPersonBreakdown() {
+        const host = document.getElementById('ct-prog-people');
+        if (!host) return;
+
+        const list = Array.isArray(items) ? items : [];
+        const anyAssigned = list.some(i => i && i.assignedTo);
+        if (!anyAssigned) { host.innerHTML = ''; return; }
+
+        // Group by assignee, keeping member order (owner first) and putting
+        // whatever is still unclaimed at the end, where it reads as the
+        // remaining work rather than as a person.
+        const buckets = new Map();
+        const bump = (key) => {
+          if (!buckets.has(key)) buckets.set(key, { packed: 0, total: 0 });
+          return buckets.get(key);
+        };
+        list.forEach(i => {
+          if (!i) return;
+          const b = bump(i.assignedTo || '');
+          b.total += 1;
+          if (i.packed) b.packed += 1;
+        });
+
+        const order = tripMembers
+          .map(m => m.userId)
+          .filter(id => buckets.has(id));
+        if (buckets.has('')) order.push('');
+        // Anyone holding items who is no longer a listed member still needs a
+        // pill, or their items would vanish from the breakdown while remaining
+        // in the totals above.
+        buckets.forEach((_, key) => { if (!order.includes(key)) order.push(key); });
+
+        host.innerHTML = '';
+        order.forEach(key => {
+          const b = buckets.get(key);
+          if (!b) return;
+          const member = key ? memberById(key) : null;
+          const label = key ? memberLabel(member) : 'Unassigned';
+
+          const pill = document.createElement('span');
+          pill.className = 'ct-person' + (b.total > 0 && b.packed === b.total ? ' is-done' : '');
+
+          const dot = document.createElement('span');
+          dot.className = 'ct-person__dot' + (key ? '' : ' is-unassigned');
+          dot.textContent = key ? initial(member ? memberLabel(member, { self: false }) : '·') : '–';
+
+          const text = document.createElement('span');
+          text.textContent = label;
+
+          const count = document.createElement('span');
+          count.className = 'ct-person__count';
+          count.textContent = `${b.packed}/${b.total}`;
+
+          pill.appendChild(dot);
+          pill.appendChild(text);
+          pill.appendChild(count);
+          pill.title = `${label}: ${b.packed} of ${b.total} packed`;
+          host.appendChild(pill);
+        });
       }
 
       function renderCategories() {
@@ -3105,6 +3325,9 @@
         row.setAttribute('role', 'button');
         row.setAttribute('tabindex', '0');
         row.setAttribute('aria-pressed', item.packed ? 'true' : 'false');
+        // Mirrors assignedTo onto the DOM so the "Mine" filter, which lives in
+        // a different script block, can read it without reaching into `items`.
+        row.dataset.assignedTo = item.assignedTo || '';
         row.innerHTML =
           '<span class="item-check" aria-hidden="true"></span>' +
           '<span class="item-name"></span>';
@@ -3118,6 +3341,22 @@
           tag.title = 'Suggested by AI';
           row.appendChild(tag);
         }
+        // Who is carrying this. Like the remove control below, it sits inside
+        // the row — which is itself the packed toggle — so it has to stop its
+        // click propagating or opening the menu would also pack the item.
+        const assignee = document.createElement('button');
+        assignee.type = 'button';
+        assignee.className = 'item-assignee';
+        applyAssigneeAvatar(assignee, item.assignedTo);
+        assignee.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openAssignMenu(item, assignee);
+        });
+        assignee.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();
+        });
+        row.appendChild(assignee);
+
         // Remove control. The whole row is the packed/unpacked toggle, so this
         // button has to stop the click from reaching it — otherwise removing an
         // item would also flip its packed state on the way out.
@@ -3143,6 +3382,155 @@
           if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
         });
         return row;
+      }
+
+      /* ---------- Assignment ---------- */
+
+      // Paint an avatar button for a given assignee. Split out because rows are
+      // built before tripMembers has loaded, and the avatars are then refreshed
+      // in place rather than re-rendering the whole checklist.
+      function applyAssigneeAvatar(btn, userId) {
+        const member = memberById(userId);
+        if (!userId) {
+          btn.classList.add('is-unassigned');
+          btn.textContent = '+';
+          btn.title = 'Assign to someone';
+          btn.setAttribute('aria-label', 'Unassigned — assign to someone');
+          return;
+        }
+        btn.classList.remove('is-unassigned');
+        // A member who has not loaded yet, or who has since been removed from
+        // the trip, still has an id — show a neutral mark rather than nothing.
+        const label = member ? memberLabel(member, { self: false }) : 'Trip member';
+        btn.textContent = member ? initial(label) : '·';
+        btn.title = `Assigned to ${label}`;
+        btn.setAttribute('aria-label', `Assigned to ${label}. Change assignment`);
+      }
+
+      // Re-paint every row's avatar. Called once the member list arrives, and
+      // again if collaborators change, so names resolve without a full render.
+      function refreshAssigneeAvatars() {
+        document.querySelectorAll('#categories .item').forEach(row => {
+          const btn = row.querySelector('.item-assignee');
+          if (btn) applyAssigneeAvatar(btn, row.dataset.assignedTo || '');
+        });
+      }
+
+      let openMenu = null;
+      function closeAssignMenu() {
+        if (!openMenu) return;
+        openMenu.remove();
+        openMenu = null;
+        document.removeEventListener('click', onDocClickCloseMenu, true);
+        document.removeEventListener('keydown', onEscCloseMenu, true);
+      }
+      function onDocClickCloseMenu(e) {
+        if (openMenu && !openMenu.contains(e.target)) closeAssignMenu();
+      }
+      function onEscCloseMenu(e) {
+        if (e.key === 'Escape') closeAssignMenu();
+      }
+
+      function openAssignMenu(item, anchor) {
+        // Second click on the same avatar closes rather than stacking menus.
+        const wasOpenForThis = openMenu && openMenu.dataset.itemId === item.itemId;
+        closeAssignMenu();
+        if (wasOpenForThis) return;
+
+        const menu = document.createElement('div');
+        menu.className = 'assign-menu';
+        menu.dataset.itemId = item.itemId;
+        menu.setAttribute('role', 'menu');
+
+        const options = [{ userId: null }].concat(tripMembers);
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'assign-menu__opt';
+          btn.setAttribute('role', 'menuitem');
+          const isCurrent = (item.assignedTo || null) === (opt.userId || null);
+          if (isCurrent) btn.classList.add('is-current');
+
+          const dot = document.createElement('span');
+          dot.className = 'assign-menu__dot' + (opt.userId ? '' : ' is-unassigned');
+          const label = opt.userId ? memberLabel(opt) : 'Unassigned';
+          dot.textContent = opt.userId ? initial(memberLabel(opt, { self: false })) : '–';
+
+          const text = document.createElement('span');
+          text.className = 'assign-menu__label';
+          text.textContent = label;
+
+          btn.appendChild(dot);
+          btn.appendChild(text);
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeAssignMenu();
+            if (!isCurrent) assignItem(item, opt.userId || null);
+          });
+          menu.appendChild(btn);
+        });
+
+        // Anchored to the avatar, in page coordinates, and nudged back inside
+        // the viewport when the row sits near the right edge.
+        document.body.appendChild(menu);
+        const r = anchor.getBoundingClientRect();
+        const width = menu.offsetWidth;
+        let left = r.left + window.scrollX - width + r.width;
+        left = Math.max(8 + window.scrollX, left);
+        menu.style.top = `${r.bottom + window.scrollY + 6}px`;
+        menu.style.left = `${left}px`;
+
+        openMenu = menu;
+        // Capture phase, so a click on another row's avatar closes this menu
+        // before that row's own handler opens its one.
+        document.addEventListener('click', onDocClickCloseMenu, true);
+        document.addEventListener('keydown', onEscCloseMenu, true);
+        const first = menu.querySelector('.assign-menu__opt');
+        if (first) first.focus();
+      }
+
+      // Optimistic, like the packed toggle and the row removal: the avatar
+      // changes at once and the request follows, reverting on failure.
+      async function assignItem(item, userId) {
+        const previous = item.assignedTo || null;
+        if (previous === userId) return;
+
+        const paint = (value) => {
+          item.assignedTo = value;
+          const idx = items.findIndex(i => i.itemId === item.itemId);
+          if (idx !== -1) items[idx].assignedTo = value;
+          const row = document.querySelector(`#categories .item[data-item-id="${CSS.escape(item.itemId)}"]`);
+          if (row) {
+            row.dataset.assignedTo = value || '';
+            const btn = row.querySelector('.item-assignee');
+            if (btn) {
+              btn.className = 'item-assignee';
+              applyAssigneeAvatar(btn, value);
+            }
+          }
+          updateProgress();
+        };
+
+        paint(userId);
+
+        try {
+          await api('/trips/' + tripId + '/items/' + encodeURIComponent(item.itemId), {
+            method: 'PATCH',
+            body: JSON.stringify({ assignedTo: userId }),
+          });
+        } catch (err) {
+          paint(previous);
+          showToast('Could not assign item: ' + err.message, 'error');
+          return;
+        }
+
+        const member = memberById(userId);
+        showToast(
+          userId
+            ? `"${item.name}" assigned to ${memberLabel(member)}`
+            : `"${item.name}" is now unassigned`,
+          'success'
+        );
       }
 
       // Remove an item, with an immediate undo.
@@ -3190,6 +3578,10 @@
               tripId,
               name: snapshot.name,
               category: snapshot.category,
+              // Carried across explicitly. The restore re-creates the row, so
+              // anything not sent here is lost — an assigned item would come
+              // back unassigned, quietly dropping who was carrying it.
+              assignedTo: snapshot.assignedTo || null,
             }),
           });
           const restored = created && created.itemId ? created : { ...snapshot, itemId: undefined };
@@ -3847,6 +4239,38 @@
           '</div>'
         );
       }
+      // Build the assignable-member list: owner first, then collaborators.
+      //
+      // Separate from loadCollaborators(), which renders the sidebar card and
+      // owns its own error UI. This one feeds row avatars and the progress
+      // breakdown, and must fail quietly — a checklist whose items cannot be
+      // reassigned is still perfectly usable, so a failure here degrades to
+      // "no picker" rather than an error banner over the whole page.
+      async function loadMembers() {
+        const isOwner = !!(currentUserId && trip && trip.userId && currentUserId === trip.userId);
+        const owner = isOwner
+          ? { userId: currentUserId, name: currentUser.name || null, email: currentUser.email || null }
+          : { userId: trip && trip.userId, name: trip && trip.ownerName || null, email: trip && trip.ownerEmail || null };
+
+        let members = [];
+        try {
+          const data = await api('/trips/' + tripId + '/participants');
+          members = Array.isArray(data && data.participants) ? data.participants : [];
+        } catch (_) {
+          // Leave tripMembers with just the owner; the picker still works for
+          // "me" and "unassigned", which is the useful minimum.
+        }
+
+        const seen = new Set();
+        tripMembers = [owner]
+          .concat(members)
+          .filter(m => m && m.userId && !seen.has(m.userId) && seen.add(m.userId))
+          .map(m => ({ userId: m.userId, name: m.name || null, email: m.email || null }));
+
+        refreshAssigneeAvatars();
+        updateProgress();
+      }
+
       async function loadCollaborators() {
         const body = document.getElementById('collab-body');
         const currentUser = (() => {
@@ -4438,6 +4862,10 @@
           // and #categories and are loaded below.)
           loadRisk();
           loadCollaborators();
+          // Fills in row avatars and the per-person breakdown once the member
+          // list arrives. Not awaited: rows already rendered with an unassigned
+          // slot, and this repaints them in place rather than blocking paint.
+          loadMembers();
           // Inserted cards (weather hero / calorie-water / smart gear).
           // Also independent; smart gear reuses the items already fetched.
           loadWeatherHero();
@@ -4570,15 +4998,46 @@
         });
       }
 
+      // "Mine" filters on a different axis from the category tabs: it hides
+      // individual rows rather than whole panels, then hides any category left
+      // showing nothing, so the page does not fill with empty headings.
+      //
+      // Rows carry data-assigned-to (written by buildItemRow in the first
+      // script block), so this reads the DOM rather than the items array —
+      // which lives in a scope this block cannot reach.
+      const meId = (() => {
+        try { return (JSON.parse(sessionStorage.getItem('currentUser') || 'null') || {}).userId || null; }
+        catch { return null; }
+      })();
+
+      function filterMine(on) {
+        const cats = document.querySelectorAll('#categories .category');
+        cats.forEach((cat) => {
+          let visible = 0;
+          cat.querySelectorAll('.item').forEach((row) => {
+            const mine = !!meId && row.dataset.assignedTo === meId;
+            if (!on || mine) {
+              row.removeAttribute('data-hidden-by-mine');
+              visible += 1;
+            } else {
+              row.setAttribute('data-hidden-by-mine', 'true');
+            }
+          });
+          if (on && visible === 0) cat.setAttribute('data-hidden-by-mine', 'true');
+          else cat.removeAttribute('data-hidden-by-mine');
+        });
+      }
+
       function buildTabs() {
         const tabsHost = document.getElementById('ct-tabs');
         if (!tabsHost) return;
         const cats = document.querySelectorAll('#categories .category');
         if (!cats.length) return;
 
-        // Skip rebuild if already in sync (count matches)
+        // Skip rebuild if already in sync. Counts "All" and "Mine" alongside
+        // one tab per category.
         const existing = tabsHost.querySelectorAll('.ct-tab').length;
-        if (existing === cats.length + 1) return;
+        if (existing === cats.length + 2) return;
 
         // Reset, keep "All"
         tabsHost.innerHTML = '';
@@ -4600,10 +5059,28 @@
         all.textContent = 'All';
         all.addEventListener('click', () => {
           setActive(all);
+          filterMine(false);
           filterCategories('all');
           scrollToCategories();
         });
         tabsHost.appendChild(all);
+
+        // Mine sits next to All, before the categories, because it answers a
+        // different question — "what am I responsible for" rather than "what
+        // kind of thing is this". Selecting it clears any category filter, so
+        // it shows everything assigned to you rather than the intersection.
+        const mine = document.createElement('button');
+        mine.type = 'button';
+        mine.className = 'ct-tab';
+        mine.dataset.filter = 'mine';
+        mine.textContent = 'Mine';
+        mine.addEventListener('click', () => {
+          setActive(mine);
+          filterCategories('all');
+          filterMine(true);
+          scrollToCategories();
+        });
+        tabsHost.appendChild(mine);
 
         cats.forEach((cat, i) => {
           const titleEl = cat.querySelector('.category-title');
@@ -4625,6 +5102,7 @@
           btn.textContent = title;
           btn.addEventListener('click', () => {
             setActive(btn);
+            filterMine(false);
             filterCategories(slug);
             scrollToCategories();
           });
@@ -4655,6 +5133,12 @@
           window.updateProgress?.();
           syncCategoryDropdown();
           renderSuggestChips();
+          // renderCategories() rebuilds every row from scratch, which drops the
+          // data-hidden-by-mine attributes. Without this the Mine tab stays lit
+          // while the full list quietly comes back underneath it — so re-apply
+          // whichever filter the tabs currently claim is active.
+          const active = document.querySelector('#ct-tabs .ct-tab.is-active');
+          filterMine(!!active && active.dataset.filter === 'mine');
         });
       }
 

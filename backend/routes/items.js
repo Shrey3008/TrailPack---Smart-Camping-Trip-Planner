@@ -4,6 +4,7 @@ const { Trip, Item } = require('../models');
 const { authenticate } = require('../middleware/auth');
 const sharedTrips = require('../services/sharedTripsService');
 const aiService = require('../services/aiService');
+const { queueAssignmentNotice, cancelAssignmentNotice } = require('../services/assignmentNotifier');
 
 const EXCLUDE = '-_id -__v';
 
@@ -33,6 +34,33 @@ async function requireTripAccess(req, res, tripId) {
     res.status(e.status || 500).json({ message: e.message });
     return false;
   }
+}
+
+// An item may only be assigned to someone who can actually see the trip —
+// otherwise a checklist could name a carrier who has no way to open it, and
+// notify() would post to a user who cannot act on the message. Owner counts as
+// a member; null means "unassigned" and is always allowed.
+//
+// Returns the resolved member ({ userId, name, email }) so callers can build a
+// notification message without a second lookup, or null for an unassignment.
+// Throws { status } the same way assertTripAccess does.
+async function resolveAssignee(tripId, assigneeId) {
+  if (assigneeId === null || assigneeId === undefined || assigneeId === '') return null;
+
+  const found = await sharedTrips.getTrip(tripId);
+  if (found && found.ownerId === assigneeId) {
+    return { userId: assigneeId, name: null, email: null, role: 'owner' };
+  }
+
+  const collaborators = await sharedTrips.listCollaborators(tripId);
+  const match = collaborators.find(c => c.userId === assigneeId);
+  if (match) {
+    return { userId: match.userId, name: match.name || null, email: match.email || null, role: 'collaborator' };
+  }
+
+  const err = new Error('That person is not on this trip');
+  err.status = 400;
+  throw err;
 }
 
 // GET /trips/:id/items - Get all checklist items for a trip
@@ -74,22 +102,87 @@ router.put('/:id', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /trips/:tripId/items/:itemId - Update packed status (for checklist.html)
+// PATCH /trips/:tripId/items/:itemId - Update packed status and/or assignee
+//
+// Both fields are optional and independent: the checklist toggles `packed` on
+// every row tap, and assigns `assignedTo` from the row's avatar menu. Only keys
+// actually present in the body are written, so assigning an item never clears
+// its packed state and vice versa — sending `{ packed }` alone behaves exactly
+// as it did before this route learned about assignment.
 router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
   try {
     const { tripId, itemId } = req.params;
-    const { packed } = req.body;
+    const body = req.body || {};
+    const wantsPacked = Object.prototype.hasOwnProperty.call(body, 'packed');
+    const wantsAssignee = Object.prototype.hasOwnProperty.call(body, 'assignedTo');
 
+    if (!wantsPacked && !wantsAssignee) {
+      return res.status(400).json({ message: 'Nothing to update: send packed and/or assignedTo' });
+    }
     if (!(await requireTripAccess(req, res, tripId))) return;
+
+    // Normalise '' to null so the client can clear an assignment with either.
+    const nextAssignee = wantsAssignee ? (body.assignedTo || null) : undefined;
+
+    let assignee = null;
+    if (wantsAssignee) {
+      try {
+        assignee = await resolveAssignee(tripId, nextAssignee);
+      } catch (e) {
+        return res.status(e.status || 500).json({ message: e.message });
+      }
+    }
+
+    // Read the current row first so the notification can be suppressed when the
+    // assignee did not actually change — re-tapping the same name in the menu
+    // should be idempotent, not another ping.
+    const before = await Item.findOne({ itemId, tripId }).select(EXCLUDE).lean();
+    if (!before) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    const $set = {};
+    if (wantsPacked) $set.packed = body.packed;
+    if (wantsAssignee) $set.assignedTo = nextAssignee;
 
     const updated = await Item.findOneAndUpdate(
       { itemId, tripId },
-      { $set: { packed } },
+      { $set },
       { new: true }
     ).select(EXCLUDE).lean();
 
     if (!updated) {
       return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // Tell someone they are now carrying this — but not once per item. Each row
+    // is its own PATCH, so dividing up a packing list is a burst of requests;
+    // services/assignmentNotifier.js holds them briefly and sends one summary.
+    // Fail-soft either way (see services/notify.js): the assignment is already
+    // saved and must not be undone by a notification write.
+    //
+    // Suppression is decided here, not in the notifier: nothing is queued when
+    // assigning to yourself, or when the assignee did not actually change.
+    const changed = wantsAssignee && before.assignedTo !== nextAssignee;
+    if (changed) {
+      // Whoever was queued to carry this before is no longer carrying it. Drop
+      // the pending entry, or a quick assign-then-correct still tells the first
+      // person they have something they do not.
+      if (before.assignedTo) {
+        cancelAssignmentNotice({ userId: before.assignedTo, tripId, itemId });
+      }
+
+      if (nextAssignee && nextAssignee !== req.user.userId) {
+        const found = await sharedTrips.getTrip(tripId);
+        queueAssignmentNotice({
+          userId: nextAssignee,
+          tripId,
+          tripName: found ? found.trip.name : null,
+          actorName: req.user.name || req.user.email || null,
+          itemId,
+          itemName: updated.name,
+        });
+      }
     }
 
     res.json(updated);
@@ -102,18 +195,31 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
 // POST /items - Add custom item
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { tripId, name, category } = req.body;
+    const { tripId, name, category, assignedTo } = req.body;
 
     if (!tripId || !name || !category) {
       return res.status(400).json({ message: 'Trip ID, name, and category are required' });
     }
     if (!(await requireTripAccess(req, res, tripId))) return;
 
+    // assignedTo is accepted here so undo can restore it. Removing an item is
+    // reversible from the toast, but the restore re-creates the row rather than
+    // resurrecting it (DELETE is final server-side), so anything this endpoint
+    // cannot accept is silently lost on undo — which is how the carrier would
+    // otherwise disappear from an item that had one.
+    let assignee = null;
+    try {
+      assignee = await resolveAssignee(tripId, assignedTo);
+    } catch (e) {
+      return res.status(e.status || 500).json({ message: e.message });
+    }
+
     const itemDoc = await Item.create({
       tripId,
       name,
       category,
       packed: false,
+      assignedTo: assignee ? assignee.userId : null,
     });
     const item = itemDoc.toObject();
     delete item._id;
