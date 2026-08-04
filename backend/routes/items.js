@@ -210,7 +210,7 @@ router.patch('/:tripId/items/:itemId', authenticate, async (req, res) => {
 // POST /items - Add custom item
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { tripId, name, category, assignedTo } = req.body;
+    const { tripId, name, category, assignedTo, weight } = req.body;
 
     if (!tripId || !name || !category) {
       return res.status(400).json({ message: 'Trip ID, name, and category are required' });
@@ -229,12 +229,28 @@ router.post('/', authenticate, async (req, res) => {
       return res.status(e.status || 500).json({ message: e.message });
     }
 
+    // Weight is accepted for the same reason as assignedTo: undo re-creates the
+    // row, so a weighed item would come back unweighed. An explicitly supplied
+    // value wins; otherwise fall back to the estimate, which is what a freshly
+    // typed item wants anyway.
+    let grams = null;
+    if (weight !== undefined && weight !== null && weight !== '') {
+      const parsed = parseInt(weight, 10);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        return res.status(400).json({ message: 'weight must be a non-negative number of grams, or null' });
+      }
+      grams = parsed;
+    } else if (weight === undefined) {
+      grams = estimateWeightGrams(name);
+    }
+
     const itemDoc = await Item.create({
       tripId,
       name,
       category,
       packed: false,
       assignedTo: assignee ? assignee.userId : null,
+      weight: grams,
     });
     const item = itemDoc.toObject();
     delete item._id;

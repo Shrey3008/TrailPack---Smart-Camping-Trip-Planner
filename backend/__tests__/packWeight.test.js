@@ -276,3 +276,37 @@ describe('the pipeline agrees with the JS rules', () => {
     expect(consumableInPipeline).toBe(isConsumable(name, category));
   });
 });
+
+describe('creating an item carries or estimates weight', () => {
+  const post = (body) =>
+    request(app).post('/items').set('Authorization', `Bearer ${ownerToken}`).send(body);
+
+  test('an explicit weight is honoured — this is what undo relies on', async () => {
+    const res = await post({ tripId: trip.tripId, name: 'Tent', category: 'Shelter', weight: 1850 });
+    expect(res.status).toBe(201);
+    expect(res.body.weight).toBe(1850);
+  });
+
+  test('an explicit null stays null, rather than falling back to the estimate', async () => {
+    // Undoing an item the user had deliberately blanked must not resurrect a
+    // guess they already rejected.
+    const res = await post({ tripId: trip.tripId, name: 'Tent', category: 'Shelter', weight: null });
+    expect(res.body.weight).toBeNull();
+  });
+
+  test('omitting weight estimates from the name', async () => {
+    const res = await post({ tripId: trip.tripId, name: 'Headlamp', category: 'Safety' });
+    expect(res.body.weight).toBe(90);
+  });
+
+  test('omitting weight for an unrecognised name leaves it null', async () => {
+    const res = await post({ tripId: trip.tripId, name: 'Lucky bandana', category: 'Clothing' });
+    expect(res.body.weight).toBeNull();
+  });
+
+  test('a negative weight is refused and nothing is created', async () => {
+    const res = await post({ tripId: trip.tripId, name: 'Tent', category: 'Shelter', weight: -1 });
+    expect(res.status).toBe(400);
+    expect(await Item.countDocuments({ name: 'Tent' })).toBe(0);
+  });
+});

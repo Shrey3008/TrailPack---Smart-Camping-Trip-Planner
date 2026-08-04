@@ -1152,6 +1152,89 @@
     .cw-pill .cw-pill-label { color: var(--muted); font-weight: 500; margin-right: 4px; }
     .cw-pill .cw-pill-val   { color: var(--ink); font-weight: 700; }
 
+    /* ========== Pack weight ==========
+       Reuses .cw-bar / .cw-tile wholesale; only the fill colours and a few
+       weight-specific affordances are new. */
+    .cw-bar-fill.weight { background: var(--green, #2d6a4f); }
+    .cw-bar-fill.over   { background: #d97706; }
+    /* Named wt-cat, not "category": .category is the checklist card class and
+       carries `background: #fff !important` plus 22px padding, which an
+       !important beats regardless of how specific this selector is. A fill div
+       given that class rendered white and 44px tall. */
+    .cw-bar-fill.wt-cat { background: var(--green-light, #52b788); }
+
+    /* Target affordance in the card header. Text-button styling so it reads as
+       an action without competing with the card title. */
+    .wt-target-btn {
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--green, #2d6a4f);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm, 8px);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .wt-target-btn:hover { background: var(--green-pale, #d8f3dc); }
+    .wt-target-input {
+      width: 92px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      border: 1px solid var(--green, #2d6a4f);
+      border-radius: var(--radius-sm, 8px);
+    }
+
+    /* The "this total is incomplete" caveat. Amber rather than grey — it is a
+       caveat on every number in the card, not a footnote. */
+    .wt-caveat {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin-top: 12px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm, 8px);
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      font-size: 0.78rem;
+      line-height: 1.4;
+    }
+    .wt-cat-unweighed { color: #b45309; font-weight: 600; }
+
+    /* Per-row weight chip. Sits between the item name and the assignee, using
+       the same "small control inside a row" shape as .item-assignee. */
+    .item-weight {
+      flex: 0 0 auto;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.74rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted, #6b7280);
+      cursor: pointer;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+      transition: background 0.12s, color 0.12s;
+    }
+    .item-weight:hover { background: var(--green-pale, #d8f3dc); color: var(--green, #2d6a4f); }
+    .item-weight:focus-visible { outline: 2px solid var(--green-light); outline-offset: 2px; }
+    .item-weight.is-unweighed { color: #b45309; border: 1px dashed #fcd34d; }
+    .item.packed .item-weight { opacity: 0.6; }
+    .item-weight-input {
+      flex: 0 0 auto;
+      width: 84px;
+      font-family: inherit;
+      font-size: 0.74rem;
+      padding: 3px 6px;
+      border: 1px solid var(--green, #2d6a4f);
+      border-radius: var(--radius-sm, 8px);
+      text-align: right;
+    }
+
     /* ========== Card 3: Smart Gear ========== */
     .sg-title-wrap { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .sg-ai-badge {
@@ -2592,6 +2675,26 @@
       </details>
     </section>
 
+    <!-- ======== Pack weight ========
+         Same shell and same bar component as the calorie/water card above —
+         .ins-card-white, a collapsible .ins-card-head, .cw-tile and .cw-bar.
+         The body is rendered by loadWeight() because what it contains depends
+         on the data: with no target there is no bar to draw, and the category
+         rows come from the aggregation. -->
+    <section class="ins-card ins-card-white" id="wt-card" aria-label="Pack weight">
+      <details class="tp-collapse" open>
+        <summary class="ins-card-head">
+          <h3 class="ins-card-title">🎒 Pack Weight</h3>
+          <span class="cw-head-meta" id="wt-meta">—</span>
+          <span id="wt-target-host"></span>
+        </summary>
+        <hr class="ins-card-divider">
+        <div id="wt-body">
+          <div class="cw-bar-note">Loading…</div>
+        </div>
+      </details>
+    </section>
+
     <!-- ======== Inserted Card 3: Smart Gear ======== -->
     <section class="ins-card ins-card-white" id="sg-card" aria-label="Smart gear list">
       <div class="ins-card-head">
@@ -3306,6 +3409,7 @@
             }
             renderCategories();
             updateProgress();
+            loadWeight();
           } catch (err) {
             tpAlert('Could not add item: ' + err.message, { variant: 'danger', title: 'Add failed' });
           } finally {
@@ -3341,6 +3445,26 @@
           tag.title = 'Suggested by AI';
           row.appendChild(tag);
         }
+        // Weight chip. Same "small control inside a row" shape as the assignee
+        // avatar and the remove button, and the same propagation rule — the row
+        // is the packed toggle, so a click here must not reach it.
+        //
+        // An unweighed item shows a dashed "+ g" rather than "0 g": the totals
+        // treat the two differently and the row has to as well, or someone
+        // reading the list cannot tell a light item from an unrecorded one.
+        const weightBtn = document.createElement('button');
+        weightBtn.type = 'button';
+        weightBtn.className = 'item-weight';
+        applyWeightChip(weightBtn, item.weight);
+        weightBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          beginWeightEdit(item, weightBtn);
+        });
+        weightBtn.addEventListener('keydown', (e) => {
+          if (e.key === ' ' || e.key === 'Enter') e.stopPropagation();
+        });
+        row.appendChild(weightBtn);
+
         // Who is carrying this. Like the remove control below, it sits inside
         // the row — which is itself the packed toggle — so it has to stop its
         // click propagating or opening the menu would also pack the item.
@@ -3382,6 +3506,79 @@
           if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
         });
         return row;
+      }
+
+      /* ---------- Per-item weight ---------- */
+
+      function applyWeightChip(btn, grams) {
+        const unknown = grams === null || grams === undefined;
+        btn.classList.toggle('is-unweighed', unknown);
+        btn.textContent = unknown ? '+ g' : formatGrams(grams);
+        btn.title = unknown ? 'No weight recorded — tap to add one' : 'Weight — tap to change';
+        btn.setAttribute('aria-label', unknown ? 'Add a weight' : `Weight ${formatGrams(grams)}. Change it`);
+      }
+
+      // Inline edit: the chip is replaced by a number input in place. Entered
+      // in grams, which is what gear is labelled in and avoids asking someone
+      // to type 0.09 for a headlamp.
+      function beginWeightEdit(item, chip) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'item-weight-input';
+        input.min = '0';
+        input.step = '1';
+        input.placeholder = 'grams';
+        if (item.weight !== null && item.weight !== undefined) input.value = item.weight;
+
+        let settled = false;
+        const restore = () => {
+          if (!input.parentNode) return;
+          input.parentNode.replaceChild(chip, input);
+        };
+
+        const commit = async () => {
+          if (settled) return;
+          settled = true;
+          const raw = input.value.trim();
+          const grams = raw === '' ? null : Math.max(0, Math.round(Number(raw)));
+          restore();
+          if (raw !== '' && !Number.isFinite(grams)) return;
+          if ((item.weight ?? null) === grams) return;
+
+          const previous = item.weight ?? null;
+          // Optimistic, like every other row edit on this page.
+          item.weight = grams;
+          const idx = items.findIndex(i => i.itemId === item.itemId);
+          if (idx !== -1) items[idx].weight = grams;
+          applyWeightChip(chip, grams);
+
+          try {
+            await api('/trips/' + tripId + '/items/' + encodeURIComponent(item.itemId), {
+              method: 'PATCH',
+              body: JSON.stringify({ weight: grams }),
+            });
+          } catch (err) {
+            item.weight = previous;
+            if (idx !== -1) items[idx].weight = previous;
+            applyWeightChip(chip, previous);
+            showToast('Could not save weight: ' + err.message, 'error');
+            return;
+          }
+          // The card's totals, split and per-category caveats all move with it.
+          loadWeight();
+        };
+
+        input.addEventListener('click', (e) => e.stopPropagation());
+        input.addEventListener('keydown', (e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          if (e.key === 'Escape') { e.preventDefault(); settled = true; restore(); }
+        });
+        input.addEventListener('blur', commit);
+
+        chip.parentNode.replaceChild(input, chip);
+        input.focus();
+        input.select();
       }
 
       /* ---------- Assignment ---------- */
@@ -3560,10 +3757,12 @@
           items.splice(index, 0, snapshot);   // put it back where it was
           renderCategories();
           updateProgress();
+          loadWeight();
           tpAlert('Could not remove item: ' + err.message, { variant: 'danger', title: 'Remove failed' });
           return;
         }
 
+        loadWeight();
         showToast(`Removed "${snapshot.name}"`, 'default', {
           label: 'Undo',
           onClick: () => restoreItem(snapshot, index),
@@ -3580,8 +3779,10 @@
               category: snapshot.category,
               // Carried across explicitly. The restore re-creates the row, so
               // anything not sent here is lost — an assigned item would come
-              // back unassigned, quietly dropping who was carrying it.
+              // back unassigned, quietly dropping who was carrying it, and a
+              // weighed one would come back unweighed.
               assignedTo: snapshot.assignedTo || null,
+              weight: snapshot.weight ?? null,
             }),
           });
           const restored = created && created.itemId ? created : { ...snapshot, itemId: undefined };
@@ -3602,6 +3803,7 @@
           items.splice(Math.min(index, items.length), 0, restored);
           renderCategories();
           updateProgress();
+          loadWeight();
           showToast(`Restored "${snapshot.name}"`, 'success');
         } catch (err) {
           tpAlert('Could not restore item: ' + err.message, { variant: 'danger', title: 'Restore failed' });
@@ -4664,6 +4866,168 @@
       function cwUnavailable() {
         document.getElementById('cw-meta').textContent = 'Estimate unavailable';
       }
+      /* ---------- Pack weight ---------- */
+
+      // Grams in, human string out. Kilograms once it is worth it — "1.85 kg"
+      // beats "1850 g" for a pack, "90 g" beats "0.09 kg" for a headlamp.
+      function formatGrams(g) {
+        const n = Number(g) || 0;
+        if (n < 1000) return `${Math.round(n)} g`;
+        return `${(n / 1000).toFixed(2)} kg`;
+      }
+
+      let weightSummary = null;
+
+      async function loadWeight() {
+        const body = document.getElementById('wt-body');
+        const meta = document.getElementById('wt-meta');
+        if (!body) return;
+
+        let data;
+        try {
+          data = await api('/trips/' + tripId + '/weight');
+        } catch (err) {
+          body.innerHTML = '<div class="cw-bar-note">Could not load pack weight: ' + escapeHtml(err.message) + '</div>';
+          return;
+        }
+        weightSummary = data;
+        renderWeight(data, body, meta);
+        renderTargetControl();
+      }
+
+      function renderWeight(data, body, meta) {
+        const total = data.totalGrams || 0;
+        const target = data.targetGrams;
+        const counts = data.counts || { items: 0, weighed: 0, unweighed: 0 };
+        const split = data.split || {};
+        const parts = [];
+
+        if (meta) meta.textContent = formatGrams(total);
+
+        // Target bar — only when a target exists. No target means no invented
+        // goal, so the card shows totals and nothing to measure them against.
+        if (target != null && target > 0) {
+          const pct = Math.min(100, Math.round((total / target) * 100));
+          const over = total > target;
+          parts.push(
+            '<div class="cw-bars">' +
+              '<div class="cw-bar">' +
+                '<div class="cw-bar-row">' +
+                  '<span class="cw-bar-label">🎒 Total vs target</span>' +
+                  '<span class="cw-bar-stat">' + escapeHtml(formatGrams(total)) + ' / ' + escapeHtml(formatGrams(target)) + '</span>' +
+                '</div>' +
+                '<div class="cw-bar-track"><div class="cw-bar-fill ' + (over ? 'over' : 'weight') + '" style="width:' + pct + '%"></div></div>' +
+                (over
+                  ? '<div class="cw-bar-note">' + escapeHtml(formatGrams(total - target)) + ' over target</div>'
+                  : '<div class="cw-bar-note">' + escapeHtml(formatGrams(target - total)) + ' to spare</div>') +
+              '</div>' +
+            '</div>'
+          );
+        }
+
+        // Base vs consumables, in the same two-tile shape the calorie card uses.
+        parts.push(
+          '<div class="cw-tiles">' +
+            '<div class="cw-tile">' +
+              '<div class="cw-tile-top">🧗 Base weight</div>' +
+              '<div class="cw-tile-big">' + escapeHtml(formatGrams(split.baseGrams || 0)) + '</div>' +
+              '<div class="cw-tile-sub">' + (split.baseItems || 0) + ' items carried throughout</div>' +
+            '</div>' +
+            '<div class="cw-tile">' +
+              '<div class="cw-tile-top">🍫 Consumables</div>' +
+              '<div class="cw-tile-big">' + escapeHtml(formatGrams(split.consumableGrams || 0)) + '</div>' +
+              '<div class="cw-tile-sub">' + (split.consumableItems || 0) + ' items eaten or burned</div>' +
+            '</div>' +
+          '</div>'
+        );
+
+        // Per-category breakdown. Bars are proportional to the heaviest
+        // category rather than to the total, so the smaller ones stay readable.
+        const cats = Array.isArray(data.byCategory) ? data.byCategory : [];
+        const heaviest = cats.reduce((m, c) => Math.max(m, c.grams || 0), 0);
+        if (cats.length) {
+          parts.push('<div class="cw-bars">' + cats.map(c => {
+            const pct = heaviest ? Math.round(((c.grams || 0) / heaviest) * 100) : 0;
+            const unweighed = c.unweighed || 0;
+            return '<div class="cw-bar">' +
+              '<div class="cw-bar-row">' +
+                '<span class="cw-bar-label">' + escapeHtml(c.category) + '</span>' +
+                '<span class="cw-bar-stat">' + escapeHtml(formatGrams(c.grams || 0)) + '</span>' +
+              '</div>' +
+              '<div class="cw-bar-track"><div class="cw-bar-fill wt-cat" style="width:' + pct + '%"></div></div>' +
+              (unweighed
+                ? '<div class="cw-bar-note"><span class="wt-cat-unweighed">' + unweighed + ' of ' + (c.items || 0) +
+                  ' not weighed</span> — this category is heavier than shown</div>'
+                : '') +
+            '</div>';
+          }).join('') + '</div>');
+        }
+
+        // The caveat that qualifies every number above it.
+        if (counts.unweighed > 0) {
+          parts.push(
+            '<div class="wt-caveat">' +
+              '<span aria-hidden="true">⚠️</span>' +
+              '<span><strong>' + counts.unweighed + ' of ' + counts.items + ' items have no weight yet.</strong> ' +
+              'The totals above count only the ' + counts.weighed + ' that do, so your real pack is heavier. ' +
+              'Tap the weight on any row to fill one in.</span>' +
+            '</div>'
+          );
+        }
+
+        body.innerHTML = parts.join('');
+      }
+
+      // Target editing. Kept minimal and in the header: without it the target
+      // bar could never appear in the product, since nothing else sets one.
+      function renderTargetControl() {
+        const host = document.getElementById('wt-target-host');
+        if (!host) return;
+        const target = weightSummary ? weightSummary.targetGrams : null;
+
+        host.innerHTML = '';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'wt-target-btn';
+        btn.textContent = target != null ? `Target ${formatGrams(target)}` : 'Set a target';
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.className = 'wt-target-input';
+          input.min = '0';
+          input.step = '0.1';
+          input.placeholder = 'kg';
+          if (target != null) input.value = (target / 1000).toFixed(2);
+
+          const commit = async () => {
+            const kg = input.value === '' ? null : parseFloat(input.value);
+            const grams = kg == null || Number.isNaN(kg) ? null : Math.max(0, Math.round(kg * 1000));
+            host.innerHTML = '';
+            try {
+              await api('/trips/' + tripId, { method: 'PUT', body: JSON.stringify({ weightTarget: grams }) });
+              await loadWeight();
+            } catch (err) {
+              showToast('Could not save target: ' + err.message, 'error');
+            }
+            renderTargetControl();
+          };
+
+          input.addEventListener('keydown', (ev) => {
+            ev.stopPropagation();
+            if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+            if (ev.key === 'Escape') { host.innerHTML = ''; renderTargetControl(); }
+          });
+          input.addEventListener('blur', commit);
+          host.innerHTML = '';
+          host.appendChild(input);
+          input.focus();
+          input.select();
+        });
+        host.appendChild(btn);
+      }
+
       async function loadCalorieWater() {
         try {
           const p = await api('/trips/' + tripId + '/provisions');
@@ -4791,6 +5155,7 @@
               renderCategories();
               sgRender();
               updateProgress();
+              loadWeight();
               const skipMsg = skipped > 0 ? ' (' + skipped + ' already on your list)' : '';
               showToast('Added ' + inserted + ' AI suggestion' + (inserted === 1 ? '' : 's') + skipMsg, 'success');
             } else if (skipped > 0) {
@@ -4870,6 +5235,7 @@
           // Also independent; smart gear reuses the items already fetched.
           loadWeatherHero();
           loadCalorieWater();
+          loadWeight();
           initSmartGearFilters();
           initSmartGearGenerate();
           sgRender();
