@@ -235,6 +235,44 @@ triggered on demand: `--scheduler-fixture` only sets up the trip, which then
 fires at 09:00 America/New_York. The `SentReminder` dedup row it writes is not
 exposed by any endpoint; only the backend logs show it.
 
+### 7. Verify the invite flow against a live backend
+
+[verify-invite.js](verify-invite.js) covers the other half of the collaboration
+flow: that inviting someone reaches them, and that what they receive is
+actionable. It reads the same two accounts from the environment as
+`verify-notify.js`.
+
+```bash
+node verify-invite.js
+```
+
+It walks the whole path rather than any single endpoint: A creates a trip and
+invites B → B gains one unread `trip-invitation` notification → that
+notification's `link` is present, relative, and carries the invite's real token
+→ **the link is fetched against the live frontend** to confirm it resolves 200
+with the token intact → B previews the invite and accepts → the trip appears in
+B's shared trips → A is notified that B joined.
+
+That fourth step is the one worth having. The stored link uses the `.html` form
+and Cloudflare's `auto-trailing-slash` rewrites it with a 307, so the check
+proves the query string survives the redirect. If it ever stops surviving, every
+invite notification silently lands on the accept page with no token — which is
+the exact dead end the deep link exists to remove.
+
+| Flag | Effect |
+|---|---|
+| `--no-cleanup` | keep the trip, invite and notifications the run created |
+| `--api <url>` | target a different backend |
+| `--frontend <url>` | target a different frontend origin for the deep-link check |
+
+The frontend origin is overridable rather than fixed because that is precisely
+the value that goes stale — `FRONTEND_URL` on Render still names the retired
+Netlify host for the same reason.
+
+Exit status is 0 only if every check passed. It doubles as a deployment check:
+the `link` field only exists in recent backend code, so a passing run proves
+what is actually deployed rather than inferring it from restart timing.
+
 ## Deployment
 
 The app deploys as three independent, free-tier services, each auto-deploying from GitHub:
