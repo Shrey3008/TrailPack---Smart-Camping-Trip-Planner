@@ -124,6 +124,11 @@ describe('joining a trip notifies the owner', () => {
       .send({ email: 'guest@test.com' });
     expect(invite.status).toBe(201);
 
+    // Creating the invite now notifies the guest — that is the point of the
+    // invite notification. Snapshot their count so the assertion below measures
+    // what accepting did, rather than everything that has ever reached them.
+    const guestNotesBeforeAccept = await Notification.countDocuments({ userId: 'guest-1' });
+
     const accept = await request(app)
       .post('/invites/accept')
       .set('Authorization', `Bearer ${guestToken}`)
@@ -135,8 +140,11 @@ describe('joining a trip notifies the owner', () => {
     expect(ownerNotes[0].message).toMatch(/Blake Guest/);
     expect(ownerNotes[0].message).toMatch(/Shared Trip/);
 
-    // The person who just clicked "accept" does not need telling.
-    expect(await Notification.countDocuments({ userId: 'guest-1' })).toBe(0);
+    // The person who just clicked "accept" does not need telling. Checked as a
+    // delta, because they were legitimately notified of the invitation itself
+    // a moment earlier; a bare count of 0 stopped being the right test for this
+    // once invites started reaching the invitee.
+    expect(await Notification.countDocuments({ userId: 'guest-1' })).toBe(guestNotesBeforeAccept);
   });
 
   test('being added as a participant notifies the person added', async () => {

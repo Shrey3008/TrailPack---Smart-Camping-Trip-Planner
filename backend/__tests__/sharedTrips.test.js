@@ -9,7 +9,7 @@ const request = require('supertest');
 
 const db = require('./helpers/db');
 const { app } = require('../server');
-const { User, Trip, Invite, Collaborator } = require('../models');
+const { User, Trip, Invite, Collaborator, Notification } = require('../models');
 
 const OWNER = { userId: 'owner-1', email: 'owner@test.com', name: 'Owner', role: 'user', isActive: true };
 const INVITEE = { userId: 'user-2', email: 'invitee@test.com', name: 'Invitee', role: 'user', isActive: true };
@@ -124,6 +124,85 @@ describe('POST /trips/:id/invites', () => {
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/already a collaborator/i);
+  });
+});
+
+describe('POST /trips/:id/invites — notifying the invited user', () => {
+  // Before this, the route's only delivery channel was email, which is off in
+  // production. An invite created a database row and told the recipient
+  // nothing, anywhere they could look.
+  const invite = (email) =>
+    request(app)
+      .post(`/trips/${TRIP_ID}/invites`)
+      .set('Authorization', `Bearer ${tokenFor(OWNER)}`)
+      .send({ email });
+
+  test('an invited user with an account is notified', async () => {
+    const res = await invite(INVITEE.email);
+    expect(res.status).toBe(201);
+
+    const notes = await Notification.find({ userId: INVITEE.userId }).lean();
+    expect(notes).toHaveLength(1);
+  });
+
+  test('the notification names the inviter and the trip, and is unread', async () => {
+    await invite(INVITEE.email);
+
+    const note = await Notification.findOne({ userId: INVITEE.userId }).lean();
+    expect(note.type).toBe('trip-invitation');
+    expect(note.message).toBe('Owner invited you to join "Epic Trip".');
+    expect(note.read).toBe(false);
+  });
+
+  test('it reaches the invitee, not the inviter', async () => {
+    await invite(INVITEE.email);
+
+    expect(await Notification.countDocuments({ userId: OWNER.userId })).toBe(0);
+    expect(await Notification.countDocuments({})).toBe(1);
+  });
+
+  test('a lookup by a differently-cased email still finds the account', async () => {
+    // The route lowercases before looking up; the notification must not be
+    // silently skipped just because the invite was typed in mixed case.
+    const res = await invite(INVITEE.email.toUpperCase());
+
+    expect(res.status).toBe(201);
+    expect(await Notification.countDocuments({ userId: INVITEE.userId })).toBe(1);
+  });
+
+  test('an email with no account is skipped, not errored', async () => {
+    // KNOWN LIMITATION, pinned here so it is a decision rather than a
+    // regression: there is no userId to write a row for, so nothing is
+    // notified and the invite still succeeds.
+    const res = await invite('nobody@nowhere.test');
+
+    expect(res.status).toBe(201);
+    expect(res.body.token).toBeTruthy();
+    expect(await Invite.countDocuments({ email: 'nobody@nowhere.test' })).toBe(1);
+    expect(await Notification.countDocuments({})).toBe(0);
+  });
+
+  test('a rejected invite notifies nobody', async () => {
+    await Collaborator.create({ tripId: TRIP_ID, userId: INVITEE.userId, email: INVITEE.email });
+
+    const res = await invite(INVITEE.email);
+    expect(res.status).toBe(400);
+    expect(await Notification.countDocuments({})).toBe(0);
+  });
+
+  test('the accept-time notification to the owner still fires as well', async () => {
+    // The invite notification is additive; it must not have displaced the one
+    // that already existed at the other end of the flow.
+    const created = await invite(INVITEE.email);
+    await request(app)
+      .post('/invites/accept')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
+      .send({ token: created.body.token });
+
+    const ownerNotes = await Notification.find({ userId: OWNER.userId }).lean();
+    expect(ownerNotes).toHaveLength(1);
+    expect(ownerNotes[0].message).toMatch(/joined your trip/);
+    expect(await Notification.countDocuments({ userId: INVITEE.userId })).toBe(1);
   });
 });
 

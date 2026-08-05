@@ -59,10 +59,38 @@ router.post('/trips/:tripId/invites', authenticate, async (req, res) => {
       || 'http://localhost:8080';
     const acceptUrl = `${frontend.replace(/\/$/, '')}/accept-invite.html?token=${invite.token}`;
 
+    const tripCtx = await sharedTrips.getTrip(tripId);
+
+    // Tell the invited user, in the app, that they have been invited.
+    //
+    // Until now this route had exactly one delivery channel — email — and it is
+    // switched off in production (DISABLE_EMAIL=true), so an invitation
+    // produced a row in the database and silence everywhere the recipient
+    // could actually look. The only notification the whole invite flow emitted
+    // went to the *owner*, on acceptance, which the recipient had no way to
+    // reach.
+    //
+    // `existing` is the invitee's account, already resolved above for the
+    // "already a collaborator" check, so the userId notify() needs is in hand.
+    //
+    // KNOWN LIMITATION: an invite addressed to an email with no TrailPack
+    // account has no userId to notify, and is skipped here rather than treated
+    // as an error — there is nobody to write a row for yet. That person's only
+    // route in remains the invite email, which is disabled in production, so in
+    // practice inviting someone who has not signed up still reaches them only
+    // if the owner sends them the accept link by hand. Fixing that needs either
+    // email re-enabled or an invite claimed at signup; neither is in scope here.
+    if (existing) {
+      const who = req.user.name || req.user.email || 'Someone';
+      const tripName = tripCtx && tripCtx.trip ? tripCtx.trip.name : 'a trip';
+      // Fail-soft by construction (see services/notify.js): the invite is
+      // already created and must not be undone by a notification write.
+      await notify(existing.userId, 'trip-invitation', `${who} invited you to join "${tripName}".`);
+    }
+
     // Fire-and-forget invite email. No-ops when the email service isn't configured.
     try {
       const emailService = require('../services/emailService');
-      const tripCtx = await sharedTrips.getTrip(tripId);
       const tripForEmail = tripCtx ? tripCtx.trip : { name: 'a camping trip' };
       emailService.sendTripInvitation(
         normalizedEmail,
