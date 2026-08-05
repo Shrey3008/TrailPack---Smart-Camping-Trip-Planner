@@ -155,6 +155,17 @@
         width: 7px; height: 7px; border-radius: 50%;
         background: #2d6a4f; flex-shrink: 0; margin-top: 6px; margin-left: auto;
       }
+      /* Chevron on rows that go somewhere. Without it a tappable row and an
+         inert one look identical, and the only way to find out is to tap. */
+      .tp-note__go {
+        margin-left: auto; align-self: center;
+        color: #6b7280; font-size: 18px; line-height: 1; flex-shrink: 0;
+      }
+      .tp-note.has-link { cursor: pointer; }
+      .tp-note.has-link:hover .tp-note__go { color: #2d6a4f; }
+      /* The unread dot also claims margin-left:auto; when both are present the
+         chevron takes the gap and the dot sits next to it. */
+      .tp-note__go + .tp-note__dot { margin-left: 8px; }
 
       .tp-bell-empty { padding: 30px 20px; text-align: center; color: #6b7280; }
       .tp-bell-empty__icon { font-size: 22px; display: block; margin-bottom: 8px; }
@@ -225,15 +236,20 @@
           </div>`;
         return;
       }
-      list.innerHTML = notes.map(n => `
-        <button type="button" class="tp-note${n.read ? '' : ' is-unread'}" data-id="${escapeHtml(n.notifId)}">
+      list.innerHTML = notes.map(n => {
+        const link = safeLink(n.link);
+        return `
+        <button type="button" class="tp-note${n.read ? '' : ' is-unread'}${link ? ' has-link' : ''}"
+                data-id="${escapeHtml(n.notifId)}"${link ? ` data-link="${escapeHtml(link)}"` : ''}>
           <span class="tp-note__icon" aria-hidden="true">${ICONS[n.type] || '🔔'}</span>
           <span class="tp-note__body">
             <span class="tp-note__msg">${escapeHtml(n.message)}</span>
             <span class="tp-note__time">${escapeHtml(relativeTime(n.createdAt))}</span>
           </span>
+          ${link ? '<span class="tp-note__go" aria-hidden="true">›</span>' : ''}
           ${n.read ? '' : '<span class="tp-note__dot" aria-label="unread"></span>'}
-        </button>`).join('');
+        </button>`;
+      }).join('');
     }
 
     async function load() {
@@ -271,9 +287,27 @@
       setOpen(!panel.classList.contains('open'));
     });
 
+    // Only ever navigate to a path on this origin. The backend already refuses
+    // to store anything else, but the value arrives over the network and ends up
+    // in window.location, so it is checked again here rather than trusted twice
+    // over — an absolute or protocol-relative value would be an open redirect.
+    function safeLink(link) {
+      if (!link || typeof link !== 'string') return '';
+      const trimmed = link.trim();
+      if (!trimmed) return '';
+      if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed) || trimmed.startsWith('//')) return '';
+      return trimmed.replace(/^\/+/, '');
+    }
+
     list.addEventListener('click', e => {
       const row = e.target.closest('.tp-note');
-      if (row) markRead(row.dataset.id);
+      if (!row) return;
+      markRead(row.dataset.id);
+      // Marking read is optimistic and its request is fire-and-forget, so
+      // navigating straight away does not lose it — the row is already painted
+      // read, and the next load reconciles if the PUT failed.
+      const target = safeLink(row.dataset.link);
+      if (target) window.location.href = target;
     });
 
     markAll.addEventListener('click', async () => {

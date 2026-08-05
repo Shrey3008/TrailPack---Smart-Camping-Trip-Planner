@@ -350,3 +350,88 @@ describe('GET /shared-trips/mine', () => {
     expect(res.body.trips).toEqual([]);
   });
 });
+
+describe('the invite notification carries somewhere to go', () => {
+  // Without a link the notification is a visible dead end: accept-invite.html
+  // is reachable only with a token, and nothing else in the app hands the
+  // invitee one.
+  const { _internals: { sanitizeLink } } = require('../services/notify');
+
+  const invite = (email) =>
+    request(app)
+      .post(`/trips/${TRIP_ID}/invites`)
+      .set('Authorization', `Bearer ${tokenFor(OWNER)}`)
+      .send({ email });
+
+  test('the notification links to accept-invite with the real token', async () => {
+    const res = await invite(INVITEE.email);
+
+    const note = await Notification.findOne({ userId: INVITEE.userId }).lean();
+    expect(note.link).toBe(`accept-invite.html?token=${encodeURIComponent(res.body.token)}`);
+  });
+
+  test('the link is relative, so it resolves against whichever host serves the app', async () => {
+    // FRONTEND_URL still points at the retired Netlify site; an absolute link
+    // stored now would send every future tap there.
+    await invite(INVITEE.email);
+
+    const note = await Notification.findOne({ userId: INVITEE.userId }).lean();
+    expect(note.link).not.toMatch(/^https?:/);
+    expect(note.link).not.toMatch(/^\/\//);
+    expect(note.link.startsWith('accept-invite.html')).toBe(true);
+  });
+
+  test('the token in the link actually works', async () => {
+    // The whole point: follow the link and be able to accept.
+    await invite(INVITEE.email);
+    const note = await Notification.findOne({ userId: INVITEE.userId }).lean();
+    const token = new URLSearchParams(note.link.split('?')[1]).get('token');
+
+    const accept = await request(app)
+      .post('/invites/accept')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
+      .send({ token });
+
+    expect(accept.status).toBe(200);
+    expect(await Collaborator.countDocuments({ tripId: TRIP_ID, userId: INVITEE.userId })).toBe(1);
+  });
+
+  test('notifications with nowhere to go have a null link', async () => {
+    const created = await invite(INVITEE.email);
+    await request(app)
+      .post('/invites/accept')
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`)
+      .send({ token: created.body.token });
+
+    // The owner's "someone joined" notification has no destination.
+    const ownerNote = await Notification.findOne({ userId: OWNER.userId }).lean();
+    expect(ownerNote.link).toBeNull();
+  });
+
+  describe('link sanitising', () => {
+    // A stored link becomes a navigation target, so anything that could point
+    // off-site is refused at write time rather than relied on downstream.
+    test('keeps a relative path', () => {
+      expect(sanitizeLink('accept-invite.html?token=abc')).toBe('accept-invite.html?token=abc');
+    });
+
+    test('strips a leading slash so it stays origin-relative', () => {
+      expect(sanitizeLink('/accept-invite.html')).toBe('accept-invite.html');
+    });
+
+    test('refuses absolute and protocol-relative URLs', () => {
+      expect(sanitizeLink('https://evil.example/steal')).toBeNull();
+      expect(sanitizeLink('http://evil.example')).toBeNull();
+      expect(sanitizeLink('//evil.example')).toBeNull();
+      expect(sanitizeLink('javascript:alert(1)')).toBeNull();
+    });
+
+    test('treats empty and non-string input as no link', () => {
+      expect(sanitizeLink('')).toBeNull();
+      expect(sanitizeLink('   ')).toBeNull();
+      expect(sanitizeLink(null)).toBeNull();
+      expect(sanitizeLink(undefined)).toBeNull();
+      expect(sanitizeLink(42)).toBeNull();
+    });
+  });
+});

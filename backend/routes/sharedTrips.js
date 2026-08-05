@@ -83,9 +83,21 @@ router.post('/trips/:tripId/invites', authenticate, async (req, res) => {
     if (existing) {
       const who = req.user.name || req.user.email || 'Someone';
       const tripName = tripCtx && tripCtx.trip ? tripCtx.trip.name : 'a trip';
+      // The token goes with it, so tapping the notification lands on the page
+      // that can actually accept. Without it the notification is a dead end:
+      // accept-invite.html is reachable only with a token, and nothing else in
+      // the app hands one to the invitee. Relative, not the acceptUrl above —
+      // that one is absolute and built from FRONTEND_URL, which still points at
+      // the retired Netlify host.
+      const acceptPath = `accept-invite.html?token=${encodeURIComponent(invite.token)}`;
       // Fail-soft by construction (see services/notify.js): the invite is
       // already created and must not be undone by a notification write.
-      await notify(existing.userId, 'trip-invitation', `${who} invited you to join "${tripName}".`);
+      await notify(
+        existing.userId,
+        'trip-invitation',
+        `${who} invited you to join "${tripName}".`,
+        acceptPath
+      );
     }
 
     // Fire-and-forget invite email. No-ops when the email service isn't configured.

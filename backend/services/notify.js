@@ -13,10 +13,30 @@
 // must never fail the thing the user actually asked for.
 const { Notification } = require('../models');
 
-async function notify(userId, type, message) {
+// `link` is optional and, when given, must be a path relative to the app's own
+// origin — see models/Notification.js for why absolute URLs are the wrong thing
+// to store. Anything with a scheme or a protocol-relative "//" prefix is
+// dropped rather than saved: the notification list is rendered as clickable
+// rows, so a stored link is a navigation target, and a target that can point
+// off-site is an open redirect waiting for the first caller that builds one
+// out of user input.
+function sanitizeLink(link) {
+  if (!link || typeof link !== 'string') return null;
+  const trimmed = link.trim();
+  if (!trimmed) return null;
+  if (/^[a-z][a-z0-9+.-]*:/i.test(trimmed) || trimmed.startsWith('//')) {
+    console.warn(`[notify] refusing non-relative link: ${trimmed}`);
+    return null;
+  }
+  return trimmed.replace(/^\/+/, '');
+}
+
+async function notify(userId, type, message, link = null) {
   if (!userId || !message) return null;
   try {
-    const doc = await Notification.create({ userId, type, message, read: false });
+    const doc = await Notification.create({
+      userId, type, message, read: false, link: sanitizeLink(link),
+    });
     return doc;
   } catch (err) {
     // Logged, not thrown — see above.
@@ -25,4 +45,4 @@ async function notify(userId, type, message) {
   }
 }
 
-module.exports = { notify };
+module.exports = { notify, _internals: { sanitizeLink } };
