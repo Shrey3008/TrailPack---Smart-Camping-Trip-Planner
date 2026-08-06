@@ -6,10 +6,10 @@ A web app that helps campers and backpackers plan trips by generating smart pack
 
 ## Live Demo
 
-- **App:** https://mytrailpack.netlify.app
+- **App:** https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev
 - **Backend API:** https://trailpack-smart-camping-trip-planner.onrender.com
 
-The frontend is a static site on Netlify; the backend is a Node/Express API on Render backed by MongoDB Atlas. The backend is on Render's free tier, so the first request after a period of inactivity can take 30–60s to wake up.
+The frontend is a static site on Cloudflare Workers; the backend is a Node/Express API on Render backed by MongoDB Atlas. The backend is on Render's free tier, so the first request after a period of inactivity can take 30–60s to wake up.
 
 ## Features
 
@@ -49,14 +49,14 @@ The frontend is a static site on Netlify; the backend is a Node/Express API on R
 
 | Layer | Tech |
 |---|---|
-| Frontend | Vanilla HTML / CSS / JS (no framework) — static hosting on Netlify |
+| Frontend | Vanilla HTML / CSS / JS (no framework) — static hosting on Cloudflare Workers |
 | Backend | Node.js + Express, deployed to Render |
 | Database | MongoDB Atlas (Mongoose ODM) |
 | Auth | JWT (`jsonwebtoken`) + bcrypt |
 | Email | Gmail SMTP via nodemailer (no-op if unconfigured) |
 | AI | Groq (primary), OpenAI (legacy) |
 | Weather | OpenWeatherMap (current + forecast), Open-Meteo (geocoding + UV, no key) |
-| Hosting | Netlify (frontend) + Render (backend API) + MongoDB Atlas (database) |
+| Hosting | Cloudflare Workers (frontend) + Render (backend API) + MongoDB Atlas (database) |
 
 ## Project Structure
 
@@ -278,7 +278,7 @@ what is actually deployed rather than inferring it from restart timing.
 The app deploys as three independent, free-tier services, each auto-deploying from GitHub:
 
 ```
-   browser ──HTTPS──▶  Netlify (static frontend)
+   browser ──HTTPS──▶  Cloudflare Workers (static frontend)
                               │
                               │ fetch (CORS)
                               ▼
@@ -290,22 +290,78 @@ The app deploys as three independent, free-tier services, each auto-deploying fr
 
 | Component | Service | Notes |
 |---|---|---|
-| Frontend hosting | Netlify | Publish directory: `frontend`, no build step (static site) |
+| Frontend hosting | Cloudflare Workers | Assets-only Worker serving `frontend/`, no build step — see [wrangler.jsonc](wrangler.jsonc) |
 | Backend hosting | Render | Root dir: `backend`, build: `npm install`, start: `node server.js`, health check: `/health` |
 | Database | MongoDB Atlas | Free M0 cluster (512 MB) |
 | Email | Gmail SMTP via nodemailer | Set `EMAIL_USER` / `EMAIL_PASS` (Google App Password), or leave unset to no-op |
 
-Both Netlify and Render redeploy automatically on every push to the connected branch (`dev`). There is no manual deploy script — push to Git and the platforms handle the rest.
+Both platforms redeploy automatically on every push to the connected branch
+(`dev`). There is no manual deploy script — push to Git and the platforms handle
+the rest. In practice Cloudflare serves the new frontend within about a minute
+of a push.
+
+### Frontend on Cloudflare Workers
+
+Cloudflare folded Pages into Workers, so the frontend is a **Worker with static
+assets** rather than a Pages project. [wrangler.jsonc](wrangler.jsonc) is what
+makes that work; without it `npx wrangler deploy` has nothing to ship, because
+the repo root holds no static files of its own.
+
+It is an **assets-only Worker** — there is no `main` entry point, which Wrangler
+supports for a site with no server-side logic. Two settings are pinned there
+rather than left implicit, because both are load-bearing:
+
+- `html_handling: "auto-trailing-slash"` — `/login` serves `login.html`, and
+  `/login.html` 307-redirects to `/login`. Existing `*.html` links keep working
+  through that redirect, and **query strings survive it**, which matters for
+  links like `accept-invite.html?token=…`.
+- `not_found_handling: "none"` — TrailPack is a multi-page app. An unknown path
+  is a genuine 404 and must not be rewritten to `index.html`, which is what the
+  single-page-application setting would do and what would quietly turn every
+  broken link into a blank dashboard.
+
+The `name` in `wrangler.jsonc` must match the Worker the dashboard created.
+Cloudflare's Git integration overrides a mismatch on its own builds, so a wrong
+name still deploys — but `npx wrangler deploy` run locally honours the file and
+would create a **second, separate Worker** on a different URL, with the first
+still live and nothing to connect the two.
+
+The quickest way to confirm a deploy landed is to byte-compare what the Worker
+serves against the commit, rather than inferring it from timing.
+
+### Known stale configuration
+
+`FRONTEND_URL` on Render still points at the frontend's previous host. It is
+only used to build absolute links inside outbound email, which is inert while
+`DISABLE_EMAIL=true`, so nothing user-facing depends on it today — but it will
+be wrong the moment email is switched back on. This is also why notification
+`link` values are stored **relative** rather than absolute: a link built from
+that variable and written into a database row would outlive the host it names.
 
 ### CORS
 
 The backend allowlist ([backend/server.js](backend/server.js)) is built from:
 
-1. Any `*.netlify.app` subdomain, hardcoded as a default
-2. Anything in the `CORS_ALLOWED_ORIGINS` env var (comma-separated, supports `*.subdomain` wildcards)
+1. A hardcoded `*.netlify.app` default — **a leftover from the previous host**,
+   still in the code and still matching, but no longer how the live frontend is
+   allowed. It is documented here because it is real, not because it is useful.
+2. Anything in the `CORS_ALLOWED_ORIGINS` env var (comma-separated, supports
+   `*.subdomain` wildcards)
 3. Localhost on any port (always allowed)
 
-To allow a new origin in production, set `CORS_ALLOWED_ORIGINS` in the Render dashboard's Environment tab and let it redeploy.
+The Cloudflare frontend is allowed through **(2)**: `CORS_ALLOWED_ORIGINS` holds
+the exact Worker origin. Two details of the parser are easy to get wrong and
+fail silently:
+
+- It splits on **commas only**. Space, semicolon and newline separators produce
+  one entry that matches nothing.
+- Non-wildcard entries are compared **exactly** against the `Origin` header, so
+  they need the scheme and no trailing slash. Wildcards are the opposite — they
+  start with `*.` and carry no scheme.
+
+To allow a new origin in production, set `CORS_ALLOWED_ORIGINS` in the Render
+dashboard's Environment tab. Saving restarts the service, which is how the new
+value is read.
 
 ## API Reference (overview)
 
