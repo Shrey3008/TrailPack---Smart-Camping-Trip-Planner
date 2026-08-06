@@ -342,16 +342,15 @@ that variable and written into a database row would outlive the host it names.
 
 The backend allowlist ([backend/server.js](backend/server.js)) is built from:
 
-1. A hardcoded `*.netlify.app` default — **a leftover from the previous host**,
-   still in the code and still matching, but no longer how the live frontend is
-   allowed. It is documented here because it is real, not because it is useful.
-2. Anything in the `CORS_ALLOWED_ORIGINS` env var (comma-separated, supports
+1. Anything in the `CORS_ALLOWED_ORIGINS` env var (comma-separated, supports
    `*.subdomain` wildcards)
-3. Localhost on any port (always allowed)
+2. Localhost on any port, and requests with no `Origin` at all — both
+   unconditional, so local development works with nothing configured
 
-The Cloudflare frontend is allowed through **(2)**: `CORS_ALLOWED_ORIGINS` holds
-the exact Worker origin. Two details of the parser are easy to get wrong and
-fail silently:
+There is **no hardcoded production origin**. Adding a frontend origin is a
+config change, not a code change. The Cloudflare frontend is allowed through
+**(1)**: `CORS_ALLOWED_ORIGINS` holds the exact Worker origin. Two details of
+the parser are easy to get wrong and fail silently:
 
 - It splits on **commas only**. Space, semicolon and newline separators produce
   one entry that matches nothing.

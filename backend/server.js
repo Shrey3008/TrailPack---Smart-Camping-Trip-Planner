@@ -28,21 +28,23 @@ app.set('trust proxy', 1);
 // CORS configuration
 // - Always allows requests with no Origin (e.g., same-origin, curl, server-to-server).
 // - Always allows localhost / 127.0.0.1 on any port for local development.
-// - Always allows any *.netlify.app subdomain (TrailPack's public UI on Netlify).
-// - Additional origins can be whitelisted via the CORS_ALLOWED_ORIGINS env var
-//   as a comma-separated list. Supports exact strings or a leading "*." wildcard
-//   to match any subdomain (e.g., "*.netlify.app,https://trailpack.com").
-const defaultOrigins = [
-  // Netlify-hosted production frontend (any deploy/branch subdomain).
-  '*.netlify.app',
-];
-
-const extraOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+// - Every other allowed origin comes from the CORS_ALLOWED_ORIGINS env var, as a
+//   comma-separated list. Entries are either exact strings (scheme included, no
+//   trailing slash) or a leading "*." wildcard matching any subdomain
+//   (e.g. "https://trailpack.com,*.example.dev").
+//
+// There is deliberately no hardcoded production origin. There used to be one —
+// '*.netlify.app', from when the frontend was hosted there — and it outlived
+// the arrangement: the frontend moved to Cloudflare, Netlify stopped serving,
+// and the entry kept quietly granting access to every subdomain of a host this
+// app no longer uses. A default that survives the thing it was added for is
+// worse than no default, because nobody rereads it.
+//
+// Adding a new frontend origin is a config change, not a code change.
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
   .split(',')
   .map(s => s.trim())
   .filter(Boolean);
-
-const allowedOrigins = [...defaultOrigins, ...extraOrigins];
 
 function isOriginAllowed(origin) {
   if (!origin) return true;
