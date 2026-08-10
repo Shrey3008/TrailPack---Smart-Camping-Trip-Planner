@@ -269,6 +269,11 @@ async function loadSharedTrips() {
       ? response
       : (response && Array.isArray(response.trips) ? response.trips : []);
     if (trips.length === 0) {
+      // Clear before hiding. Losing access to the last shared trip hid the
+      // section but left its cards in the DOM, so anything that reveals the
+      // section again — or reads it, as the trip-card enhancer's
+      // MutationObserver does — still saw trips that are no longer shared.
+      container.innerHTML = '';
       section.style.display = 'none';
       return;
     }
