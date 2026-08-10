@@ -227,6 +227,125 @@
     .disc-link-item:hover { color: #2d6a4f; text-decoration: underline; }
     @media (max-width: 720px) { .disc-link-cols { grid-template-columns: 1fr; gap: 22px; } }
 
+    /* ---------- Terrain filter pills ----------
+       Active state is a class, not inline styles rewritten by JS, so the
+       pressed pill is expressible in CSS and readable to assistive tech via
+       aria-pressed. */
+    .disc-pill-row {
+      display: flex;
+      gap: 8px;
+      padding: 16px 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .disc-pill-row[hidden] { display: none; }
+    .disc-pill {
+      padding: 7px 16px;
+      border-radius: 9999px;
+      border: 1.5px solid #d1d5db;
+      background: #fff;
+      color: #374151;
+      font-size: .82rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .disc-pill:hover { border-color: #9ca3af; color: #111; }
+    .disc-pill.is-active {
+      background: #2d6a4f;
+      border-color: #2d6a4f;
+      color: #fff;
+    }
+
+    /* Shown when a terrain filter hides every result. */
+    .disc-pill-empty {
+      grid-column: 1 / -1;
+      padding: 40px 20px;
+      text-align: center;
+      color: #6b7280;
+      font-size: .9rem;
+    }
+
+    /* =====================================================================
+       Discover results + map.
+       The two-column layout used to be written to #discoverGrid's style
+       attribute by fetchDiscoverTrails(), so no media query could reach it:
+       below ~1000px the fixed 420px map column starved the results column
+       (measured at a 510px viewport: `20px 420px`, giving 2px-wide trail
+       cards). Layout is expressed here instead and JS only toggles a class. */
+    .disc-res-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;          /* header crushed into overlapping text at 375px */
+      margin-bottom: 20px;
+    }
+    .disc-res-back {
+      flex-shrink: 0;
+      padding: 7px 14px;
+      border-radius: 9999px;
+      border: 1.5px solid #d1d5db;
+      background: #fff;
+      color: #374151;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .disc-res-back:hover { border-color: #9ca3af; color: #111; }
+
+    .disc-results-grid {
+      display: grid;
+      grid-template-columns: 1fr;   /* full width while the map is hidden */
+      gap: 24px;
+      align-items: start;
+    }
+    /* Added by fetchDiscoverTrails() when the map is revealed. */
+    .disc-results-grid.has-map { grid-template-columns: 1fr 420px; }
+
+    .disc-results-cards {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      min-width: 0;                 /* let the column shrink instead of overflowing */
+    }
+    .disc-results-placeholder {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 70px 0;
+      gap: 14px;
+      text-align: center;
+    }
+
+    .disc-map-wrap {
+      position: sticky;
+      top: 80px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0,0,0,.10);
+      border: 1px solid rgba(0,0,0,.08);
+      min-width: 0;
+    }
+    #discoverMap { height: 580px; }
+
+    /* Tablet and below: the map stops being a sidebar and becomes a full-width
+       block under the results. Sticky is dropped with it — pinning a
+       full-width block to the top of the viewport would cover the list it is
+       supposed to accompany. */
+    @media (max-width: 900px) {
+      .disc-results-grid.has-map { grid-template-columns: 1fr; }
+      .disc-map-wrap { position: static; }
+      #discoverMap { height: 380px; }
+    }
+    @media (max-width: 640px) {
+      .disc-results-cards { grid-template-columns: 1fr; }
+      #discoverMap { height: 300px; }
+    }
+
     /* ---------- More to Discover (collapsible) ---------- */
     .disc-more-wrap {
       margin: 6px 0 28px;
@@ -431,11 +550,8 @@
   <div style="background:#fff; padding:28px 28px 0; border-bottom:1px solid rgba(0,0,0,.09);">
     <div style="max-width:1240px; margin:0 auto;">
 
-      <!-- Tabs -->
-      <div style="display:flex; gap:2px; margin-bottom:18px;">
-        <button onclick="setDiscoverTab(this)" style="padding:8px 18px; border-radius:9999px; font-size:.875rem; font-weight:600; border:1.5px solid #374151; background:#fff; color:#111; cursor:pointer; font-family:inherit;">Destination</button>
-        <button onclick="setDiscoverTab(this)" style="padding:8px 18px; border-radius:9999px; font-size:.875rem; font-weight:600; border:1.5px solid transparent; background:none; color:#6b7280; cursor:pointer; font-family:inherit;">Road Trip</button>
-      </div>
+      <!-- The Destination/Road Trip tab row was removed: setDiscoverTab() only
+           recoloured the two buttons and there is no road-trip search. -->
 
       <!-- Search Bar -->
       <div style="position:relative; width:100%;">
@@ -469,16 +585,11 @@
             </div>
           </div>
 
-          <div style="width:1px; background:#e5e7eb; height:30px; flex-shrink:0;"></div>
-
-          <!-- Difficulty Field -->
-          <div onclick="cycleDiscoverDifficulty()" style="display:flex; align-items:center; gap:10px; padding:0 20px; cursor:pointer; min-width:126px; height:100%; border-radius:9999px; border:none; background:none;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            <div>
-              <span style="font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#374151; display:block;">Difficulty</span>
-              <span id="discoverDiffDisplay" style="font-size:.855rem; color:#6b7280;">Any level</span>
-            </div>
-          </div>
+          <!-- The Difficulty field was removed. It cycled a label that the
+               search never read, and it cannot be honestly wired: the Overpass
+               query returns parks, nature reserves and campsites, which have no
+               difficulty concept, and `sac_scale` is absent from the large
+               majority of the hiking relations that do support it. -->
 
           <!-- Search Button -->
           <button onclick="triggerDiscoverSearch()" style="background:#2d6a4f; color:#fff; border:none; border-radius:9999px; padding:0 22px; font-size:.84rem; font-weight:700; display:flex; align-items:center; gap:7px; height:40px; margin:6px 6px 6px 0; white-space:nowrap; cursor:pointer; font-family:inherit;">
@@ -518,16 +629,22 @@
         </div>
       </div>
 
-      <!-- Filter Pills -->
-      <div style="display:flex; gap:8px; padding:16px 0; overflow-x:auto; scrollbar-width:none;">
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #111; background:#111; color:#fff; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">All Trails</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">🌲 Forest</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">⛰️ Mountain</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">🏖️ Beach / Lake</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">🏜️ Desert</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">Free Entry</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">Easy Difficulty</button>
-        <button class="disc-pill" onclick="setDiscoverPill(this)" style="padding:7px 16px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.82rem; font-weight:500; white-space:nowrap; cursor:pointer; font-family:inherit;">Open Now</button>
+      <!-- Terrain filter pills.
+           These filter the rendered results by the same classification
+           discoverTerrain() already prints on each card as a badge, so the
+           control acts on something the user can see. Hidden until a search
+           has actually returned results — there is nothing to filter on the
+           Discover home view, and a pill that does nothing is what this row
+           used to be.
+           "Free Entry", "Easy Difficulty" and "Open Now" were removed: none of
+           fee, difficulty or opening hours is fetched by the Overpass query,
+           and the first two were reading invented data. -->
+      <div class="disc-pill-row" id="discoverPillRow" hidden>
+        <button class="disc-pill is-active" data-terrain="all" onclick="setDiscoverPill(this)">All Trails</button>
+        <button class="disc-pill" data-terrain="Forest" onclick="setDiscoverPill(this)">🌲 Forest</button>
+        <button class="disc-pill" data-terrain="Mountain" onclick="setDiscoverPill(this)">⛰️ Mountain</button>
+        <button class="disc-pill" data-terrain="Lake / Water" onclick="setDiscoverPill(this)">🏖️ Beach / Lake</button>
+        <button class="disc-pill" data-terrain="Desert" onclick="setDiscoverPill(this)">🏜️ Desert</button>
       </div>
 
     </div>
@@ -724,26 +841,26 @@
 
   <!-- Results + Map (hidden until first search; revealed by fetchDiscoverTrails). -->
   <div id="discoverResultsBlock" style="display:none; max-width:1240px; margin:0 auto; padding:24px 28px;">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+    <div class="disc-res-head">
       <div id="discoverResCount" style="font-size:.875rem; color:#6b7280;">
         Click <strong style="color:#111;">Search Trails</strong> or choose <strong style="color:#111;">Nearby</strong> to discover trails
       </div>
-      <div style="font-size:.8rem; color:#9ca3af;">Nearest first</div>
-      <button type="button" onclick="discoverHomeShow()" style="margin-left:14px; padding:7px 14px; border-radius:9999px; border:1.5px solid #d1d5db; background:#fff; color:#374151; font-size:.8rem; font-weight:600; cursor:pointer; font-family:inherit;">← Back to Discover</button>
+      <button type="button" class="disc-res-back" onclick="discoverHomeShow()">← Back to Discover</button>
     </div>
-    <!-- Grid columns are switched to "1fr" while the map is hidden so the
-         results panel uses the full width; flipped back to "1fr 420px" the
-         first time fetchDiscoverTrails() runs (Nearby / city pick / Search). -->
-    <div id="discoverGrid" style="display:grid; grid-template-columns:1fr; gap:24px; align-items:start;">
-      <div id="discoverTrailResults" style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;">
-        <div style="grid-column:1/-1; display:flex; flex-direction:column; align-items:center; padding:70px 0; gap:14px; text-align:center;">
+    <!-- Layout lives in CSS (.disc-results-grid), not in inline styles set by
+         JS. fetchDiscoverTrails() adds .has-map once the map is revealed; the
+         media queries below can then override the two-column rule, which they
+         could not do while the columns were written to the style attribute. -->
+    <div id="discoverGrid" class="disc-results-grid">
+      <div id="discoverTrailResults" class="disc-results-cards">
+        <div class="disc-results-placeholder">
           <div style="font-size:4.5rem;">🗺️</div>
           <h3 style="font-size:1.1rem; font-weight:700;">Discover trails near you</h3>
           <p style="font-size:.875rem; color:#6b7280; max-width:30ch;">Select a city or click Nearby to find real trails on the live map</p>
         </div>
       </div>
-      <div id="discoverMapWrap" style="position:sticky; top:80px; border-radius:14px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.10); border:1px solid rgba(0,0,0,.08); display:none;">
-        <div id="discoverMap" style="height:580px;"></div>
+      <div id="discoverMapWrap" class="disc-map-wrap" style="display:none;">
+        <div id="discoverMap"></div>
       </div>
     </div>
   </div>
@@ -884,8 +1001,9 @@
   // ===== DISCOVER TRAILS =====
   let discoverMap, discoverUserLat, discoverUserLon, discoverRadiusMi = 25;
   let discoverDDOpen = false, discoverRPOpen = false;
-  let discoverDiffIdx = 0, discoverDebT = null;
-  const DISCOVER_DIFFS = ['Any level','Easy','Moderate','Hard'];
+  let discoverDebT = null;
+  // Terrain currently selected in the filter pill row ('all' = no filter).
+  let discoverActiveTerrain = 'all';
   const DISCOVER_PHOTOS = {
     forest:   'https://picsum.photos/seed/greenforest99/600/450',
     mountain: 'https://picsum.photos/seed/alpinepeak77/600/450',
@@ -1042,28 +1160,55 @@
   function discoverHomeShow() {
     const home = document.getElementById('discoverHomeContent');
     const res  = document.getElementById('discoverResultsBlock');
+    const pills = document.getElementById('discoverPillRow');
     if (home) home.style.display = '';
     if (res)  res.style.display  = 'none';
+    // Nothing to filter on the home view.
+    if (pills) pills.hidden = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function setDiscoverTab(el) {
-    el.parentElement.querySelectorAll('button').forEach(b => {
-      b.style.borderColor = 'transparent'; b.style.background = 'none'; b.style.color = '#6b7280';
-    });
-    el.style.borderColor = '#374151'; el.style.background = '#fff'; el.style.color = '#111';
-  }
-
+  /* ---------- Terrain filter pills ----------
+     Filters the rendered result cards by the terrain badge discoverTerrain()
+     already assigned to each one. Purely client-side over the current result
+     set — it does not re-query Overpass, so it cannot surface trails outside
+     the radius the user searched. */
   function setDiscoverPill(el) {
     document.querySelectorAll('.disc-pill').forEach(p => {
-      p.style.background = '#fff'; p.style.color = '#374151'; p.style.borderColor = '#d1d5db';
+      const active = p === el;
+      p.classList.toggle('is-active', active);
+      p.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
-    el.style.background = '#111'; el.style.color = '#fff'; el.style.borderColor = '#111';
+    discoverActiveTerrain = el.dataset.terrain || 'all';
+    applyDiscoverPillFilter();
   }
 
-  function cycleDiscoverDifficulty() {
-    discoverDiffIdx = (discoverDiffIdx + 1) % DISCOVER_DIFFS.length;
-    document.getElementById('discoverDiffDisplay').textContent = DISCOVER_DIFFS[discoverDiffIdx];
+  function applyDiscoverPillFilter() {
+    const grid = document.getElementById('discoverTrailResults');
+    if (!grid) return;
+    const cards = grid.querySelectorAll('[data-terrain]');
+    let visible = 0;
+    cards.forEach(card => {
+      const match = discoverActiveTerrain === 'all'
+        || card.dataset.terrain === discoverActiveTerrain;
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+
+    // Only meaningful once results exist; with none rendered there is nothing
+    // to report and the placeholder/empty state owns the grid.
+    let note = grid.querySelector('.disc-pill-empty');
+    if (cards.length && !visible) {
+      if (!note) {
+        note = document.createElement('div');
+        note.className = 'disc-pill-empty';
+        grid.appendChild(note);
+      }
+      note.textContent = 'No results in this search match that terrain.';
+      note.style.display = '';
+    } else if (note) {
+      note.style.display = 'none';
+    }
   }
 
   function toggleLocDropdown(e) {
@@ -1163,8 +1308,20 @@
     // "← Back to Discover" button (discoverHomeShow()).
     const home = document.getElementById('discoverHomeContent');
     const res  = document.getElementById('discoverResultsBlock');
+    const pills = document.getElementById('discoverPillRow');
     if (home) home.style.display = 'none';
     if (res)  res.style.display  = '';
+    if (pills) pills.hidden = false;
+    // Reset the terrain filter on every new search. Carrying it over would
+    // apply a filter to an already-truncated 12-result set and could land the
+    // user on "no results match" immediately after searching a new place,
+    // which reads as a failed search rather than an active filter.
+    discoverActiveTerrain = 'all';
+    document.querySelectorAll('.disc-pill').forEach(p => {
+      const isAll = p.dataset.terrain === 'all';
+      p.classList.toggle('is-active', isAll);
+      p.setAttribute('aria-pressed', isAll ? 'true' : 'false');
+    });
 
     showDiscoverSkeletons();
     // Reveal the map column on first search (it's hidden by default so the
@@ -1175,7 +1332,9 @@
     const grid    = document.getElementById('discoverGrid');
     if (mapWrap && mapWrap.style.display === 'none') {
       mapWrap.style.display = '';
-      if (grid) grid.style.gridTemplateColumns = '1fr 420px';
+      // Class, not an inline style: the width rules live in CSS so the
+      // media queries can stack the map under the results on small screens.
+      if (grid) grid.classList.add('has-map');
       if (discoverMap) setTimeout(() => discoverMap.invalidateSize(), 0);
     }
     if (discoverMap) setTimeout(() => discoverMap.invalidateSize(), 0);
@@ -1230,12 +1389,9 @@
       const { t: ter, b: bc, p: ph } = discoverTerrain(t.name);
       const f = discoverFee(t), d = discoverDist(ulat, ulon, t.lat, t.lon);
       const isFree = f === 'Free';
-      return `<div onclick="discoverZoom(${t.lat},${t.lon})" style="background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid rgba(0,0,0,.07);transition:box-shadow .18s,transform .18s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.10)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
+      return `<div data-terrain="${ter}" onclick="discoverZoom(${t.lat},${t.lon})" style="background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid rgba(0,0,0,.07);transition:box-shadow .18s,transform .18s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.10)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
         <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:#e5e7eb;">
           <img src="${DISCOVER_PHOTOS[ph]}" alt="${t.name}" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">
-          <button onclick="event.stopPropagation()" style="position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          </button>
           <span style="position:absolute;bottom:10px;left:10px;padding:4px 10px;border-radius:9999px;font-size:.72rem;font-weight:700;background:${bc};color:#fff;">${ter}</span>
         </div>
         <div style="padding:12px 14px 14px;">
