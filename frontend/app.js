@@ -106,14 +106,22 @@ function renderSeasonBadge(season, { suffix = '' } = {}) {
   return `<span class="trip-badge season-badge" style="background:${style.bg} !important;color:${style.color} !important;border:1px solid ${style.border} !important;">${style.icon} ${label}</span>`;
 }
 
-// Load dashboard stats
+/* Populate the four-number stats bar, where a page has one.
+   my-trips.html still does; the dashboard replaced it with the "Next up" card.
+   Each write is guarded because getElementById returns null on a page without
+   the element and assigning .textContent to null throws, which would abort the
+   rest of the function — the same failure profileStats.test.js exists to catch. */
 async function loadStats() {
+  const set = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
   try {
     const stats = await apiCall('/trips/stats');
-    document.getElementById('stat-trips').textContent = stats.totalTrips;
-    document.getElementById('stat-items').textContent = stats.totalItems;
-    document.getElementById('stat-packed').textContent = stats.packedItems;
-    document.getElementById('stat-percentage').textContent = `${stats.packedPercentage}%`;
+    set('stat-trips', stats.totalTrips);
+    set('stat-items', stats.totalItems);
+    set('stat-packed', stats.packedItems);
+    set('stat-percentage', `${stats.packedPercentage}%`);
   } catch (error) {
     console.error('Error loading stats:', error);
   }

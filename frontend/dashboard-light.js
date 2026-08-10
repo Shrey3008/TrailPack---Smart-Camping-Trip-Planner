@@ -31,6 +31,7 @@
       wireDateDurationSync();
       wireTripCardEnhancer();
       wireFilterTabs();
+      renderNextUp();
 
       // Auto-open Create Trip modal when arriving from Discover's
       // "Plan This Trip" button (e.g. my-trips.html?create=<trail name>).
@@ -182,6 +183,148 @@
       if (greetEl) greetEl.textContent = `Good ${timeOfDay()}, ${getFirstName()} 🏕️`;
       // Subtitle (#dash-hero-sub) is intentionally page-static now — each page
       // sets its own tagline in HTML so the hero copy doesn't flicker on load.
+    }
+
+    /* ============================================================
+       "Next up" card (dashboard only)
+
+       Replaces the four-number stats bar with the one trip that
+       actually wants attention, and how far its packing has got.
+
+       No-ops on any page without #next-up, so my-trips.html — which
+       loads this same file and keeps its stats bar — is unaffected.
+       ============================================================ */
+
+    // Parse a YYYY-MM-DD value as a *local* midnight date. new Date('2026-08-12')
+    // parses as UTC and lands on the previous day west of Greenwich, which would
+    // put "leaves in N days" out by one for most of the US.
+    function parseLocalDate(iso) {
+      if (!iso || typeof iso !== 'string') return null;
+      const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) { const d = new Date(iso); return isNaN(d) ? null : d; }
+      return new Date(+m[1], +m[2] - 1, +m[3]);
+    }
+    function startOfToday() {
+      const d = new Date();
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+    function daysBetween(from, to) {
+      return Math.round((to - from) / 86400000);
+    }
+
+    /* Which trip to feature, most urgent first:
+         1. under way now (started before today, not yet ended)
+         2. the soonest one still to come, today included — a trip departing
+            this morning is something you are still packing for, not something
+            you are already on
+         3. the most recent one that has finished
+         4. otherwise the newest trip with no dates at all, GET /trips being
+            sorted createdAt:-1 already */
+    function pickNextTrip(trips) {
+      const today = startOfToday();
+      const dated = trips
+        .map(t => ({ trip: t, start: parseLocalDate(t.startDate), end: parseLocalDate(t.endDate) }))
+        .filter(x => x.start);
+
+      const underway = dated
+        .filter(x => x.start < today && x.end && x.end >= today)
+        .sort((a, b) => a.end - b.end)[0];
+      if (underway) return { ...underway, state: 'underway' };
+
+      const upcoming = dated
+        .filter(x => x.start >= today)
+        .sort((a, b) => a.start - b.start)[0];
+      if (upcoming) return { ...upcoming, state: 'upcoming' };
+
+      // Everything with a date is behind us — show the latest one as a recap
+      // rather than labelling a finished trip "Next up".
+      const past = dated.sort((a, b) => (b.end || b.start) - (a.end || a.start))[0];
+      if (past) return { ...past, state: 'past' };
+
+      return trips.length
+        ? { trip: trips[0], start: null, end: null, state: 'undated' }
+        : null;
+    }
+
+    function describeWhen(pick) {
+      const today = startOfToday();
+      if (pick.state === 'underway') {
+        const left = daysBetween(today, pick.end);
+        if (left <= 0) return { text: 'Last day', soon: true };
+        return { text: `Under way — ${left} ${left === 1 ? 'day' : 'days'} left`, soon: true };
+      }
+      if (pick.state === 'upcoming') {
+        const n = daysBetween(today, pick.start);
+        if (n === 0) return { text: 'Leaves today', soon: true };
+        if (n === 1) return { text: 'Leaves tomorrow', soon: true };
+        return { text: `Leaves in ${n} days`, soon: n <= 7 };
+      }
+      if (pick.state === 'past') {
+        const n = daysBetween(pick.end || pick.start, today);
+        if (n === 0) return { text: 'Ended today', soon: false };
+        if (n === 1) return { text: 'Ended yesterday', soon: false };
+        return { text: `Ended ${n} days ago`, soon: false };
+      }
+      return { text: 'No dates set yet', soon: false };
+    }
+
+    // The eyebrow has to agree with the state, or the card claims a finished
+    // trip is the next one.
+    function nextUpEyebrow(state) {
+      if (state === 'underway') return 'On the trail';
+      if (state === 'past')     return 'Most recent';
+      return 'Next up';
+    }
+
+    async function renderNextUp() {
+      const card = document.getElementById('next-up');
+      if (!card) return;   // my-trips.html and every other page
+
+      let trips = [];
+      try {
+        const res = await apiCallWithAuth('/trips');
+        trips = Array.isArray(res?.trips) ? res.trips : (Array.isArray(res) ? res : []);
+      } catch (_) {
+        // Leave the card hidden rather than showing a broken or zeroed one.
+        // The Recent Trips section surfaces the load failure already.
+        return;
+      }
+
+      const pick = pickNextTrip(trips);
+      if (!pick || !pick.trip || !pick.trip.tripId) return;   // empty account
+
+      const trip = pick.trip;
+      const when = describeWhen(pick);
+
+      const nameEl    = document.getElementById('next-up-name');
+      const whenEl    = document.getElementById('next-up-when');
+      const eyebrowEl = document.getElementById('next-up-eyebrow');
+      const countEl   = document.getElementById('next-up-count');
+      const fillEl    = document.getElementById('next-up-fill');
+      const ctaEl     = document.getElementById('next-up-cta');
+
+      if (eyebrowEl) eyebrowEl.textContent = nextUpEyebrow(pick.state);
+      if (nameEl) nameEl.textContent = trip.name || 'Untitled trip';
+      if (whenEl) {
+        whenEl.textContent = when.text;
+        whenEl.classList.toggle('is-soon', when.soon);
+      }
+      if (ctaEl) ctaEl.href = `checklist.html?tripId=${encodeURIComponent(trip.tripId)}`;
+
+      // Reveal before the item counts land: the name, date and link are all
+      // usable on their own, and waiting on a second request would leave the
+      // top of the page empty for as long as it takes.
+      if (countEl) countEl.textContent = 'Checking your packing list…';
+      card.hidden = false;
+
+      const { total, packed } = await fetchItemStats(trip.tripId);
+      const pct = total > 0 ? Math.round((packed / total) * 100) : 0;
+      if (countEl) {
+        countEl.innerHTML = total > 0
+          ? `<strong>${packed}</strong> of <strong>${total}</strong> items packed · ${pct}%`
+          : 'No items on this checklist yet';
+      }
+      if (fillEl) fillEl.style.width = pct + '%';
     }
 
     // ---------- Filter tabs ----------

@@ -227,6 +227,85 @@
     .disc-link-item:hover { color: #2d6a4f; text-decoration: underline; }
     @media (max-width: 720px) { .disc-link-cols { grid-template-columns: 1fr; gap: 22px; } }
 
+    /* ---------- "Next up" card ----------
+       Replaces the four-number stats bar. Two columns on desktop (identity on
+       the left, progress + action on the right), stacked on small screens. */
+    .next-up {
+      display: grid;
+      grid-template-columns: 1fr minmax(240px, 340px);
+      gap: 28px;
+      align-items: center;
+      background: #fff;
+      border: 1px solid var(--border, #e8e8e4);
+      border-left: 4px solid var(--tp-green-700, #2d6a4f);
+      border-radius: var(--radius, 12px);
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      box-shadow: var(--shadow-sm, 0 1px 3px rgba(15,23,42,.05));
+    }
+    .next-up[hidden] { display: none; }
+    .next-up__eyebrow {
+      margin: 0 0 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-secondary, #6b7280);
+    }
+    .next-up__name {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-primary, #1a1a1a);
+      margin: 0 0 6px;
+      letter-spacing: -0.005em;
+    }
+    .next-up__when {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary, #6b7280);
+    }
+    .next-up__when.is-soon { color: #b45309; font-weight: 600; }
+    .next-up__count {
+      font-size: 0.85rem;
+      color: var(--text-secondary, #6b7280);
+      margin-bottom: 8px;
+    }
+    .next-up__count strong { color: var(--text-primary, #1a1a1a); font-weight: 600; }
+    .next-up__bar {
+      height: 6px;
+      background: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .next-up__fill {
+      height: 100%;
+      width: 0%;
+      background: var(--tp-green-700, #2d6a4f);
+      border-radius: 9999px;
+      transition: width 0.5s ease;
+    }
+    .next-up__cta {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      background: var(--tp-green-700, #2d6a4f);
+      color: #fff;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .next-up__cta:hover { background: var(--tp-green-500, #40916c); }
+    @media (max-width: 720px) {
+      .next-up {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding: 20px;
+      }
+      .next-up__cta { display: block; text-align: center; }
+    }
+
     /* "View all trips →" under the recent-trips preview. */
     .trips-view-all {
       display: inline-block;
@@ -495,36 +574,33 @@
 
   <main class="container">
     <!-- Stats Bar -->
-    <div class="stats-bar">
-      <div class="stat-card" data-accent="green">
-        <div class="stat-content">
-          <div class="stat-value" id="stat-trips">0</div>
-          <div class="stat-label">Total Trips</div>
-        </div>
-        <div class="stat-icon">🗺️</div>
+    <!-- ============== Next up ==============
+         Replaces the four-card stats bar (Total Trips / Total Items / Packed /
+         Progress). Those were raw totals that led nowhere: on a new account
+         they were four zeroes filling the entire first screen on a phone
+         before any call to action, and once theme.css collapsed the accent
+         bars into one green family they no longer distinguished anything
+         either. This says which trip needs attention and how far along it is.
+
+         Populated by renderNextUp() in dashboard-light.js, which picks the
+         trip under way, else the soonest upcoming, else the most recently
+         created. Stays hidden until it has something to say, so an account
+         with no trips sees the Recent Trips empty state and nothing else.
+         my-trips.html keeps its stats bar. -->
+    <section class="next-up" id="next-up" aria-labelledby="next-up-name" hidden>
+      <div class="next-up__body">
+        <p class="next-up__eyebrow" id="next-up-eyebrow">Next up</p>
+        <h2 class="next-up__name" id="next-up-name"></h2>
+        <p class="next-up__when" id="next-up-when"></p>
       </div>
-      <div class="stat-card" data-accent="orange">
-        <div class="stat-content">
-          <div class="stat-value" id="stat-items">0</div>
-          <div class="stat-label">Total Items</div>
+      <div class="next-up__progress">
+        <div class="next-up__count" id="next-up-count"></div>
+        <div class="next-up__bar">
+          <div class="next-up__fill" id="next-up-fill"></div>
         </div>
-        <div class="stat-icon">📦</div>
+        <a class="next-up__cta" id="next-up-cta" href="#">Open checklist →</a>
       </div>
-      <div class="stat-card" data-accent="blue">
-        <div class="stat-content">
-          <div class="stat-value" id="stat-packed">0</div>
-          <div class="stat-label">Packed</div>
-        </div>
-        <div class="stat-icon">✅</div>
-      </div>
-      <div class="stat-card" data-accent="purple">
-        <div class="stat-content">
-          <div class="stat-value" id="stat-percentage">0%</div>
-          <div class="stat-label">Progress</div>
-        </div>
-        <div class="stat-icon">📊</div>
-      </div>
-    </div>
+    </section>
 
     <!--
       The user's own trips lead the dashboard. Previously this page jumped
