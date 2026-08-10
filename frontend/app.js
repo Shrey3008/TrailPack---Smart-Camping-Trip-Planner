@@ -250,6 +250,7 @@ async function loadTrips() {
 async function loadSharedTrips() {
   const section = document.getElementById('shared-trips-section');
   const container = document.getElementById('shared-trips-container');
+  const viewAll = document.getElementById('shared-trips-view-all');
   if (!section || !container) return;
 
   try {
@@ -263,7 +264,22 @@ async function loadSharedTrips() {
       section.style.display = 'none';
       return;
     }
-    container.innerHTML = trips.map(trip => `
+
+    // Same opt-in cap as loadTrips(): the dashboard previews, my-trips.html
+    // lists everything.
+    const limit = parseInt(container.dataset.limit, 10) || 0;
+    const visibleTrips = limit > 0 ? trips.slice(0, limit) : trips;
+
+    // Only surfaced when cards are actually withheld — the recent-trips link
+    // above already routes to my-trips.html, so an always-on second link to
+    // the same place would just be noise.
+    if (viewAll) {
+      const truncated = limit > 0 && trips.length > limit;
+      viewAll.textContent = `View all ${trips.length} shared trips →`;
+      viewAll.hidden = !truncated;
+    }
+
+    container.innerHTML = visibleTrips.map(trip => `
       <div class="trip-card" data-photo-index="${trip.photoIndex || 0}" onclick="viewChecklist('${trip.tripId}')">
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-date">

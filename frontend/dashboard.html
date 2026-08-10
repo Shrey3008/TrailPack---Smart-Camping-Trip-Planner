@@ -565,6 +565,25 @@
       </div>
     </section>
 
+    <!-- ============== Shared With Me ==============
+         dashboard-light.js has always called loadSharedTrips() on this page,
+         but the markup it writes into only existed in my-trips.html, so the
+         call silently no-opped and a trip someone invited you to left no trace
+         on the home page. Same section as my-trips.html, capped to a preview
+         like the recent-trips list above. Hidden by loadSharedTrips() when
+         there are no shared trips. -->
+    <section class="dashboard-section" id="shared-trips-section" style="display: none;">
+      <div class="section-header">
+        <div class="section-header-left">
+          <h2>Shared With Me</h2>
+          <p class="section-sub">Trips others have invited you to collaborate on.</p>
+        </div>
+      </div>
+      <div id="shared-trips-container" class="trips-grid" data-limit="3"></div>
+      <!-- Shown by loadSharedTrips() only when there are more than the cap. -->
+      <a class="trips-view-all" id="shared-trips-view-all" href="my-trips.html" hidden></a>
+    </section>
+
     <!-- ===== DISCOVER SECTION START ===== -->
 <section id="discoverSection">
 
