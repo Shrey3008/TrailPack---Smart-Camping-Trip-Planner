@@ -9,10 +9,22 @@
   <link rel="stylesheet" href="styles.css">
 
   <meta name="referrer" content="strict-origin-when-cross-origin">
+
+  <!-- Design-system fonts. One request for both families; this page used to
+       make two, one here for Inter on a variable axis (300..700) and another
+       further down for Inter plus Playfair on fixed weights. Both capped at
+       700, so the variable one contributed nothing the other did not. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
+
+  <!-- Leaflet (Discover Trails Near You map). Kept at this early position so
+       it still loads as soon as it used to; the copy that was here carried no
+       integrity attribute, so a second unpinned fetch of the same file was
+       undoing the point of the SRI hash on the other one. -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 
   <style>
     @keyframes discoverShimmer {
@@ -494,15 +506,7 @@
     }
   </style>
 
-  <!-- Design-system fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap">
-
-  <!-- Leaflet (Discover Trails Near You map) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <!-- Fonts and Leaflet CSS are loaded once, at the top of this head. -->
 
   <!-- Shared dashboard styles (also used by my-trips.html). -->
   <link rel="stylesheet" href="dashboard-light.css">
@@ -1105,13 +1109,16 @@
        Functions guard for missing elements so this is safe on pages that
        don't render the trips section (e.g. dashboard after the move). -->
   <script src="dashboard-light.js"></script>
+  <!-- Leaflet, once. There was a second unpinned <script> for the same file
+       below nav-menu.js; besides fetching the library twice it defeated this
+       integrity hash, since the browser would have run whatever the second
+       request returned. -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
           integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
           crossorigin=""></script>
 
   <script src="nav-menu.js"></script>
   <script src="notifications-bell.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
   // ===== DISCOVER TRAILS =====
