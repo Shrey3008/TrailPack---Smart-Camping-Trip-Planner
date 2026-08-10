@@ -1004,14 +1004,21 @@
   let discoverDebT = null;
   // Terrain currently selected in the filter pill row ('all' = no filter).
   let discoverActiveTerrain = 'all';
-  const DISCOVER_PHOTOS = {
-    forest:   'https://picsum.photos/seed/greenforest99/600/450',
-    mountain: 'https://picsum.photos/seed/alpinepeak77/600/450',
-    lake:     'https://picsum.photos/seed/lakeshore55/600/450',
-    desert:   'https://picsum.photos/seed/canyonred33/600/450'
+  /* Terrain tints for the result-card media panel. These replaced four
+     picsum.photos URLs (random stock images, seeded per terrain) that were
+     rendered with alt="<trail name>" — a photograph of somewhere else
+     captioned as the place the user is looking at. A flat tinted panel with
+     the terrain glyph reads as a category swatch and claims nothing.
+
+     Also removed alongside them: DISCOVER_RT / DISCOVER_RC, two hardcoded
+     arrays rendered as "👍 97% (419)" review scores, and discoverFee(), which
+     invented "$25 / vehicle" from a regex on the place name. */
+  const DISCOVER_TERRAIN_TINT = {
+    forest:   { bg: '#e6f2eb', fg: '#2d6a4f', glyph: '🌲' },
+    mountain: { bg: '#e6eefb', fg: '#1e40af', glyph: '⛰️' },
+    lake:     { bg: '#e3f4f8', fg: '#0e7490', glyph: '🌊' },
+    desert:   { bg: '#fdeee2', fg: '#c2410c', glyph: '🏜️' }
   };
-  const DISCOVER_RT = [97,98,99,100,96,95,98,97,100,99,96,98];
-  const DISCOVER_RC = [419,671,890,234,543,128,765,312,456,189,623,334];
 
   window.addEventListener('load', () => {
     if (document.getElementById('discoverMap')) {
@@ -1370,12 +1377,6 @@
     if (/desert|canyon|mesa|butte|rock|sand/.test(n))      return { t: 'Desert', b: 'rgba(234,88,12,.85)', p: 'desert' };
     return { t: 'Forest', b: 'rgba(45,106,79,.88)', p: 'forest' };
   }
-  function discoverFee(t) {
-    const n = (t.name + t.op).toLowerCase();
-    if (/national park|national forest/.test(n)) return '$25 / vehicle';
-    if (/state park|state forest/.test(n))       return '$10 / vehicle';
-    return 'Free';
-  }
   function discoverDist(a, b, c, d) {
     const R = 3958.8, dA = (c-a)*Math.PI/180, dB = (d-b)*Math.PI/180;
     const x = Math.sin(dA/2)**2 + Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dB/2)**2;
@@ -1385,26 +1386,18 @@
   function renderDiscoverCards(trails, ulat, ulon) {
     const g = document.getElementById('discoverTrailResults');
     if (!trails.length) { g.innerHTML = discoverEmptyHTML(discoverRadiusMi); return; }
-    g.innerHTML = trails.map((t, i) => {
+    g.innerHTML = trails.map((t) => {
       const { t: ter, b: bc, p: ph } = discoverTerrain(t.name);
-      const f = discoverFee(t), d = discoverDist(ulat, ulon, t.lat, t.lon);
-      const isFree = f === 'Free';
+      const d = discoverDist(ulat, ulon, t.lat, t.lon);
+      const tint = DISCOVER_TERRAIN_TINT[ph] || DISCOVER_TERRAIN_TINT.forest;
       return `<div data-terrain="${ter}" onclick="discoverZoom(${t.lat},${t.lon})" style="background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid rgba(0,0,0,.07);transition:box-shadow .18s,transform .18s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.10)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
-        <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:#e5e7eb;">
-          <img src="${DISCOVER_PHOTOS[ph]}" alt="${t.name}" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">
+        <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:${tint.bg};display:flex;align-items:center;justify-content:center;" aria-hidden="true">
+          <span style="font-size:2.6rem;line-height:1;opacity:.55;">${tint.glyph}</span>
           <span style="position:absolute;bottom:10px;left:10px;padding:4px 10px;border-radius:9999px;font-size:.72rem;font-weight:700;background:${bc};color:#fff;">${ter}</span>
         </div>
         <div style="padding:12px 14px 14px;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-            <span style="font-size:.78rem;font-weight:700;color:#2d6a4f;">👍 ${DISCOVER_RT[i%12]}%</span>
-            <span style="font-size:.75rem;color:#9ca3af;">(${DISCOVER_RC[i%12]})</span>
-          </div>
           <div style="font-weight:700;font-size:.9rem;line-height:1.3;margin-bottom:2px;">${t.name}</div>
-          <div style="font-size:.78rem;color:#9ca3af;margin-bottom:8px;">${t.type.replace(/_/g,' ')} · ${d} miles away</div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:.85rem;font-weight:700;">${isFree ? '<span style="color:#2d6a4f;">Free</span>' : f}</span>
-            <span style="font-size:.75rem;color:#6b7280;background:#f3f4f6;padding:3px 8px;border-radius:9999px;">${d} mi</span>
-          </div>
+          <div style="font-size:.78rem;color:#9ca3af;margin-bottom:10px;">${t.type.replace(/_/g,' ')} · ${d} miles away</div>
           <button data-trail-name="${(t.name||'').replace(/"/g,'&quot;')}" data-trail-terrain="${ter}" data-trail-lat="${t.lat||''}" data-trail-lon="${t.lon||''}" onclick="event.stopPropagation(); openPlanTripModal({name:this.dataset.trailName, terrain:this.dataset.trailTerrain, lat:this.dataset.trailLat, lon:this.dataset.trailLon})" style="width:100%;padding:9px;background:#2d6a4f;color:#fff;border:none;border-radius:10px;font-weight:600;font-size:.82rem;cursor:pointer;font-family:inherit;" onmouseover="this.style.background='#1b4332'" onmouseout="this.style.background='#2d6a4f'">Plan This Trip →</button>
         </div>
       </div>`;
@@ -1418,7 +1411,7 @@
       const d = discoverDist(ulat, ulon, t.lat, t.lon);
       const popupPayload = encodeURIComponent(JSON.stringify({ name: t.name, lat: t.lat, lon: t.lon }));
       L.marker([t.lat, t.lon], { icon: ico }).addTo(discoverMap)
-        .bindPopup('<b>' + t.name + '</b><br>' + d + ' miles away<br>' + discoverFee(t) + '<br><a href="#" onclick="event.preventDefault(); openPlanTripModal(JSON.parse(decodeURIComponent(\'' + popupPayload + '\')))" style="color:#2d6a4f;font-weight:600;">Plan This Trip →</a>');
+        .bindPopup('<b>' + t.name + '</b><br>' + d + ' miles away<br><a href="#" onclick="event.preventDefault(); openPlanTripModal(JSON.parse(decodeURIComponent(\'' + popupPayload + '\')))" style="color:#2d6a4f;font-weight:600;">Plan This Trip →</a>');
     });
   }
 
