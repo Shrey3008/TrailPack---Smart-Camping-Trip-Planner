@@ -227,6 +227,18 @@
     .disc-link-item:hover { color: #2d6a4f; text-decoration: underline; }
     @media (max-width: 720px) { .disc-link-cols { grid-template-columns: 1fr; gap: 22px; } }
 
+    /* "View all trips →" under the recent-trips preview. */
+    .trips-view-all {
+      display: inline-block;
+      margin-top: 18px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #2d6a4f;
+      text-decoration: none;
+    }
+    .trips-view-all:hover { text-decoration: underline; }
+    .trips-view-all[hidden] { display: none; }
+
     /* ---------- Terrain filter pills ----------
        Active state is a class, not inline styles rewritten by JS, so the
        pressed pill is expressible in CSS and readable to assistive tech via
@@ -522,19 +534,28 @@
 
       Markup mirrors my-trips.html so app.js's existing loadTrips() renders it
       and dashboard-light.js decorates the cards — no duplicate renderer.
+
+      data-limit caps this to a preview of the most recent trips. The dashboard
+      used to render the full list, which duplicated my-trips.html exactly
+      while offering none of its search, sort, terrain filter or Shared With Me
+      — the same content, in the weaker of the two places. my-trips.html sets
+      no limit and still shows everything.
     -->
     <section class="dashboard-section" id="your-trips-section">
       <div class="section-header">
         <div class="section-header-left">
-          <h2>Your Trips</h2>
+          <h2>Recent Trips</h2>
           <p class="section-sub">Pick up where you left off, or start something new.</p>
         </div>
         <button class="btn btn-primary" id="open-create-trip" type="button">+ Create New Trip</button>
       </div>
 
-      <div id="trips-container" class="trips-grid">
+      <div id="trips-container" class="trips-grid" data-limit="3">
         <!-- Trips rendered by app.js; enhanced by dashboard-light.js -->
       </div>
+
+      <!-- Label and visibility are set by loadTrips() once the count is known. -->
+      <a class="trips-view-all" id="trips-view-all" href="my-trips.html" hidden>View all trips →</a>
 
       <div id="empty-state" class="empty-state" style="display: none;">
         <div class="empty-icon" aria-hidden="true">🏕️</div>

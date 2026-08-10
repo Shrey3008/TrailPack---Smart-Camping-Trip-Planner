@@ -170,30 +170,50 @@ function formatTripRange(trip) {
   return '';
 }
 
-// Load all trips for dashboard (for backwards compatibility)
+/* Render the caller's trips into #trips-container.
+   Shared by dashboard.html and my-trips.html. The dashboard shows a preview of
+   the few most recent trips and sends people to my-trips.html for the full
+   list, so the container may carry `data-limit="N"` to cap how many cards are
+   rendered. my-trips.html sets no limit and is unaffected.
+   GET /trips is sorted createdAt:-1 server-side, so the first N are the N most
+   recently created — not the next N by start date. */
 async function loadTrips() {
   const container = document.getElementById('trips-container');
   const emptyState = document.getElementById('empty-state');
-  
+  const viewAll = document.getElementById('trips-view-all');
+
   if (!container) return;
-  
+
   try {
     container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading trips...</div>';
-    
+
     const data = await apiCallWithAuth('/trips');
     const trips = data.trips || [];
-    
+
     if (trips.length === 0) {
       container.innerHTML = '';
       container.style.display = 'none';
       if (emptyState) emptyState.style.display = 'block';
+      if (viewAll) viewAll.hidden = true;
       return;
     }
-    
+
     container.style.display = 'grid';
     if (emptyState) emptyState.style.display = 'none';
-    
-    container.innerHTML = trips.map(trip => `
+
+    const limit = parseInt(container.dataset.limit, 10) || 0;
+    const visibleTrips = limit > 0 ? trips.slice(0, limit) : trips;
+
+    // Only worth an explicit count when cards are actually being withheld.
+    if (viewAll) {
+      const truncated = limit > 0 && trips.length > limit;
+      viewAll.textContent = truncated
+        ? `View all ${trips.length} trips →`
+        : 'View all trips →';
+      viewAll.hidden = false;
+    }
+
+    container.innerHTML = visibleTrips.map(trip => `
       <div class="trip-card" data-photo-index="${trip.photoIndex || 0}" onclick="viewChecklist('${trip.tripId}')">
         <h3>${escapeHtml(trip.name)}</h3>
         <div class="trip-meta">
