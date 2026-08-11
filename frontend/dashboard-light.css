@@ -223,9 +223,9 @@
       to   { opacity: 1; }
     }
     body.dash-light .dash-hero__inner {
-      max-width: 1200px;
+      max-width: var(--content-max);
       margin: 0 auto;
-      padding: 0 32px;
+      padding: 0 var(--content-gutter);
       height: 100%;
       box-sizing: border-box;
       display: flex;
@@ -264,9 +264,9 @@
 
     /* ---------- Layout ---------- */
     body.dash-light main.container {
-      max-width: 1200px;
+      max-width: var(--content-max);
       margin: 28px auto 56px !important;
-      padding: 0 32px !important;
+      padding: 0 var(--content-gutter) !important;
     }
 
     /* ---------- Stat cards (Hipcamp — number-only, compact) ---------- */
@@ -1047,7 +1047,13 @@
       body.dash-light .dash-hero__inner { padding: 0 20px; }
     }
     @media (max-width: 640px) {
-      body.dash-light main.container { padding: 0 18px !important; margin-top: 22px !important; }
+      /* Narrow the shared gutter rather than only this container's padding, so
+         anything positioned from --content-gutter (the full-bleed Discover
+         band) narrows with it. Setting it on :root inside the query keeps the
+         two in step; hardcoding 18px here once left the band's inner edge at
+         32px while every section beside it sat at 18px. */
+      :root { --content-gutter: 18px; }
+      body.dash-light main.container { padding: 0 var(--content-gutter) !important; margin-top: 22px !important; }
       body.dash-light .stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
       body.dash-light .stat-card { padding: 16px 20px !important; }
       body.dash-light .stat-card .stat-value { font-size: 1.7rem !important; }

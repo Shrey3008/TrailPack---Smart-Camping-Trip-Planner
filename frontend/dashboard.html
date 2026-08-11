@@ -197,8 +197,12 @@
     <!-- ===== DISCOVER SECTION START ===== -->
 <section id="discoverSection">
 
-  <div style="background:#fff; padding:28px 28px 0; border-bottom:1px solid rgba(0,0,0,.09);">
-    <div style="max-width:1240px; margin:0 auto;">
+  <!-- Full-bleed white band. It used to be an inset div whose visible left and
+       right edges made it read as a stray rectangle on the warm canvas; the
+       nested 1240px wrapper inside a 1200px container is also what pushed
+       every Discover row 28px right of the sections above it. -->
+  <div class="disc-band">
+    <div class="disc-band__inner">
 
       <!-- The Destination/Road Trip tab row was removed: setDiscoverTab() only
            recoloured the two buttons and there is no road-trip search. -->
@@ -313,27 +317,27 @@
         </div>
       </div>
       <div class="disc-quick-tiles">
-        <button type="button" class="disc-quick-tile qt-1" onclick="useDiscoverNearby()">
+        <button type="button" class="disc-quick-tile" onclick="useDiscoverNearby()">
           <span class="qt-icon">📍</span>
           <span class="qt-title">Trails near me</span>
           <span class="qt-sub">Use my current location</span>
         </button>
-        <button type="button" class="disc-quick-tile qt-2" onclick="discoverPickCity('Yosemite National Park, California',37.8651,-119.5383)">
+        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Yosemite National Park, California',37.8651,-119.5383)">
           <span class="qt-icon">🏔️</span>
           <span class="qt-title">National parks</span>
           <span class="qt-sub">America's wildest places</span>
         </button>
-        <button type="button" class="disc-quick-tile qt-3" onclick="discoverPickCity('Great Smoky Mountains, Tennessee',35.6532,-83.5070)">
+        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Great Smoky Mountains, Tennessee',35.6532,-83.5070)">
           <span class="qt-icon">🥾</span>
           <span class="qt-title">Easy day hikes</span>
           <span class="qt-sub">Beginner-friendly trails</span>
         </button>
-        <button type="button" class="disc-quick-tile qt-4" onclick="discoverPickCity('Shenandoah National Park, Virginia',38.5333,-78.3500)">
+        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Shenandoah National Park, Virginia',38.5333,-78.3500)">
           <span class="qt-icon">🧒</span>
           <span class="qt-title">Family friendly</span>
           <span class="qt-sub">Short, kid-safe loops</span>
         </button>
-        <button type="button" class="disc-quick-tile qt-5" onclick="discoverPickCity('Acadia National Park, Maine',44.3386,-68.2733)">
+        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Acadia National Park, Maine',44.3386,-68.2733)">
           <span class="qt-icon">🐾</span>
           <span class="qt-title">Pet friendly</span>
           <span class="qt-sub">Trails that welcome your dog</span>
@@ -486,7 +490,7 @@
   </div>
 
   <!-- Results + Map (hidden until first search; revealed by fetchDiscoverTrails). -->
-  <div id="discoverResultsBlock" style="display:none; max-width:1240px; margin:0 auto; padding:24px 28px;">
+  <div id="discoverResultsBlock" class="disc-results-block" hidden>
     <div class="disc-res-head">
       <div id="discoverResCount" style="font-size:.875rem; color:#6b7280;">
         Click <strong style="color:#111;">Search Trails</strong> or choose <strong style="color:#111;">Nearby</strong> to discover trails

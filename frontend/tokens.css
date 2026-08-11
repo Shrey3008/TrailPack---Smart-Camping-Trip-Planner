@@ -24,4 +24,16 @@
   --radius-lg: 16px;
   --radius-xl: 22px;
   --radius-full: 9999px;
+
+  /* Content width. One value, so columns line up down a page.
+     The dashboard's main.container was 1200px while the Discover section
+     nested its own 1240px wrappers inside it — measured, that put the
+     "Your Trips" content edge at x=72 and every Discover row at x=100, a
+     28px drift running the length of the page. 1200 wins because it is what
+     both trip pages already used; 1240 appeared only inside Discover.
+     The gutter is the container's own left/right padding, kept here so the
+     full-bleed calculation below can refer to it.
+     checklist.html still declares 1240px of its own and is a known follow-up. */
+  --content-max: 1200px;
+  --content-gutter: 32px;
 }

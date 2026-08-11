@@ -26,7 +26,40 @@
    Quick action tiles, themed carousels of destinations, feature
    tiles, and an SEO link grid. Rendered by JS into #discoverHomeContent
    and hidden the first time the user runs an actual search. */
-.disc-home-wrap { max-width: 1240px; margin: 0 auto; padding: 28px; }
+/* =============================================================================
+   Discover section width and the full-bleed band.
+
+   Every wrapper here previously set its own max-width:1240px while sitting
+   inside main.container's 1200px. Measured before the fix: the "Your Trips"
+   content edge was at x=72 and every Discover row at x=100 — 28px of drift
+   down the length of the page. They all use --content-max now, so a Discover
+   row starts exactly where a trip card does.
+
+   .disc-band is the white strip behind the search bar. It reaches the viewport
+   edge with the same `50% - 50vw` trick theme.css §6 uses for .profile-hero:
+   50% resolves against the container's content box, so `50% - 50vw` reaches
+   the window. Its inner wrapper then puts the content back on the container's
+   own edge. The previous attempt at this (a dead `margin: 0 -32px` rule in
+   dashboard-light.css, deleted in 553d9f8) only cancelled the container
+   padding and stopped ~40px short of the window on a 1280px screen.
+   ============================================================================= */
+.disc-band {
+  background: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, .09);
+  margin-inline: calc(50% - 50vw);
+  padding: 28px max(var(--content-gutter), calc(50vw - var(--content-max) / 2 + var(--content-gutter))) 0;
+}
+.disc-band__inner { max-width: var(--content-max); margin: 0 auto; }
+
+.disc-home-wrap { max-width: var(--content-max); margin: 0 auto; padding: 28px 0; }
+
+.disc-results-block {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 24px 0;
+}
+.disc-results-block[hidden] { display: none; }
+#discoverHomeContent[hidden] { display: none; }
 .disc-section { margin-bottom: 44px; }
 .disc-section-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -52,33 +85,51 @@
   grid-template-columns: repeat(5, 1fr);
   gap: 14px;
 }
+/* Quick tiles were five saturated gradients — amber, teal, green, magenta,
+   violet — which is exactly what theme.css §2 removed from the stat cards one
+   screen above, on the grounds that unrelated hues in a row read as unrelated
+   things. They are now one surface from the palette.
+
+   They are deliberately NOT five steps of --tp-green-*: these tiles are
+   full-bleed colour behind text, and only green-900 (11.08:1) and green-700
+   (6.39:1) clear 4.5:1 against white. green-500 is 3.83:1 and green-300 is
+   2.04:1, so a five-step version would have shipped two unreadable tiles.
+   Dark text on the palest green measures 9.42:1 and matches the treatment
+   .disc-feat-icon already uses. The emoji and label carry the distinction
+   between tiles, as they did before — the colour never encoded anything. */
 .disc-quick-tile {
   position: relative;
   display: flex; flex-direction: column; align-items: flex-start;
   gap: 6px;
   padding: 18px 18px 16px;
-  border-radius: 18px;
-  border: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(45, 106, 79, .18);
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(0,0,0,.10);
-  transition: transform .15s ease, box-shadow .15s ease;
+  background: var(--tp-green-100, #d8f3e3);
+  color: var(--tp-green-900, #1b4332);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, .05));
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   min-height: 110px;
 }
 .disc-quick-tile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(0,0,0,.16);
+  box-shadow: 0 8px 20px rgba(27, 67, 50, .12);
+  border-color: rgba(45, 106, 79, .38);
 }
-.disc-quick-tile .qt-icon { font-size: 1.6rem; line-height: 1; }
+.disc-quick-tile .qt-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  width: 38px; height: 38px;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .disc-quick-tile .qt-title { font-size: 1rem; font-weight: 700; }
-.disc-quick-tile .qt-sub   { font-size: .78rem; opacity: .92; }
-.disc-quick-tile.qt-1 { background: linear-gradient(135deg, #f7b61b 0%, #f59e0b 100%); }
-.disc-quick-tile.qt-2 { background: linear-gradient(135deg, #17807d 0%, #0f766e 100%); }
-.disc-quick-tile.qt-3 { background: linear-gradient(135deg, #2d6a4f 0%, #1f5036 100%); }
-.disc-quick-tile.qt-4 { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
-.disc-quick-tile.qt-5 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+.disc-quick-tile .qt-sub   { font-size: .78rem; color: var(--tp-green-700, #2d6a4f); }
 @media (max-width: 1100px) { .disc-quick-tiles { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 720px)  { .disc-quick-tiles { grid-template-columns: repeat(2, 1fr); } }
 

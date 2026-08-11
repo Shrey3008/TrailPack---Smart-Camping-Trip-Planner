@@ -180,8 +180,8 @@ renderDiscoverLinkList('discoverLinksCities', DISCOVER_HOME_CITIES);
 const home = document.getElementById('discoverHomeContent');
 const res  = document.getElementById('discoverResultsBlock');
 const pills = document.getElementById('discoverPillRow');
-if (home) home.style.display = '';
-if (res)  res.style.display  = 'none';
+if (home) home.hidden = false;
+if (res)  res.hidden  = true;
 // Nothing to filter on the home view.
 if (pills) pills.hidden = true;
 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -328,8 +328,8 @@ discoverDebT = setTimeout(() => {
 const home = document.getElementById('discoverHomeContent');
 const res  = document.getElementById('discoverResultsBlock');
 const pills = document.getElementById('discoverPillRow');
-if (home) home.style.display = 'none';
-if (res)  res.style.display  = '';
+if (home) home.hidden = true;
+if (res)  res.hidden  = false;
 if (pills) pills.hidden = false;
 // Reset the terrain filter on every new search. Carrying it over would
 // apply a filter to an already-truncated 12-result set and could land the
