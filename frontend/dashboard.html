@@ -378,8 +378,13 @@
       </button>
     </div>
 
+    <!-- The inner wrapper is required by the animation, not decoration: the
+         region animates grid-template-rows 0fr -> 1fr, which needs exactly one
+         grid child to size. Four direct children would land in implicit rows
+         that the 0fr track never constrains, and the collapse would not work. -->
     <div class="disc-more" id="disc-more-region" role="region"
          aria-labelledby="disc-more-toggle">
+     <div class="disc-more__inner">
       <!-- Forest favorites -->
       <div class="disc-section">
         <div class="disc-section-head">
@@ -423,6 +428,7 @@
         </div>
         <div class="disc-row" id="discoverRowDesert"></div>
       </div>
+     </div>
     </div>
 
     <!-- Trust strip -->

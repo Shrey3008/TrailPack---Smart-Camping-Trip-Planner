@@ -624,21 +624,37 @@
 
    visibility:hidden removes it from both. It is transitioned rather than
    toggled outright: on expand it flips at 0s so the content animates in, and
-   on collapse it waits out the 0.45s height animation so the panels do not
-   vanish before they have finished closing. discover.js also mirrors the state
-   onto the `inert` attribute, which additionally blocks pointer events. */
+   on collapse it waits out the height animation so the panels do not vanish
+   before they have finished closing. discover.js also mirrors the state onto
+   the `inert` attribute, which additionally blocks pointer events.
+
+   The open state animates a grid track from 0fr to 1fr rather than max-height
+   from 0 to a fixed ceiling. The ceiling used to be 6000px, which had two
+   problems. It silently clips anything taller. And because max-height animates
+   towards 6000px while the content is only ~1544px, the slide reached full
+   height at about a quarter of the stated duration — the number was setting
+   the speed as well as the limit. 1fr resolves to whatever the content
+   actually is, so there is no ceiling and the transition runs its full 0.45s
+   however much is inside. */
 .disc-more {
-  overflow: hidden;
-  max-height: 0;
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
   visibility: hidden;
-  transition: max-height 0.45s ease, opacity 0.25s ease, visibility 0s linear 0.45s;
+  transition: grid-template-rows 0.45s ease, opacity 0.25s ease, visibility 0s linear 0.45s;
 }
 .disc-more.is-open {
-  max-height: 6000px;
+  grid-template-rows: 1fr;
   opacity: 1;
   visibility: visible;
-  transition: max-height 0.45s ease, opacity 0.25s ease, visibility 0s linear 0s;
+  transition: grid-template-rows 0.45s ease, opacity 0.25s ease, visibility 0s linear 0s;
+}
+/* The grid item carries the clipping. min-height:0 is required — a grid item's
+   default min-height is auto, which refuses to shrink below its content and
+   would hold the row open at full height. */
+.disc-more__inner {
+  overflow: hidden;
+  min-height: 0;
 }
 @media (prefers-reduced-motion: reduce) {
   .disc-more, .disc-more-toggle .chev { transition: none; }
