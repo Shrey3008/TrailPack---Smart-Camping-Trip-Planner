@@ -366,15 +366,14 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
     min-height: 44px;
   }
 
-  .trip-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
+  /* The forced column layout and the extra margin under the primary that used
+     to be here were compensating for the stacked card: a full-width "View
+     Checklist" with a 73x23px "Delete Trip" text link directly beneath it.
+     dashboard-light.css now lays those out side by side and stacks them only
+     below 380px, so forcing a column from 640px down would fight the card's
+     own breakpoint. The 44px minimum above still applies and is what actually
+     made the destructive control safe to aim at. */
   .trip-actions .btn-danger {
-    /* Separated from the primary action so a near-miss is a miss, not a delete. */
-    margin-top: 4px;
     font-size: 0.9rem;
   }
 
