@@ -402,15 +402,18 @@ g.innerHTML = trails.map((t) => {
   const { t: ter, b: bc, p: ph } = discoverTerrain(t.name);
   const d = discoverDist(ulat, ulon, t.lat, t.lon);
   const tint = DISCOVER_TERRAIN_TINT[ph] || DISCOVER_TERRAIN_TINT.forest;
-  return `<div data-terrain="${ter}" onclick="discoverZoom(${t.lat},${t.lon})" style="background:#fff;border-radius:14px;overflow:hidden;cursor:pointer;border:1px solid rgba(0,0,0,.07);transition:box-shadow .18s,transform .18s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.10)';this.style.transform='translateY(-2px)'" onmouseout="this.style.boxShadow='none';this.style.transform='none'">
-    <div style="position:relative;aspect-ratio:4/3;overflow:hidden;background:${tint.bg};display:flex;align-items:center;justify-content:center;" aria-hidden="true">
-      <span style="font-size:2.6rem;line-height:1;opacity:.55;">${tint.glyph}</span>
-      <span style="position:absolute;bottom:10px;left:10px;padding:4px 10px;border-radius:9999px;font-size:.72rem;font-weight:700;background:${bc};color:#fff;">${ter}</span>
+  // Classed rather than inline-styled, so the card shares .disc-card's radius
+  // token and its hover lives in CSS instead of two onmouseover handlers.
+  // Only the two terrain-derived colours stay inline — they are data.
+  return `<div class="disc-result" data-terrain="${ter}" onclick="discoverZoom(${t.lat},${t.lon})">
+    <div class="disc-result__media" style="background:${tint.bg}" aria-hidden="true">
+      <span class="disc-result__glyph">${tint.glyph}</span>
+      <span class="disc-result__badge" style="background:${bc}">${ter}</span>
     </div>
-    <div style="padding:12px 14px 14px;">
-      <div style="font-weight:700;font-size:.9rem;line-height:1.3;margin-bottom:2px;">${t.name}</div>
-      <div style="font-size:.78rem;color:#9ca3af;margin-bottom:10px;">${t.type.replace(/_/g,' ')} · ${d} miles away</div>
-      <button data-trail-name="${(t.name||'').replace(/"/g,'&quot;')}" data-trail-terrain="${ter}" data-trail-lat="${t.lat||''}" data-trail-lon="${t.lon||''}" onclick="event.stopPropagation(); openPlanTripModal({name:this.dataset.trailName, terrain:this.dataset.trailTerrain, lat:this.dataset.trailLat, lon:this.dataset.trailLon})" style="width:100%;padding:9px;background:#2d6a4f;color:#fff;border:none;border-radius:10px;font-weight:600;font-size:.82rem;cursor:pointer;font-family:inherit;" onmouseover="this.style.background='#1b4332'" onmouseout="this.style.background='#2d6a4f'">Plan This Trip →</button>
+    <div class="disc-result__body">
+      <div class="disc-result__name">${t.name}</div>
+      <div class="disc-result__meta">${t.type.replace(/_/g,' ')} · ${d} miles away</div>
+      <button class="disc-result__cta" data-trail-name="${(t.name||'').replace(/"/g,'&quot;')}" data-trail-terrain="${ter}" data-trail-lat="${t.lat||''}" data-trail-lon="${t.lon||''}" onclick="event.stopPropagation(); openPlanTripModal({name:this.dataset.trailName, terrain:this.dataset.trailTerrain, lat:this.dataset.trailLat, lon:this.dataset.trailLon})">Plan This Trip →</button>
     </div>
   </div>`;
 }).join('');
@@ -430,11 +433,13 @@ trails.forEach(t => {
   function discoverZoom(lat, lon) { discoverMap.setView([lat, lon], 14); }
 
   function discoverEmptyHTML(m) {
-return '<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;padding:60px 20px;text-align:center;color:#6b7280;">'
-  + '<div style="font-size:3.5rem;margin-bottom:14px;">🌿</div>'
-  + '<h3 style="font-size:1.05rem;font-weight:700;color:#111;margin-bottom:6px;">No trails found within ' + m + ' miles</h3>'
-  + '<p style="font-size:.875rem;max-width:30ch;margin-bottom:18px;">Try a larger radius or a different location</p>'
-  + '<button onclick="discoverExpandRadius()" style="padding:10px 22px;background:#2d6a4f;color:#fff;border:none;border-radius:9999px;font-weight:600;font-size:.875rem;cursor:pointer;font-family:inherit;">+ Expand to ' + Math.min(m+10,50) + ' miles</button></div>';
+// Same shape as .empty-state on the trips grid — big glyph, Inter heading,
+// muted body, pill action — so the two empty states in the app match.
+return '<div class="disc-state">'
+  + '<div class="disc-state__icon">🌿</div>'
+  + '<h3 class="disc-state__title">No trails found within ' + m + ' miles</h3>'
+  + '<p class="disc-state__body">Try a larger radius or a different location</p>'
+  + '<button class="disc-state__action" onclick="discoverExpandRadius()">+ Expand to ' + Math.min(m+10,50) + ' miles</button></div>';
   }
   function discoverExpandRadius() {
 discoverRadiusMi = Math.min(discoverRadiusMi + 10, 50);

@@ -408,7 +408,7 @@
       font-weight: 600 !important;
       font-size: 0.88rem !important;
       padding: 10px 22px !important;
-      border-radius: 999px !important;
+      border-radius: var(--radius-full) !important;
       background: var(--green) !important;
       color: var(--text-white) !important;
       border: 0 !important;
@@ -438,7 +438,7 @@
     body.dash-light .trip-card {
       background: var(--bg-card) !important;
       border: 1px solid var(--border) !important;
-      border-radius: 16px !important;          /* Hipcamp uses rounded cards */
+      border-radius: var(--radius-lg) !important;   /* card radius, from tokens.css */
       padding: 0 !important;                     /* photo is full-bleed */
       box-shadow: var(--shadow-sm) !important;
       transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
@@ -553,7 +553,7 @@
       background: #f3f4f6 !important;
       color: #6b7280 !important;
       border: 0 !important;
-      border-radius: 999px !important;
+      border-radius: var(--radius-full) !important;
       padding: 3px 10px !important;
       font-size: 0.72rem !important;
       font-weight: 500 !important;
@@ -605,14 +605,14 @@
       height: 4px;
       width: 100%;
       background: #e5e7eb;
-      border-radius: 999px;
+      border-radius: var(--radius-full);
       overflow: hidden;
     }
     body.dash-light .tp-progress-fill {
       height: 100%;
       width: 0%;
       background: var(--green);
-      border-radius: 999px;
+      border-radius: var(--radius-full);
       transition: width 0.5s ease;
     }
 
@@ -691,8 +691,8 @@
     body.dash-light .tp-skel-line   { height: 12px; border-radius: 6px; width: 70%; }
     body.dash-light .tp-skel-line--title { height: 18px; width: 85%; }
     body.dash-light .tp-skel-line--short { width: 45%; height: 10px; }
-    body.dash-light .tp-skel-pill   { height: 18px; width: 62px; border-radius: 999px; }
-    body.dash-light .tp-skel-bar    { height: 5px; border-radius: 999px; margin-top: 2px; }
+    body.dash-light .tp-skel-pill   { height: 18px; width: 62px; border-radius: var(--radius-full); }
+    body.dash-light .tp-skel-bar    { height: 5px; border-radius: var(--radius-full); margin-top: 2px; }
     body.dash-light .tp-skel-button { height: 38px; border-radius: 8px; margin-top: 4px; }
     @keyframes tp-skel-shimmer {
       0%   { background-position: 100% 0; }
@@ -740,7 +740,7 @@
     body.dash-light .tp-load-error__retry {
       flex-shrink: 0;
       padding: 9px 20px;
-      border-radius: 999px;
+      border-radius: var(--radius-full);
       border: 1px solid #fdba74;
       background: #ffffff;
       color: #9a3412;
@@ -783,7 +783,7 @@
       color: var(--text-white) !important;
       border: 0 !important;
       padding: 11px 24px !important;
-      border-radius: 999px !important;
+      border-radius: var(--radius-full) !important;
       font-weight: 600 !important;
       cursor: pointer;
       box-shadow: 0 1px 2px rgba(45, 106, 79, 0.16);
@@ -873,7 +873,7 @@
       font-weight: 600;
       font-size: 0.9rem;
       padding: 10px 20px;
-      border-radius: 999px;
+      border-radius: var(--radius-full);
       border: 0;
       cursor: pointer;
       transition: transform 0.15s ease, background 0.15s ease;
@@ -970,7 +970,7 @@
       font-size: 0.95rem !important;
     }
     body.dash-light .tp-modal-actions .btn {
-      border-radius: 999px !important;
+      border-radius: var(--radius-full) !important;
       padding: 10px 20px !important;
       font-weight: 600 !important;
     }

@@ -145,7 +145,7 @@
   scrollbar-width: thin;
 }
 .disc-row::-webkit-scrollbar { height: 8px; }
-.disc-row::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+.disc-row::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: var(--radius-full); }
 .disc-row > * { scroll-snap-align: start; }
 @media (min-width: 900px) {
   .disc-row { grid-template-columns: repeat(4, 1fr); grid-auto-flow: initial; overflow: visible; }
@@ -154,7 +154,7 @@
 .disc-card {
   display: flex; flex-direction: column;
   background: #fff;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
   border: 1px solid rgba(0,0,0,.06);
@@ -193,7 +193,7 @@
   display: inline-block; font-size: .68rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: .04em;
   color: #2d6a4f; background: #ecfdf5;
-  padding: 2px 8px; border-radius: 999px;
+  padding: 2px 8px; border-radius: var(--radius-full);
   margin-top: 8px;
 }
 
@@ -206,7 +206,7 @@
 .disc-feat-tile {
   display: flex; flex-direction: column; gap: 8px;
   padding: 22px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: #fff;
   border: 1px solid rgba(0,0,0,.07);
   cursor: pointer;
@@ -222,7 +222,7 @@
   border-color: rgba(45,106,79,.4);
 }
 .disc-feat-icon {
-  width: 44px; height: 44px; border-radius: 12px;
+  width: 44px; height: 44px; border-radius: var(--radius);
   background: #ecfdf5; color: #2d6a4f;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 1.3rem;
@@ -236,12 +236,12 @@
 .disc-promo {
   display: flex; align-items: center; gap: 18px;
   padding: 22px 26px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: linear-gradient(120deg, #ecfdf5 0%, #d1fae5 100%);
   border: 1px solid rgba(45,106,79,.18);
 }
 .disc-promo-icon {
-  width: 56px; height: 56px; border-radius: 14px;
+  width: 56px; height: 56px; border-radius: var(--radius);
   background: #2d6a4f; color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 1.6rem; flex-shrink: 0;
@@ -327,7 +327,7 @@
 .next-up__bar {
   height: 6px;
   background: #e5e7eb;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -335,13 +335,13 @@
   height: 100%;
   width: 0%;
   background: var(--tp-green-700, #2d6a4f);
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   transition: width 0.5s ease;
 }
 .next-up__cta {
   display: inline-block;
   padding: 10px 22px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   background: var(--tp-green-700, #2d6a4f);
   color: #fff;
   font-size: 0.88rem;
@@ -384,7 +384,7 @@
 .disc-pill-row[hidden] { display: none; }
 .disc-pill {
   padding: 7px 16px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   border: 1.5px solid #d1d5db;
   background: #fff;
   color: #374151;
@@ -428,7 +428,7 @@
 .disc-res-back {
   flex-shrink: 0;
   padding: 7px 14px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   border: 1.5px solid #d1d5db;
   background: #fff;
   color: #374151;
@@ -454,20 +454,105 @@
   gap: 16px;
   min-width: 0;                 /* let the column shrink instead of overflowing */
 }
-.disc-results-placeholder {
+/* ---------- Discover result cards ----------
+   Rendered by renderDiscoverCards(). Classed rather than inline-styled so the
+   radius comes from the same token as .disc-card and the hover is CSS rather
+   than a pair of onmouseover handlers. */
+.disc-result {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, .07);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow .18s ease, transform .18s ease;
+}
+.disc-result:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .10);
+}
+.disc-result__media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.disc-result__glyph { font-size: 2.6rem; line-height: 1; opacity: .55; }
+.disc-result__badge {
+  position: absolute;
+  bottom: 10px; left: 10px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: .72rem;
+  font-weight: 700;
+  color: #fff;
+}
+.disc-result__body { padding: 12px 14px 14px; }
+.disc-result__name { font-weight: 700; font-size: .9rem; line-height: 1.3; margin-bottom: 2px; }
+.disc-result__meta { font-size: .78rem; color: #9ca3af; margin-bottom: 10px; }
+.disc-result__cta {
+  width: 100%;
+  padding: 9px;
+  background: var(--tp-green-700, #2d6a4f);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.disc-result__cta:hover { background: var(--tp-green-900, #1b4332); }
+
+/* ---------- Discover empty / placeholder states ----------
+   Deliberately the same composition as .empty-state on the trips grid — large
+   glyph, Inter heading, muted body, pill action. Discover previously invented
+   its own sizes inline (1.05rem here, 1.1rem there) for the same rank of
+   heading. Section titles keep Playfair; state headings are Inter, which is
+   the split .empty-state already uses. */
+.disc-state {
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 70px 0;
-  gap: 14px;
+  gap: 6px;
+  padding: 60px 20px;
   text-align: center;
 }
+.disc-state__icon { font-size: 3.5rem; line-height: 1; margin-bottom: 8px; }
+.disc-state__title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+.disc-state__body {
+  font-size: .875rem;
+  color: var(--text-secondary, #6b7280);
+  max-width: 34ch;
+  margin: 0 0 12px;
+}
+.disc-state__action {
+  padding: 11px 24px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--tp-green-700, #2d6a4f);
+  color: #fff;
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+.disc-state__action:hover { background: var(--tp-green-900, #1b4332); }
 
 .disc-map-wrap {
   position: sticky;
   top: 80px;
-  border-radius: 14px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0,0,0,.10);
   border: 1px solid rgba(0,0,0,.08);
@@ -503,7 +588,7 @@
   background: #ffffff;
   color: #1a1a1a;
   border: 1px solid #e8e8e4;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 600;
