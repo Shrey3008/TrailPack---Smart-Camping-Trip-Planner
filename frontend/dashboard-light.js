@@ -791,18 +791,8 @@
 
     // ---------- Trip card enhancer ----------
     // app.js renders bare trip cards. We observe the containers and decorate
-    // each card with: (1) a top row (terrain emoji + created date) and
-    // (2) a progress bar + "X of Y items packed". No other files touched.
-    const TERRAIN_EMOJI = {
-      mountain: '🏔️', mountains: '🏔️', alpine: '🏔️', snow: '🏔️',
-      forest: '🌲', woods: '🌲', woodland: '🌲',
-      desert: '🏜️', dunes: '🏜️',
-      beach: '🏖️', coast: '🏖️', ocean: '🏖️',
-      lake: '🛶', river: '🏞️', canyon: '🏞️', valley: '🏞️',
-      tundra: '🥶', arctic: '🥶',
-      jungle: '🌴', rainforest: '🌴', tropical: '🌴',
-      plains: '🌾', prairie: '🌾', grassland: '🌾',
-    };
+    // each card with (1) a full-bleed terrain photo and (2) a progress bar
+    // plus "X of Y items packed". No other files touched.
     const itemCache = new Map(); // tripId -> { total, packed }
 
     const DISCOVER_PHOTO_POOL = {
@@ -924,7 +914,6 @@
       const photoUrl   = poolArr[photoIndex] || poolArr[0];
       if (photoUrl) photo.style.backgroundImage = `url('${photoUrl}')`;
       card.insertBefore(photo, card.firstChild);
-      void TERRAIN_EMOJI; // legacy emoji table is unused in the redesign
 
       // Extract tripId from the card's inline onclick (app.js renders: viewChecklist('<id>')).
       const onclick = card.getAttribute('onclick') || '';

@@ -1,4 +1,10 @@
-/* Dashboard Styles */
+/* Admin + Organizer styles.
+   Named dashboard.css until 2026-08-11, which was misleading: the user-facing
+   dashboard never loaded it. Only admin.html and organizer.html do, and every
+   rule here is theirs — analytics cards, the share modal, participant lists,
+   quick actions. The .dashboard-* class names below are those pages' own
+   layout wrappers and are left alone; renaming them would touch markup and JS
+   for no gain. */
 .dashboard-container {
   max-width: 1200px;
   margin: 0 auto;
