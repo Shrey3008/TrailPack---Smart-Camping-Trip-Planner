@@ -616,15 +616,29 @@
 .disc-more-toggle[aria-expanded="true"] .chev {
   transform: rotate(180deg);
 }
+/* Collapsed, this region is clipped to zero height — but clipping is only
+   visual. Its 32 destination cards stayed in the tab order and in the
+   accessibility tree, so tabbing off "More to Discover" walked through 32
+   invisible controls before reaching the footer, and a screen reader announced
+   four sections the page was not showing.
+
+   visibility:hidden removes it from both. It is transitioned rather than
+   toggled outright: on expand it flips at 0s so the content animates in, and
+   on collapse it waits out the 0.45s height animation so the panels do not
+   vanish before they have finished closing. discover.js also mirrors the state
+   onto the `inert` attribute, which additionally blocks pointer events. */
 .disc-more {
   overflow: hidden;
   max-height: 0;
   opacity: 0;
-  transition: max-height 0.45s ease, opacity 0.25s ease;
+  visibility: hidden;
+  transition: max-height 0.45s ease, opacity 0.25s ease, visibility 0s linear 0.45s;
 }
 .disc-more.is-open {
   max-height: 6000px;
   opacity: 1;
+  visibility: visible;
+  transition: max-height 0.45s ease, opacity 0.25s ease, visibility 0s linear 0s;
 }
 @media (prefers-reduced-motion: reduce) {
   .disc-more, .disc-more-toggle .chev { transition: none; }

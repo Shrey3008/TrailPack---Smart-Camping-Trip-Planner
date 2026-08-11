@@ -471,9 +471,19 @@ const btn    = document.getElementById('disc-more-toggle');
 const region = document.getElementById('disc-more-region');
 if (!btn || !region) return;
 const label  = btn.querySelector('.disc-more-label');
+
+// Keep the collapsed region out of the tab order and off the accessibility
+// tree. The CSS does this too via visibility, but `inert` is the explicit
+// statement of intent and also swallows pointer events, so a card that is
+// clipped rather than fully hidden still cannot be clicked. Set on load
+// because the markup ships collapsed.
+const syncInert = (open) => { region.inert = !open; };
+syncInert(region.classList.contains('is-open'));
+
 btn.addEventListener('click', () => {
   const open = region.classList.toggle('is-open');
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   if (label) label.textContent = open ? 'Less to Discover' : 'More to Discover';
+  syncInert(open);
 });
   })();
