@@ -116,15 +116,61 @@ async function loadStats() {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   };
+  const errorEl = document.getElementById('stats-error');
   try {
     const stats = await apiCall('/trips/stats');
     set('stat-trips', stats.totalTrips);
     set('stat-items', stats.totalItems);
     set('stat-packed', stats.packedItems);
     set('stat-percentage', `${stats.packedPercentage}%`);
+    if (errorEl) errorEl.hidden = true;
   } catch (error) {
     console.error('Error loading stats:', error);
+    // A failed request used to leave the markup's hardcoded zeroes on screen,
+    // so an outage rendered as "you have packed nothing". An em dash reads as
+    // "unknown", which is what we actually know.
+    set('stat-trips', '—');
+    set('stat-items', '—');
+    set('stat-packed', '—');
+    set('stat-percentage', '—');
+    if (errorEl) errorEl.hidden = false;
   }
+}
+
+/* Placeholder cards shown while /trips is in flight. Mirrors .trip-card's
+   shape — photo block, title, badge row, progress, action — so the grid does
+   not reflow when the real cards replace them. */
+function tripSkeletonHTML(count) {
+  const one = `
+    <div class="tp-skel-card" aria-hidden="true">
+      <div class="tp-skel-photo"></div>
+      <div class="tp-skel-body">
+        <div class="tp-skel-line tp-skel-line--title"></div>
+        <div class="tp-skel-badges">
+          <span class="tp-skel-pill"></span><span class="tp-skel-pill"></span>
+        </div>
+        <div class="tp-skel-line tp-skel-line--short"></div>
+        <div class="tp-skel-bar"></div>
+        <div class="tp-skel-button"></div>
+      </div>
+    </div>`;
+  return one.repeat(count);
+}
+
+/* Shared failure panel. Replaces the previous
+   "Failed to load trips. Please make sure the server is running." — which told
+   the user to check a server they do not run, in an unstyled legacy
+   .error-message box. onRetryAttr names a global function to call. */
+function loadErrorHTML({ title, body, retryFn }) {
+  return `
+    <div class="tp-load-error" role="alert">
+      <span class="tp-load-error__icon" aria-hidden="true">⚠️</span>
+      <div class="tp-load-error__text">
+        <p class="tp-load-error__title">${title}</p>
+        <p class="tp-load-error__body">${body}</p>
+      </div>
+      <button type="button" class="tp-load-error__retry" onclick="${retryFn}">Try again</button>
+    </div>`;
 }
 
 /* ----------------------------------------------------------------
@@ -192,8 +238,14 @@ async function loadTrips() {
 
   if (!container) return;
 
+  const limit = parseInt(container.dataset.limit, 10) || 0;
+
   try {
-    container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading trips...</div>';
+    // Skeletons rather than a centred spinner: the grid keeps its shape, so
+    // the page does not jump when the cards arrive. Match the number we are
+    // actually going to render.
+    container.style.display = 'grid';
+    container.innerHTML = tripSkeletonHTML(limit > 0 ? limit : 6);
 
     const data = await apiCallWithAuth('/trips');
     const trips = data.trips || [];
@@ -209,7 +261,6 @@ async function loadTrips() {
     container.style.display = 'grid';
     if (emptyState) emptyState.style.display = 'none';
 
-    const limit = parseInt(container.dataset.limit, 10) || 0;
     const visibleTrips = limit > 0 ? trips.slice(0, limit) : trips;
 
     // Only worth an explicit count when cards are actually being withheld.
@@ -244,13 +295,15 @@ async function loadTrips() {
       </div>
     `).join('');
   } catch (error) {
-    if (container) {
-      container.innerHTML = `
-        <div class="error-message">
-          Failed to load trips. Please make sure the server is running.
-        </div>
-      `;
-    }
+    console.error('Error loading trips:', error);
+    container.style.display = 'block';
+    container.innerHTML = loadErrorHTML({
+      title: "We couldn't load your trips",
+      body: 'This is usually a connection problem — your trips are safe.',
+      retryFn: 'loadTrips()',
+    });
+    if (emptyState) emptyState.style.display = 'none';
+    if (viewAll) viewAll.hidden = true;
   }
 }
 

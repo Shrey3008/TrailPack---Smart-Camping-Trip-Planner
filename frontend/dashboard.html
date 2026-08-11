@@ -606,6 +606,17 @@
       </div>
     </section>
 
+    <!-- Shown by renderNextUp() when GET /trips fails, so a failed request is
+         distinguishable from an account with no trips. -->
+    <div class="tp-load-error" id="next-up-error" role="alert" hidden>
+      <span class="tp-load-error__icon" aria-hidden="true">⚠️</span>
+      <div class="tp-load-error__text">
+        <p class="tp-load-error__title">We couldn't load your next trip</p>
+        <p class="tp-load-error__body">This is usually a connection problem — your trips are safe.</p>
+      </div>
+      <button type="button" class="tp-load-error__retry" onclick="renderNextUp()">Try again</button>
+    </div>
+
     <!--
       The user's own trips lead the dashboard. Previously this page jumped
       straight from a row of zeroes to ~40 generic destination cards, so a

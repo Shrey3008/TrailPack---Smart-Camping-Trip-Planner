@@ -321,6 +321,18 @@
       </div>
     </div>
 
+    <!-- Revealed by loadStats() when /trips/stats fails. The numbers above
+         fall back to "—" at the same time, so a failed request no longer
+         renders as a genuine set of zeroes. -->
+    <div class="tp-load-error tp-load-error--inline" id="stats-error" role="alert" hidden>
+      <span class="tp-load-error__icon" aria-hidden="true">⚠️</span>
+      <div class="tp-load-error__text">
+        <p class="tp-load-error__title">We couldn't load your totals</p>
+        <p class="tp-load-error__body">Your trips below are unaffected.</p>
+      </div>
+      <button type="button" class="tp-load-error__retry" onclick="loadStats()">Try again</button>
+    </div>
+
     <!-- ============== Your Trips section ============== -->
     <section class="dashboard-section">
       <div class="section-header">

@@ -280,18 +280,23 @@
       const card = document.getElementById('next-up');
       if (!card) return;   // my-trips.html and every other page
 
+      const errorEl = document.getElementById('next-up-error');
+
       let trips = [];
       try {
         const res = await apiCallWithAuth('/trips');
         trips = Array.isArray(res?.trips) ? res.trips : (Array.isArray(res) ? res : []);
+        if (errorEl) errorEl.hidden = true;
       } catch (_) {
-        // Leave the card hidden rather than showing a broken or zeroed one.
-        // The Recent Trips section surfaces the load failure already.
+        // Say the request failed rather than leaving the top of the page
+        // blank, which is indistinguishable from having no trips.
+        card.hidden = true;
+        if (errorEl) errorEl.hidden = false;
         return;
       }
 
       const pick = pickNextTrip(trips);
-      if (!pick || !pick.trip || !pick.trip.tripId) return;   // empty account
+      if (!pick || !pick.trip || !pick.trip.tripId) { card.hidden = true; return; }   // empty account
 
       const trip = pick.trip;
       const when = describeWhen(pick);

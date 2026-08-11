@@ -662,6 +662,97 @@
       text-decoration: underline;
     }
 
+    /* ---------- Loading skeletons (trip grid) ----------
+       Sit inside .trips-grid, so they inherit the same column count as the
+       real cards and the grid does not reflow when the data lands. */
+    body.dash-light .tp-skel-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      min-height: 320px;
+    }
+    body.dash-light .tp-skel-photo { width: 100%; aspect-ratio: 3 / 2; }
+    body.dash-light .tp-skel-body {
+      padding: 16px 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    body.dash-light .tp-skel-badges { display: flex; gap: 6px; }
+    body.dash-light .tp-skel-photo,
+    body.dash-light .tp-skel-line,
+    body.dash-light .tp-skel-pill,
+    body.dash-light .tp-skel-bar,
+    body.dash-light .tp-skel-button {
+      background: linear-gradient(90deg, #eef0ee 0%, #f7f8f6 50%, #eef0ee 100%);
+      background-size: 200% 100%;
+      animation: tp-skel-shimmer 1.4s ease-in-out infinite;
+    }
+    body.dash-light .tp-skel-line   { height: 12px; border-radius: 6px; width: 70%; }
+    body.dash-light .tp-skel-line--title { height: 18px; width: 85%; }
+    body.dash-light .tp-skel-line--short { width: 45%; height: 10px; }
+    body.dash-light .tp-skel-pill   { height: 18px; width: 62px; border-radius: 999px; }
+    body.dash-light .tp-skel-bar    { height: 5px; border-radius: 999px; margin-top: 2px; }
+    body.dash-light .tp-skel-button { height: 38px; border-radius: 8px; margin-top: 4px; }
+    @keyframes tp-skel-shimmer {
+      0%   { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+    /* A shimmer that never stops is the kind of motion this setting exists to
+       suppress; the shapes still communicate "loading" without it. */
+    @media (prefers-reduced-motion: reduce) {
+      body.dash-light .tp-skel-photo,
+      body.dash-light .tp-skel-line,
+      body.dash-light .tp-skel-pill,
+      body.dash-light .tp-skel-bar,
+      body.dash-light .tp-skel-button { animation: none; }
+    }
+
+    /* ---------- Load failure panel ----------
+       Replaces the unstyled legacy .error-message, which told the user to
+       check that a server they do not run is running. */
+    body.dash-light .tp-load-error {
+      grid-column: 1 / -1;          /* span the grid when rendered inside one */
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: #fffaf5;
+      border: 1px solid #fed7aa;
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      margin-bottom: 24px;
+    }
+    body.dash-light .tp-load-error[hidden] { display: none; }
+    body.dash-light .tp-load-error__icon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
+    body.dash-light .tp-load-error__text { flex: 1 1 260px; min-width: 0; }
+    body.dash-light .tp-load-error__title {
+      margin: 0 0 2px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #9a3412;
+    }
+    body.dash-light .tp-load-error__body {
+      margin: 0;
+      font-size: 0.85rem;
+      color: #b45309;
+    }
+    body.dash-light .tp-load-error__retry {
+      flex-shrink: 0;
+      padding: 9px 20px;
+      border-radius: 999px;
+      border: 1px solid #fdba74;
+      background: #ffffff;
+      color: #9a3412;
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+    }
+    body.dash-light .tp-load-error__retry:hover { background: #fff7ed; border-color: #fb923c; }
+
     /* ---------- Empty state ---------- */
     body.dash-light .empty-state {
       background: var(--bg-card);
