@@ -1,0 +1,672 @@
+/* =============================================================================
+   dashboard.html page styles.
+
+   Extracted from a 479-line inline <style> block on 2026-08-11. While these
+   lived in a style attribute's neighbourhood they could not be overridden by
+   any stylesheet at equal specificity, which is why theme.css had to reach
+   the search bar with !important and attribute selectors like
+   div[style*="width:1px"].
+
+   This file is loaded by dashboard.html only. It is deliberately NOT
+   dashboard-light.css, which is shared with my-trips.html — putting
+   Discover rules there is what left ~400 dead lines shipping to a page with
+   no Discover section (see 553d9f8).
+
+   The name was freed by renaming the old dashboard.css to admin.css, which is
+   what it actually styled.
+   ============================================================================= */
+
+@keyframes discoverShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* =====================================================================
+   Discover home content (Hipcamp-style)
+   Quick action tiles, themed carousels of destinations, feature
+   tiles, and an SEO link grid. Rendered by JS into #discoverHomeContent
+   and hidden the first time the user runs an actual search. */
+.disc-home-wrap { max-width: 1240px; margin: 0 auto; padding: 28px; }
+.disc-section { margin-bottom: 44px; }
+.disc-section-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.disc-section-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.55rem; font-weight: 700; color: #111; margin: 0;
+  letter-spacing: -0.005em;
+}
+.disc-section-sub {
+  font-size: 0.875rem; color: #6b7280; margin: 4px 0 0;
+}
+.disc-section-link {
+  font-size: 0.85rem; font-weight: 600; color: #2d6a4f;
+  text-decoration: none; cursor: pointer;
+}
+.disc-section-link:hover { text-decoration: underline; }
+
+/* Quick action tiles — colored pills like Hipcamp's "Available tonight". */
+.disc-quick-tiles {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+.disc-quick-tile {
+  position: relative;
+  display: flex; flex-direction: column; align-items: flex-start;
+  gap: 6px;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(0,0,0,.10);
+  transition: transform .15s ease, box-shadow .15s ease;
+  min-height: 110px;
+}
+.disc-quick-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(0,0,0,.16);
+}
+.disc-quick-tile .qt-icon { font-size: 1.6rem; line-height: 1; }
+.disc-quick-tile .qt-title { font-size: 1rem; font-weight: 700; }
+.disc-quick-tile .qt-sub   { font-size: .78rem; opacity: .92; }
+.disc-quick-tile.qt-1 { background: linear-gradient(135deg, #f7b61b 0%, #f59e0b 100%); }
+.disc-quick-tile.qt-2 { background: linear-gradient(135deg, #17807d 0%, #0f766e 100%); }
+.disc-quick-tile.qt-3 { background: linear-gradient(135deg, #2d6a4f 0%, #1f5036 100%); }
+.disc-quick-tile.qt-4 { background: linear-gradient(135deg, #ec4899 0%, #be185d 100%); }
+.disc-quick-tile.qt-5 { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+@media (max-width: 1100px) { .disc-quick-tiles { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px)  { .disc-quick-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+/* Horizontal carousels — destination cards, scroll-snap on mobile. */
+.disc-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(240px, 1fr);
+  gap: 18px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 4px 12px;
+  scrollbar-width: thin;
+}
+.disc-row::-webkit-scrollbar { height: 8px; }
+.disc-row::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
+.disc-row > * { scroll-snap-align: start; }
+@media (min-width: 900px) {
+  .disc-row { grid-template-columns: repeat(4, 1fr); grid-auto-flow: initial; overflow: visible; }
+}
+
+.disc-card {
+  display: flex; flex-direction: column;
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 2px 6px rgba(0,0,0,.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+  text-align: left;
+  font-family: inherit;
+  padding: 0;
+}
+.disc-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+.disc-card-photo {
+  width: 100%; aspect-ratio: 4/3;
+  background-size: cover; background-position: center;
+  background-color: #e5e7eb;
+}
+.disc-card-body { padding: 12px 14px 14px; }
+.disc-card-title {
+  font-size: .95rem; font-weight: 700; color: #111;
+  margin: 0 0 2px; line-height: 1.25;
+  /* Long names ("White Mountain National Forest") wrapped to two lines and
+     stretched their whole grid row, leaving one row of cards 19px taller
+     than the rest. Clamp to a single line so every card matches. */
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.disc-card-sub {
+  font-size: .78rem; color: #6b7280; margin: 0;
+  display: flex; align-items: center; gap: 6px;
+}
+.disc-card-badge {
+  display: inline-block; font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em;
+  color: #2d6a4f; background: #ecfdf5;
+  padding: 2px 8px; border-radius: 999px;
+  margin-top: 8px;
+}
+
+/* Feature tiles row — like Hipcamp's "New ways to find yourself outside". */
+.disc-feat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.disc-feat-tile {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 22px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.07);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.disc-feat-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,.10);
+  border-color: rgba(45,106,79,.4);
+}
+.disc-feat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: #ecfdf5; color: #2d6a4f;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.3rem;
+}
+.disc-feat-title { font-size: 1rem; font-weight: 700; color: #111; margin: 0; }
+.disc-feat-sub   { font-size: .82rem; color: #6b7280; margin: 0; line-height: 1.4; }
+@media (max-width: 1000px) { .disc-feat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 540px)  { .disc-feat-grid { grid-template-columns: 1fr; } }
+
+/* Trust strip / promo banner. */
+.disc-promo {
+  display: flex; align-items: center; gap: 18px;
+  padding: 22px 26px;
+  border-radius: 16px;
+  background: linear-gradient(120deg, #ecfdf5 0%, #d1fae5 100%);
+  border: 1px solid rgba(45,106,79,.18);
+}
+.disc-promo-icon {
+  width: 56px; height: 56px; border-radius: 14px;
+  background: #2d6a4f; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; flex-shrink: 0;
+}
+.disc-promo-title { font-size: 1.05rem; font-weight: 700; color: #111; margin: 0; }
+.disc-promo-sub   { font-size: .87rem; color: #374151; margin: 2px 0 0; }
+
+/* SEO link grid at the bottom. */
+.disc-link-cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 32px;
+  align-items: stretch;
+}
+.disc-link-cols > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.disc-link-col-title {
+  font-size: .66rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #6b7280; margin: 0 0 12px;
+}
+.disc-link-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 10px;
+  justify-content: space-between;
+}
+.disc-link-item {
+  font-size: .84rem; color: #111; cursor: pointer;
+  background: none; border: 0; padding: 0; text-align: left; font-family: inherit;
+}
+.disc-link-item:hover { color: #2d6a4f; text-decoration: underline; }
+@media (max-width: 720px) { .disc-link-cols { grid-template-columns: 1fr; gap: 22px; } }
+
+/* ---------- "Next up" card ----------
+   Replaces the four-number stats bar. Two columns on desktop (identity on
+   the left, progress + action on the right), stacked on small screens. */
+.next-up {
+  display: grid;
+  grid-template-columns: 1fr minmax(240px, 340px);
+  gap: 28px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid var(--border, #e8e8e4);
+  border-left: 4px solid var(--tp-green-700, #2d6a4f);
+  border-radius: var(--radius, 12px);
+  padding: 24px 28px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(15,23,42,.05));
+}
+.next-up[hidden] { display: none; }
+.next-up__eyebrow {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #6b7280);
+}
+.next-up__name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary, #1a1a1a);
+  margin: 0 0 6px;
+  letter-spacing: -0.005em;
+}
+.next-up__when {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b7280);
+}
+.next-up__when.is-soon { color: #b45309; font-weight: 600; }
+.next-up__count {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #6b7280);
+  margin-bottom: 8px;
+}
+.next-up__count strong { color: var(--text-primary, #1a1a1a); font-weight: 600; }
+.next-up__bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.next-up__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--tp-green-700, #2d6a4f);
+  border-radius: 9999px;
+  transition: width 0.5s ease;
+}
+.next-up__cta {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 9999px;
+  background: var(--tp-green-700, #2d6a4f);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.next-up__cta:hover { background: var(--tp-green-500, #40916c); }
+@media (max-width: 720px) {
+  .next-up {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 20px;
+  }
+  .next-up__cta { display: block; text-align: center; }
+}
+
+/* "View all trips →" under the recent-trips preview. */
+.trips-view-all {
+  display: inline-block;
+  margin-top: 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2d6a4f;
+  text-decoration: none;
+}
+.trips-view-all:hover { text-decoration: underline; }
+.trips-view-all[hidden] { display: none; }
+
+/* ---------- Terrain filter pills ----------
+   Active state is a class, not inline styles rewritten by JS, so the
+   pressed pill is expressible in CSS and readable to assistive tech via
+   aria-pressed. */
+.disc-pill-row {
+  display: flex;
+  gap: 8px;
+  padding: 16px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.disc-pill-row[hidden] { display: none; }
+.disc-pill {
+  padding: 7px 16px;
+  border-radius: 9999px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: .82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+}
+.disc-pill:hover { border-color: #9ca3af; color: #111; }
+.disc-pill.is-active {
+  background: #2d6a4f;
+  border-color: #2d6a4f;
+  color: #fff;
+}
+
+/* Shown when a terrain filter hides every result. */
+.disc-pill-empty {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  font-size: .9rem;
+}
+
+/* =====================================================================
+   Discover results + map.
+   The two-column layout used to be written to #discoverGrid's style
+   attribute by fetchDiscoverTrails(), so no media query could reach it:
+   below ~1000px the fixed 420px map column starved the results column
+   (measured at a 510px viewport: `20px 420px`, giving 2px-wide trail
+   cards). Layout is expressed here instead and JS only toggles a class. */
+.disc-res-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;          /* header crushed into overlapping text at 375px */
+  margin-bottom: 20px;
+}
+.disc-res-back {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  border: 1.5px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.disc-res-back:hover { border-color: #9ca3af; color: #111; }
+
+.disc-results-grid {
+  display: grid;
+  grid-template-columns: 1fr;   /* full width while the map is hidden */
+  gap: 24px;
+  align-items: start;
+}
+/* Added by fetchDiscoverTrails() when the map is revealed. */
+.disc-results-grid.has-map { grid-template-columns: 1fr 420px; }
+
+.disc-results-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  min-width: 0;                 /* let the column shrink instead of overflowing */
+}
+.disc-results-placeholder {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 70px 0;
+  gap: 14px;
+  text-align: center;
+}
+
+.disc-map-wrap {
+  position: sticky;
+  top: 80px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,.10);
+  border: 1px solid rgba(0,0,0,.08);
+  min-width: 0;
+}
+#discoverMap { height: 580px; }
+
+/* Tablet and below: the map stops being a sidebar and becomes a full-width
+   block under the results. Sticky is dropped with it — pinning a
+   full-width block to the top of the viewport would cover the list it is
+   supposed to accompany. */
+@media (max-width: 900px) {
+  .disc-results-grid.has-map { grid-template-columns: 1fr; }
+  .disc-map-wrap { position: static; }
+  #discoverMap { height: 380px; }
+}
+@media (max-width: 640px) {
+  .disc-results-cards { grid-template-columns: 1fr; }
+  #discoverMap { height: 300px; }
+}
+
+/* ---------- More to Discover (collapsible) ---------- */
+.disc-more-wrap {
+  margin: 6px 0 28px;
+  display: flex;
+  justify-content: center;
+}
+.disc-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 22px;
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid #e8e8e4;
+  border-radius: 9999px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.06);
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.08s;
+}
+.disc-more-toggle:hover {
+  background: #f3f4f6;
+  border-color: #d8d8d2;
+  box-shadow: 0 4px 14px rgba(15,23,42,0.10);
+}
+.disc-more-toggle:active { transform: translateY(1px); }
+.disc-more-toggle:focus-visible {
+  outline: 2px solid rgba(45,106,79,0.55);
+  outline-offset: 2px;
+}
+.disc-more-toggle .chev {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+.disc-more-toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+.disc-more {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.45s ease, opacity 0.25s ease;
+}
+.disc-more.is-open {
+  max-height: 6000px;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .disc-more, .disc-more-toggle .chev { transition: none; }
+}
+
+/* =============================================================================
+   Discover search bar, dropdown and radius popover.
+
+   These were written entirely as style attributes on the markup. That is why
+   theme.css §7 had to reach them with !important and selectors like
+   div[style*="width:1px"] — a style attribute outranks any stylesheet rule, so
+   there was no other handle. With the values here, the small-screen layout in
+   theme.css is plain class selectors at normal specificity.
+   ============================================================================= */
+.disc-search-wrap { position: relative; width: 100%; }
+
+.disc-searchbar {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid #d1d5db;
+  border-radius: var(--radius-full);
+  height: 52px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .08);
+}
+.disc-searchbar__rule {
+  width: 1px;
+  height: 30px;
+  background: #e5e7eb;
+  flex-shrink: 0;
+}
+
+.disc-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  height: 100%;
+  cursor: pointer;
+  border: none;
+  background: none;
+  border-radius: var(--radius-full);
+}
+.disc-field--loc    { flex: 2.2; }
+.disc-field--radius { min-width: 136px; }
+.disc-field__icon   { color: #9ca3af; flex-shrink: 0; }
+.disc-field__body   { flex: 1; min-width: 0; }
+.disc-field__label {
+  display: block;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #374151;
+}
+.disc-field__value { font-size: .855rem; color: #6b7280; }
+.disc-field__input {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: .855rem;
+  color: #111;
+  outline: none;
+  width: 100%;
+  cursor: pointer;
+}
+
+.disc-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 40px;
+  margin: 6px 6px 6px 0;
+  padding: 0 22px;
+  background: var(--tp-green-700, #2d6a4f);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  font-size: .84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.disc-search-btn:hover { background: var(--tp-green-900, #1b4332); }
+
+/* ---------- Location dropdown ---------- */
+.disc-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 380px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .15);
+  z-index: 400;
+  overflow: hidden;
+}
+.disc-dropdown[hidden] { display: none; }
+.disc-dd-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  cursor: pointer;
+}
+.disc-dd-row:hover { background: #f9fafb; }
+.disc-dd-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: #f3f4f6;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.disc-dd-icon--accent { background: var(--tp-green-100, #d8f3e3); color: var(--tp-green-700, #2d6a4f); }
+.disc-dd-title { font-weight: 600; font-size: .9rem; color: #111; }
+.disc-dd-sub   { font-size: .775rem; color: #9ca3af; }
+.disc-dd-heading {
+  padding: 10px 16px 4px;
+  border-top: 1px solid #f3f4f6;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+/* ---------- Radius popover ---------- */
+.disc-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, .15);
+  z-index: 400;
+}
+.disc-popover[hidden] { display: none; }
+.disc-popover__title { font-weight: 700; font-size: .875rem; color: #111; margin-bottom: 14px; }
+.disc-popover__value {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--tp-green-700, #2d6a4f);
+  text-align: center;
+  margin-bottom: 12px;
+}
+.disc-popover__slider {
+  width: 100%;
+  accent-color: var(--tp-green-700, #2d6a4f);
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+.disc-popover__scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: .75rem;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+.disc-popover__apply {
+  width: 100%;
+  padding: 10px;
+  background: var(--tp-green-700, #2d6a4f);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: .875rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.disc-popover__apply:hover { background: var(--tp-green-900, #1b4332); }
