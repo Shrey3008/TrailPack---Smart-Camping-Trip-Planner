@@ -151,8 +151,19 @@
   .disc-row { grid-template-columns: repeat(4, 1fr); grid-auto-flow: initial; overflow: visible; }
 }
 
+/* The wrapper exists so the photo credit can be a sibling of the card button
+   rather than a child: an <a> inside a <button> is invalid HTML and would not
+   be independently clickable. It is the grid item now, so it has to carry the
+   card's full height itself. */
+.disc-card-wrap {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
 .disc-card {
   display: flex; flex-direction: column;
+  flex: 1;
+  min-width: 0;
   background: #fff;
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -173,6 +184,39 @@
   background-size: cover; background-position: center;
   background-color: #e5e7eb;
 }
+/* Fallback panel for a destination with no photo in discover-photos.js —
+   same idea as .disc-result__media, a category swatch that claims nothing. */
+.disc-card-photo--tint {
+  display: flex; align-items: center; justify-content: center;
+}
+.disc-card-glyph { font-size: 2.4rem; line-height: 1; opacity: .85; }
+
+/* Attribution for the licences that require it. Anchored to the card's top
+   right, which is always inside the photo since the photo is the first child —
+   no dependency on the photo's height. Lifts with the card on hover so it does
+   not visibly detach from it. */
+.disc-card-credit {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  max-width: calc(100% - 16px);
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(0,0,0,.55);
+  color: #fff;
+  font-size: .62rem;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: .82;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.disc-card-wrap:hover .disc-card-credit { transform: translateY(-3px); }
+.disc-card-credit:hover,
+.disc-card-credit:focus-visible { opacity: 1; text-decoration: underline; }
 .disc-card-body { padding: 12px 14px 14px; }
 .disc-card-title {
   font-size: .95rem; font-weight: 700; color: #111;

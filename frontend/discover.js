@@ -135,32 +135,71 @@ return String(v == null ? '' : v)
   .replace(/>/g, '&gt;');
   }
 
-  function discoverHomePhotoFor(terrain, idx) {
-const pool = (typeof DISCOVER_PHOTO_POOL !== 'undefined' && DISCOVER_PHOTO_POOL[terrain])
-  ? DISCOVER_PHOTO_POOL[terrain]
-  : (typeof DISCOVER_PHOTO_POOL !== 'undefined' ? DISCOVER_PHOTO_POOL.forest : []);
-if (!pool || !pool.length) return '';
-return pool[idx % pool.length];
+  /* Photo for one destination, looked up by the exact name the card shows.
+
+ This replaced a per-terrain stock pool indexed by the card's position in its
+ row. That pool never knew which place it was illustrating: it dealt the same
+ generic forest or mountain shot to whichever card happened to land on that
+ index, which put one image under two different park names eight times over —
+ Yosemite and Rocky Mountain, Yellowstone and Muir Woods, and six more.
+
+ A destination with no entry gets no photo. The card then renders the terrain
+ tint panel below, the same treatment D3 gave the result cards: it reads as a
+ category swatch and claims nothing, which is the honest fallback. Borrowing a
+ neighbour's photo to fill the gap is the exact bug being fixed here. */
+  function discoverHomePhotoFor(name) {
+return (typeof DISCOVER_PLACE_PHOTOS !== 'undefined' && DISCOVER_PLACE_PHOTOS[name])
+  ? DISCOVER_PLACE_PHOTOS[name]
+  : null;
   }
 
-  function discoverHomeCardHTML(item, idx) {
-const photo = discoverHomePhotoFor(item.terrain || 'forest', idx);
+  function discoverHomeCardHTML(item) {
+const photo = discoverHomePhotoFor(item.name);
 const query = item.name + (item.region ? ', ' + item.region : '');
+
+// No photo → terrain tint panel, matching the result cards' media panel.
+let media;
+if (photo) {
+  media = '<div class="disc-card-photo" style="background-image:url(\''
+        + discAttr(photo.src) + '\')" role="img" aria-label="'
+        + discAttr(item.name) + '"></div>';
+} else {
+  const tint = DISCOVER_TERRAIN_TINT[item.terrain] || DISCOVER_TERRAIN_TINT.forest;
+  media = '<div class="disc-card-photo disc-card-photo--tint" style="background:'
+        + discAttr(tint.bg) + ';color:' + discAttr(tint.fg) + '" aria-hidden="true">'
+        + '<span class="disc-card-glyph">' + tint.glyph + '</span></div>';
+}
+
+/* The credit is a sibling of the button, not a child: a link inside a button
+   is invalid HTML and would not be independently clickable. It is positioned
+   over the photo by CSS. Only licences that actually impose an attribution
+   condition get one — the generator sets credit:false for public domain. */
+const creditEl = (photo && photo.credit)
+  ? '<a class="disc-card-credit" href="' + discAttr(photo.page) + '"'
+    + ' target="_blank" rel="noopener noreferrer"'
+    + ' title="' + discAttr(photo.by + ' — ' + photo.license
+                            + '. Opens the file page on Wikimedia Commons.') + '">'
+    + '© ' + discAttr(photo.by) + ' / ' + discAttr(photo.license) + '</a>'
+  : '';
+
 return ''
-  + '<button type="button" class="disc-card" data-disc-act="pick-city" '
-  + 'data-name="' + discAttr(query) + '" data-lat="' + item.lat + '" data-lon="' + item.lon + '">'
-  +   '<div class="disc-card-photo" style="background-image:url(\'' + photo + '\')"></div>'
-  +   '<div class="disc-card-body">'
-  +     '<p class="disc-card-title">' + item.name + '</p>'
-  +     (item.region ? '<p class="disc-card-sub">📍 ' + item.region + '</p>' : '')
-  +   '</div>'
-  + '</button>';
+  + '<div class="disc-card-wrap">'
+  +   '<button type="button" class="disc-card" data-disc-act="pick-city" '
+  +   'data-name="' + discAttr(query) + '" data-lat="' + item.lat + '" data-lon="' + item.lon + '">'
+  +     media
+  +     '<div class="disc-card-body">'
+  +       '<p class="disc-card-title">' + item.name + '</p>'
+  +       (item.region ? '<p class="disc-card-sub">📍 ' + item.region + '</p>' : '')
+  +     '</div>'
+  +   '</button>'
+  +   creditEl
+  + '</div>';
   }
 
   function renderDiscoverRow(elId, list) {
 const el = document.getElementById(elId);
 if (!el) return;
-el.innerHTML = list.map((it, i) => discoverHomeCardHTML(it, i)).join('');
+el.innerHTML = list.map((it) => discoverHomeCardHTML(it)).join('');
   }
 
   function renderDiscoverLinkList(elId, list) {
