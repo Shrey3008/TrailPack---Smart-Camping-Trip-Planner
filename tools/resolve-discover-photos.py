@@ -38,6 +38,88 @@ DISCOVER_JS = os.path.join(ROOT, 'frontend', 'discover.js')
 OUT_JS = os.path.join(ROOT, 'frontend', 'discover-photos.js')
 UA = 'TrailPack-photo-resolver/1.0 (https://github.com/ TrailPack)'
 THUMB_W = 640          # a hint; MediaWiki answers with the nearest servable width
+NPS_IMG_W = 640        # nps.gov resizes on ?width=; cards render ~270 CSS px
+# Optional: `--review <path>` writes contact sheets next to that path for a
+# visual check of what was resolved. Off unless asked for.
+REVIEW_OUT = (sys.argv[sys.argv.index('--review') + 1]
+              if '--review' in sys.argv[:-1] else '')
+
+# Destinations that are NPS units in their own right, with the park code the
+# NPS API knows them by. These prefer NPS: its photographs are federal works,
+# so most carry no attribution condition, where Wikimedia's mostly do.
+#
+# Deliberately absent, and therefore left on Wikimedia:
+#   * White Mountain / Pisgah National Forest, Mount Whitney, Mount Hood,
+#     Pikes Peak, Mount Washington, Lake Tahoe, Niagara Falls, Multnomah Falls,
+#     Lake of the Ozarks — USFS, state or municipal land, not NPS units.
+#   * Hoh Rainforest and Lake Powell — inside Olympic and Glen Canyon. Asking
+#     NPS for them means asking for the parent unit, and a parent-unit photo
+#     under a feature's name is the mislabelling this whole change removes.
+PARK_CODES = {
+    'Yosemite National Park': 'yose',
+    'Zion National Park': 'zion',
+    'Acadia National Park': 'acad',
+    'Glacier National Park': 'glac',
+    'Yellowstone National Park': 'yell',
+    'Grand Canyon National Park': 'grca',
+    'Olympic National Park': 'olym',
+    'Sequoia National Park': 'seki',
+    'Redwood National Park': 'redw',
+    'Great Smoky Mountains': 'grsm',
+    'Shenandoah National Park': 'shen',
+    'Muir Woods': 'muwo',
+    'Congaree National Park': 'cong',
+    'Rocky Mountain National Park': 'romo',
+    'Grand Teton National Park': 'grte',
+    'Mount Rainier National Park': 'mora',
+    'North Cascades National Park': 'noca',
+    'Crater Lake National Park': 'crla',
+    'Voyageurs National Park': 'voya',
+    'Apostle Islands': 'apis',
+    'Death Valley National Park': 'deva',
+    'Joshua Tree National Park': 'jotr',
+    'Saguaro National Park': 'sagu',
+    'Bryce Canyon National Park': 'brca',
+    'Arches National Park': 'arch',
+    'Big Bend National Park': 'bibe',
+    'Canyonlands National Park': 'cany',
+    'White Sands National Park': 'whsa',
+}
+
+# NPS serves each park's images in its own order, and the first usable one is
+# often a mood, wildlife or activity shot rather than the landscape that makes
+# the park recognisable. These name the image to use instead, by title. Matched
+# on title rather than position so an upstream reorder cannot silently swap the
+# photo; if the title stops matching, the resolver warns and falls back to the
+# normal first-usable pick rather than failing.
+NPS_IMAGE_PICK = {
+    # was a hiker silhouetted at sunset, almost black at card size
+    'Acadia National Park': 'Sand Beach and Beehive from the Great Head Trail',
+    # was a distant elk herd in a frosty field
+    'Olympic National Park': 'Tide Pools of the Olympic Coast',
+    # was the Stehekin marina, boats and docks rather than the range
+    'North Cascades National Park': 'Pelton Basin from Cascade Pass',
+}
+
+# NPS units kept on Wikimedia anyway: everything NPS offers for these is less
+# representative than the Wikimedia photo it would replace. Saguaro's options
+# are a near-black lightning storm and a snowed-over desert the API itself
+# calls a "rare sight"; Sequoia's are a guardrailed viewpoint and a snow-caked
+# trunk. The Wikimedia saguaro-at-sunset and giant sequoia are the images a
+# reader would recognise, which is worth one attribution line each.
+FORCE_WIKIMEDIA = {'Saguaro National Park', 'Sequoia National Park'}
+
+# NPS image titles/captions that are not a scenic photograph of the place.
+# Matched on word boundaries, never as substrings: NPS altText is prose that
+# almost always opens "Photograph of ...", so a bare 'graph' rejected every
+# image for Voyageurs and the Apostle Islands, and elsewhere quietly skipped
+# each park's lead image in favour of whichever one happened to be described
+# differently. 'sign' has the same problem inside "designated"/"designed".
+# 'graph' is gone entirely — 'chart' and 'diagram' already cover what it meant.
+NPS_REJECT = ('map', 'maps', 'logo', 'sign', 'signs', 'chart', 'diagram',
+              'brochure', 'poster', 'portrait', 'headshot', 'illustration',
+              'artwork')
+NPS_REJECT_RE = re.compile(r'\b(%s)\b' % '|'.join(NPS_REJECT), re.I)
 
 # Article titles for destinations whose card name is ambiguous or is not itself
 # an article title.
@@ -98,7 +180,94 @@ def fetch(url, attempts=6):
         if attempt < attempts - 1:
             time.sleep(delay)
             delay *= 2
-    raise RuntimeError('%s after %d attempts: %s' % (last, attempts, url[:90]))
+    # Redact the key: NPS takes it as a query parameter, so an unredacted URL
+    # in an error message would put the credential in the console and in logs.
+    safe = re.sub(r'(api_key=)[^&]*', r'\1<redacted>', url)
+    raise RuntimeError('%s after %d attempts: %s' % (last, attempts, safe[:110]))
+
+
+def nps_key():
+    """NPS API key from the environment or .env. Absent is not an error: every
+    destination then resolves through Wikimedia, as it did before."""
+    key = os.environ.get('NPS_API_KEY', '').strip()
+    if key:
+        return key
+    path = os.path.join(ROOT, '.env')
+    if os.path.exists(path):
+        for line in open(path, encoding='utf-8'):
+            line = line.strip()
+            if line.startswith('NPS_API_KEY='):
+                return line.split('=', 1)[1].strip().strip('"\'')
+    return ''
+
+
+def nps_photo(name, code, key):
+    """First usable scenic image NPS holds for a park, or None.
+
+    Returns None rather than raising on anything unexpected — a wrong park
+    code, a unit with no images, an entry with no url — so the caller can fall
+    back to Wikimedia instead of the card losing its photo.
+    """
+    q = urllib.parse.urlencode({'parkCode': code, 'fields': 'images',
+                                'limit': '1', 'api_key': key})
+    data = fetch('https://developer.nps.gov/api/v1/parks?' + q)
+    items = data.get('data') or []
+    if not items:
+        return None
+    park = items[0]
+    # Guard against a code that resolves to a different unit than the card names.
+    full = (park.get('fullName') or '').lower()
+    stem = name.lower().replace(' national park', '').replace(' national', '').strip()
+    if stem and stem.split()[0] not in full:
+        print('       NPS parkCode %s is "%s", not %s — skipping'
+              % (code, park.get('fullName'), name))
+        return None
+
+    images = park.get('images') or []
+    want = NPS_IMAGE_PICK.get(name)
+    if want:
+        chosen = [i for i in images if (i.get('title') or '').strip() == want]
+        if chosen:
+            images = chosen
+        else:
+            print('       NPS_IMAGE_PICK %r no longer present for %s — '
+                  'falling back to first usable' % (want, name))
+
+    for img in images:
+        url = (img.get('url') or '').strip()
+        if not url.startswith('http'):
+            continue
+        blurb = ' '.join(filter(None, [img.get('title'), img.get('caption'),
+                                       img.get('altText')]))
+        if NPS_REJECT_RE.search(blurb):
+            continue
+        credit = strip_html(img.get('credit') or '')
+        # NPS publishes federal works, which carry no attribution condition —
+        # but the API also serves donated and contractor images whose credit
+        # names someone other than NPS. Only the NPS-credited ones are treated
+        # as credit-free; anything else keeps a visible credit.
+        is_nps = (not credit) or re.search(r'\bNPS\b|National Park Service',
+                                           credit, re.I) is not None
+        return {
+            # NPS publishes originals — the unresized set averaged 2.2 MB and
+            # peaked at 8.2 MB, against ~230 KB for a Wikimedia thumbnail, which
+            # would have been a 7x page-weight regression on the dashboard.
+            # nps.gov resizes server-side on ?width=; verified as a real
+            # resizer rather than a CDN variant, since ?foo=bar returns the
+            # full-size original and the returned pixel dimensions track the
+            # requested width.
+            'src': '%s?width=%d' % (url.split('?')[0], NPS_IMG_W),
+            'by': credit or 'National Park Service',
+            # Not the raw credit string for the non-NPS case: `by` already
+            # carries it, and the card renders "© {by} / {license}", which
+            # would otherwise read "© Kristina Plaas / Kristina Plaas".
+            'license': 'Public domain (NPS)' if is_nps else 'Courtesy photo (NPS)',
+            'licenseUrl': 'https://www.nps.gov/aboutus/disclaimer.htm',
+            'page': 'https://www.nps.gov/%s/' % code,
+            'credit': not is_nps,
+            'source': 'NPS',
+        }
+    return None
 
 
 def destinations():
@@ -159,54 +328,101 @@ def js_string(s):
     return "'" + str(s).replace('\\', '\\\\').replace("'", "\\'") + "'"
 
 
+def wikimedia_photo(name):
+    """Wikimedia record for a destination, or None."""
+    fname = OVERRIDES.get(name) or lead_image(TITLES.get(name, name))
+    if not fname:
+        return None
+    info = file_info(fname)
+    if not info or not info.get('thumburl'):
+        return None
+    md = info.get('extmetadata', {})
+    license_ = strip_html(md.get('LicenseShortName', {}).get('value', ''))
+    return {
+        # Use the thumbnail URL exactly as returned. upload.wikimedia.org only
+        # serves a fixed set of widths per file and 400s on anything else — for
+        # one file here only 500 and 960 are valid — so rewriting the width to a
+        # uniform number breaks the image. THUMB_W is a hint; MediaWiki answers
+        # with the nearest width it will serve, which is why the widths in the
+        # generated file are not all equal. Only utm_* analytics params go.
+        'src': info['thumburl'].split('?')[0],
+        'by': tidy_author(md.get('Artist', {}).get('value', '')),
+        'license': license_ or 'Unknown licence',
+        'licenseUrl': md.get('LicenseUrl', {}).get('value', ''),
+        'page': info.get('descriptionurl', ''),
+        # Public-domain files carry no attribution condition, so the card shows
+        # no credit strip for them.
+        'credit': not license_.lower().startswith('public domain'),
+        'source': 'override' if name in OVERRIDES else 'Wikimedia',
+        'file': fname,
+    }
+
+
+def write_review_sheet(records):
+    """Contact sheet for eyeballing the resolutions.
+
+    Metadata is not enough to tell whether an image depicts the place: on the
+    Wikimedia pass five lead images were a satellite raster, an 1895 map, a
+    satellite outline, a visitor centre and nothing at all, and every one of
+    them looked fine in the metadata. Anything a new source returns gets looked
+    at the same way. Pages are chunked so each fits a viewport without
+    scrolling.
+    """
+    css = ('<meta charset="utf-8"><style>'
+           'body{font:12px system-ui;background:#111;color:#eee;margin:8px}'
+           '.g{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}'
+           'figure{margin:0;background:#1c1c1c;border-radius:6px;overflow:hidden}'
+           '.ph{aspect-ratio:4/3;background:#000}'
+           'img{width:100%;height:100%;object-fit:cover;display:block}'
+           'figcaption{padding:5px 7px;line-height:1.3}'
+           '.s{color:#fa0;font-weight:700}.l{color:#7c7}</style>')
+    base, ext = os.path.splitext(REVIEW_OUT)
+    pages = []
+    for i in range(0, len(records), 10):
+        cells = ''.join(
+            '<figure><div class="ph"><img src="%s" referrerpolicy="no-referrer">'
+            '</div><figcaption><b>%s</b><br><span class="s">%s</span><br>'
+            '<span class="l">%s</span></figcaption></figure>'
+            % (r['src'], r['name'], r['source'], r['license'])
+            for r in records[i:i + 10])
+        path = '%s%d%s' % (base, i // 10, ext)
+        open(path, 'w', encoding='utf-8').write(css + '<div class="g">' + cells + '</div>')
+        pages.append(path)
+    print('\nreview sheets: %s' % ' '.join(pages))
+
+
 def main():
     dests = destinations()
-    print('%d destinations parsed from discover.js\n' % len(dests))
+    key = nps_key()
+    print('%d destinations parsed from discover.js' % len(dests))
+    print('NPS API key: %s\n' % ('present — %d units will prefer NPS'
+                                 % len(PARK_CODES) if key else
+                                 'ABSENT, every destination resolves via Wikimedia'))
     records, failures = [], []
 
     for d in dests:
         name = d['name']
         try:
-            fname = OVERRIDES.get(name)
-            source = 'override' if fname else 'lead image'
-            if not fname:
-                fname = lead_image(TITLES.get(name, name))
-            if not fname:
-                failures.append((name, 'no lead image and no override'))
-                print('  FAIL %-32s no lead image' % name[:32])
+            photo = None
+            code = None if name in FORCE_WIKIMEDIA else PARK_CODES.get(name)
+            if key and code:
+                photo = nps_photo(name, code, key)
+                if not photo:
+                    print('       NPS had nothing usable for %s — using Wikimedia'
+                          % name)
+            if not photo:
+                photo = wikimedia_photo(name)
+            if not photo:
+                failures.append((name, 'no photo from NPS or Wikimedia'))
+                print('  FAIL %-32s no photo' % name[:32])
                 continue
 
-            info = file_info(fname)
-            if not info or not info.get('thumburl'):
-                failures.append((name, 'no imageinfo for %s' % fname))
-                print('  FAIL %-32s no imageinfo' % name[:32])
-                continue
-
-            md = info.get('extmetadata', {})
-            license_ = strip_html(md.get('LicenseShortName', {}).get('value', ''))
-            # Use the thumbnail URL exactly as returned. upload.wikimedia.org
-            # only serves a fixed set of widths per file and 400s on anything
-            # else — for one file here only 500 and 960 are valid — so
-            # rewriting the width to a uniform number breaks the image. THUMB_W
-            # is a hint; MediaWiki answers with the nearest width it will serve,
-            # which is why the widths in the generated file are not all equal.
-            # Only the utm_* analytics params are dropped.
-            src = info['thumburl'].split('?')[0]
-
-            records.append({
-                'name': name,
-                'terrain': d['terrain'],
-                'src': src,
-                'by': tidy_author(md.get('Artist', {}).get('value', '')),
-                'license': license_ or 'Unknown licence',
-                'licenseUrl': md.get('LicenseUrl', {}).get('value', ''),
-                'page': info.get('descriptionurl', ''),
-                # Public-domain files carry no attribution condition, so the
-                # card shows no credit strip for them.
-                'credit': not license_.lower().startswith('public domain'),
-            })
-            print('  ok   %-32s %-14s %-8s %s'
-                  % (name[:32], license_[:14], source, fname[:40]))
+            photo['name'] = name
+            photo['terrain'] = d['terrain']
+            records.append(photo)
+            print('  ok   %-32s %-22s %-9s %s'
+                  % (name[:32], photo['license'][:22], photo['source'],
+                     photo.get('file', photo['src'].rsplit('/', 1)[-1])[:34]))
             time.sleep(0.6)
         except Exception as exc:                       # noqa: BLE001
             failures.append((name, repr(exc)))
@@ -231,6 +447,7 @@ def main():
         for r in records)
 
     needing = sum(1 for r in records if r['credit'])
+    from_nps = sum(1 for r in records if r['source'] == 'NPS')
     header = (
         '/* =============================================================================\n'
         '   Discover destination photography — GENERATED FILE, DO NOT EDIT BY HAND.\n'
@@ -242,23 +459,28 @@ def main():
         '   generic terrain stock photo per row index — that put the same image under\n'
         '   two different park names in eight cases.\n'
         '\n'
-        '   Resolved from Wikimedia (the NPS API needs a key). Keys are the exact\n'
-        '   `name` from the DISCOVER_HOME_* lists in discover.js; a destination with\n'
-        '   no entry here falls back to the terrain tint panel rather than borrowing\n'
-        '   another place\'s photo.\n'
+        '   %d of %d come from the NPS API (federal works, so no credit needed) and\n'
+        '   %d from Wikimedia, which covers the USFS, state and municipal properties\n'
+        '   NPS does not know about, plus the two features whose only NPS entry would\n'
+        '   be their parent unit. Keys are the exact `name` from the DISCOVER_HOME_*\n'
+        '   lists in discover.js; a destination with no entry here falls back to the\n'
+        '   terrain tint panel rather than borrowing another place\'s photo.\n'
         '\n'
         '   `credit: true` means the licence requires attribution and the card renders\n'
         '   a credit strip. Public-domain files carry no such condition and set false.\n'
         '   %d of %d files here require attribution.\n'
         '   ============================================================================= */\n'
-        % (needing, len(records)))
+        % (from_nps, len(records), len(records) - from_nps, needing, len(records)))
 
     open(OUT_JS, 'w', encoding='utf-8').write(
         header + 'const DISCOVER_PLACE_PHOTOS = {\n' + body + '\n};\n')
 
+    if REVIEW_OUT:
+        write_review_sheet(records)
+
     print('\nwrote %s' % os.path.relpath(OUT_JS, ROOT))
-    print('%d/%d destinations resolved, %d need a visible credit'
-          % (len(records), len(dests), needing))
+    print('%d/%d destinations resolved — %d NPS, %d Wikimedia, %d need a credit'
+          % (len(records), len(dests), from_nps, len(records) - from_nps, needing))
     return 1 if len(records) != len(dests) else 0
 
 
