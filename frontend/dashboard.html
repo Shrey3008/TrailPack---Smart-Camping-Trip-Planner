@@ -58,7 +58,7 @@
         </span>
       </span>
       <a href="profile.html" class="btn">Profile</a>
-      <button class="btn btn-logout" id="logout-btn" type="button" onclick="logout()">Logout</button>
+      <button class="btn btn-logout" id="logout-btn" type="button">Logout</button>
     </div>
   </nav>
 
@@ -133,7 +133,7 @@
         <p class="tp-load-error__title">We couldn't load your next trip</p>
         <p class="tp-load-error__body">This is usually a connection problem — your trips are safe.</p>
       </div>
-      <button type="button" class="tp-load-error__retry" onclick="renderNextUp()">Try again</button>
+      <button type="button" class="tp-load-error__retry">Try again</button>
     </div>
 
     <!--
@@ -215,19 +215,19 @@
         <div class="disc-searchbar">
 
           <!-- Location Field -->
-          <div id="discoverLocField" class="disc-field disc-field--loc" onclick="toggleLocDropdown(event)">
+          <div id="discoverLocField" class="disc-field disc-field--loc" data-disc-act="loc-toggle">
             <svg class="disc-field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             <div class="disc-field__body">
               <span class="disc-field__label">Location</span>
               <input id="discoverLocInput" class="disc-field__input" type="text" placeholder="Search destinations" autocomplete="off"
-                onclick="toggleLocDropdown(event)" oninput="onDiscoverLocInput(this.value)">
+                oninput="onDiscoverLocInput(this.value)">
             </div>
           </div>
 
           <div class="disc-searchbar__rule"></div>
 
           <!-- Radius Field -->
-          <div id="discoverRadiusField" class="disc-field disc-field--radius" onclick="toggleRadiusPopover(event)">
+          <div id="discoverRadiusField" class="disc-field disc-field--radius" data-disc-act="radius-toggle">
             <svg class="disc-field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/></svg>
             <div class="disc-field__body">
               <span class="disc-field__label">Radius</span>
@@ -242,7 +242,7 @@
                majority of the hiking relations that do support it. -->
 
           <!-- Search Button -->
-          <button class="disc-search-btn" onclick="triggerDiscoverSearch()">
+          <button class="disc-search-btn" data-disc-act="search">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
             Search Trails
           </button>
@@ -250,7 +250,7 @@
 
         <!-- Location Dropdown (hidden by default) -->
         <div id="discoverLocDropdown" class="disc-dropdown" hidden>
-          <div class="disc-dd-row" onclick="useDiscoverNearby()">
+          <div class="disc-dd-row" data-disc-act="nearby">
             <div class="disc-dd-icon disc-dd-icon--accent">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
@@ -261,11 +261,11 @@
           </div>
           <div class="disc-dd-heading">Popular destinations</div>
           <div id="discoverCityList">
-            <div class="disc-dd-row" onclick="discoverPickCity('Chicago, Illinois',41.8781,-87.6298)"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Chicago, Illinois</div><div class="disc-dd-sub">United States</div></div></div>
-            <div class="disc-dd-row" onclick="discoverPickCity('Denver, Colorado',39.7392,-104.9903)"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Denver, Colorado</div><div class="disc-dd-sub">United States</div></div></div>
-            <div class="disc-dd-row" onclick="discoverPickCity('Seattle, Washington',47.6062,-122.3321)"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Seattle, Washington</div><div class="disc-dd-sub">United States</div></div></div>
-            <div class="disc-dd-row" onclick="discoverPickCity('Austin, Texas',30.2672,-97.7431)"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Austin, Texas</div><div class="disc-dd-sub">United States</div></div></div>
-            <div class="disc-dd-row" onclick="discoverPickCity('Atlanta, Georgia',33.7490,-84.3880)"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Atlanta, Georgia</div><div class="disc-dd-sub">United States</div></div></div>
+            <div class="disc-dd-row" data-disc-act="pick-city" data-name="Chicago, Illinois" data-lat="41.8781" data-lon="-87.6298"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Chicago, Illinois</div><div class="disc-dd-sub">United States</div></div></div>
+            <div class="disc-dd-row" data-disc-act="pick-city" data-name="Denver, Colorado" data-lat="39.7392" data-lon="-104.9903"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Denver, Colorado</div><div class="disc-dd-sub">United States</div></div></div>
+            <div class="disc-dd-row" data-disc-act="pick-city" data-name="Seattle, Washington" data-lat="47.6062" data-lon="-122.3321"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Seattle, Washington</div><div class="disc-dd-sub">United States</div></div></div>
+            <div class="disc-dd-row" data-disc-act="pick-city" data-name="Austin, Texas" data-lat="30.2672" data-lon="-97.7431"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Austin, Texas</div><div class="disc-dd-sub">United States</div></div></div>
+            <div class="disc-dd-row" data-disc-act="pick-city" data-name="Atlanta, Georgia" data-lat="33.7490" data-lon="-84.3880"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Atlanta, Georgia</div><div class="disc-dd-sub">United States</div></div></div>
           </div>
         </div>
 
@@ -275,7 +275,7 @@
           <div id="discoverRadiusBig" class="disc-popover__value">25 miles</div>
           <input type="range" id="discoverRadiusSlider" class="disc-popover__slider" min="1" max="50" value="25" oninput="updateDiscoverRadius(this.value)">
           <div class="disc-popover__scale"><span>1 mi</span><span>50 mi</span></div>
-          <button class="disc-popover__apply" onclick="applyDiscoverRadius()">Apply</button>
+          <button class="disc-popover__apply" data-disc-act="radius-apply">Apply</button>
         </div>
       </div>
 
@@ -290,11 +290,11 @@
            fee, difficulty or opening hours is fetched by the Overpass query,
            and the first two were reading invented data. -->
       <div class="disc-pill-row" id="discoverPillRow" hidden>
-        <button class="disc-pill is-active" data-terrain="all" onclick="setDiscoverPill(this)">All Trails</button>
-        <button class="disc-pill" data-terrain="Forest" onclick="setDiscoverPill(this)">🌲 Forest</button>
-        <button class="disc-pill" data-terrain="Mountain" onclick="setDiscoverPill(this)">⛰️ Mountain</button>
-        <button class="disc-pill" data-terrain="Lake / Water" onclick="setDiscoverPill(this)">🏖️ Beach / Lake</button>
-        <button class="disc-pill" data-terrain="Desert" onclick="setDiscoverPill(this)">🏜️ Desert</button>
+        <button class="disc-pill is-active" data-terrain="all" data-disc-act="pill">All Trails</button>
+        <button class="disc-pill" data-terrain="Forest" data-disc-act="pill">🌲 Forest</button>
+        <button class="disc-pill" data-terrain="Mountain" data-disc-act="pill">⛰️ Mountain</button>
+        <button class="disc-pill" data-terrain="Lake / Water" data-disc-act="pill">🏖️ Beach / Lake</button>
+        <button class="disc-pill" data-terrain="Desert" data-disc-act="pill">🏜️ Desert</button>
       </div>
 
     </div>
@@ -317,27 +317,27 @@
         </div>
       </div>
       <div class="disc-quick-tiles">
-        <button type="button" class="disc-quick-tile" onclick="useDiscoverNearby()">
+        <button type="button" class="disc-quick-tile" data-disc-act="nearby">
           <span class="qt-icon">📍</span>
           <span class="qt-title">Trails near me</span>
           <span class="qt-sub">Use my current location</span>
         </button>
-        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Yosemite National Park, California',37.8651,-119.5383)">
+        <button type="button" class="disc-quick-tile" data-disc-act="pick-city" data-name="Yosemite National Park, California" data-lat="37.8651" data-lon="-119.5383">
           <span class="qt-icon">🏔️</span>
           <span class="qt-title">National parks</span>
           <span class="qt-sub">America's wildest places</span>
         </button>
-        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Great Smoky Mountains, Tennessee',35.6532,-83.5070)">
+        <button type="button" class="disc-quick-tile" data-disc-act="pick-city" data-name="Great Smoky Mountains, Tennessee" data-lat="35.6532" data-lon="-83.5070">
           <span class="qt-icon">🥾</span>
           <span class="qt-title">Easy day hikes</span>
           <span class="qt-sub">Beginner-friendly trails</span>
         </button>
-        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Shenandoah National Park, Virginia',38.5333,-78.3500)">
+        <button type="button" class="disc-quick-tile" data-disc-act="pick-city" data-name="Shenandoah National Park, Virginia" data-lat="38.5333" data-lon="-78.3500">
           <span class="qt-icon">🧒</span>
           <span class="qt-title">Family friendly</span>
           <span class="qt-sub">Short, kid-safe loops</span>
         </button>
-        <button type="button" class="disc-quick-tile" onclick="discoverPickCity('Acadia National Park, Maine',44.3386,-68.2733)">
+        <button type="button" class="disc-quick-tile" data-disc-act="pick-city" data-name="Acadia National Park, Maine" data-lat="44.3386" data-lon="-68.2733">
           <span class="qt-icon">🐾</span>
           <span class="qt-title">Pet friendly</span>
           <span class="qt-sub">Trails that welcome your dog</span>
@@ -352,7 +352,7 @@
           <h2 class="disc-section-title">Top National Parks</h2>
           <p class="disc-section-sub">Iconic American landscapes worth the drive</p>
         </div>
-        <a class="disc-section-link" onclick="useDiscoverNearby()">Search nearby →</a>
+        <a class="disc-section-link" data-disc-act="nearby">Search nearby →</a>
       </div>
       <div class="disc-row" id="discoverRowParks"></div>
     </div>
@@ -456,7 +456,7 @@
           <p class="disc-feat-title">Plan a new trip</p>
           <p class="disc-feat-sub">Generate a personalized packing checklist for your terrain and season.</p>
         </a>
-        <button type="button" class="disc-feat-tile" onclick="useDiscoverNearby()">
+        <button type="button" class="disc-feat-tile" data-disc-act="nearby">
           <span class="disc-feat-icon">🗺️</span>
           <p class="disc-feat-title">Live trail map</p>
           <p class="disc-feat-sub">See real trails, parks, and campsites pulled from OpenStreetMap.</p>
@@ -501,7 +501,7 @@
       <div id="discoverResCount" style="font-size:.875rem; color:#6b7280;">
         Click <strong style="color:#111;">Search Trails</strong> or choose <strong style="color:#111;">Nearby</strong> to discover trails
       </div>
-      <button type="button" class="disc-res-back" onclick="discoverHomeShow()">← Back to Discover</button>
+      <button type="button" class="disc-res-back" data-disc-act="home">← Back to Discover</button>
     </div>
     <!-- Layout lives in CSS (.disc-results-grid), not in inline styles set by
          JS. fetchDiscoverTrails() adds .has-map once the map is revealed; the

@@ -33,6 +33,18 @@
       wireFilterTabs();
       renderNextUp();
 
+      // The page's two non-Discover inline onclicks. They are bound here rather
+      // than folded into discover.js's delegated root, which only covers
+      // #discoverSection. auth.js binds #logout-btn for the pages that load it,
+      // but this page does not load auth.js, so logout needs its own listener.
+      document.getElementById('logout-btn')
+        ?.addEventListener('click', () => logout());
+      // Scoped to #next-up-error: app.js renders its own .tp-load-error__retry
+      // into #trips-container when GET /trips fails, so the bare class is not
+      // unique on this page.
+      document.querySelector('#next-up-error .tp-load-error__retry')
+        ?.addEventListener('click', () => renderNextUp());
+
       // Auto-open Create Trip modal when arriving from Discover's
       // "Plan This Trip" button (e.g. my-trips.html?create=<trail name>).
       try {

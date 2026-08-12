@@ -123,6 +123,18 @@ renderDiscoverHome();
 { name: 'Albuquerque, NM',    lat: 35.0844, lon: -106.6504 },
   ];
 
+  /* Escapes a value for use inside a double-quoted HTML attribute. The card
+ data below is hardcoded, but the autocomplete rows interpolate names that
+ came back from Nominatim, so the attributes these builders emit are not all
+ trusted input. */
+  function discAttr(v) {
+return String(v == null ? '' : v)
+  .replace(/&/g, '&amp;')
+  .replace(/"/g, '&quot;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;');
+  }
+
   function discoverHomePhotoFor(terrain, idx) {
 const pool = (typeof DISCOVER_PHOTO_POOL !== 'undefined' && DISCOVER_PHOTO_POOL[terrain])
   ? DISCOVER_PHOTO_POOL[terrain]
@@ -133,11 +145,10 @@ return pool[idx % pool.length];
 
   function discoverHomeCardHTML(item, idx) {
 const photo = discoverHomePhotoFor(item.terrain || 'forest', idx);
-const safeName = String(item.name).replace(/'/g, "\\'");
-const safeRegion = String(item.region || '').replace(/'/g, "\\'");
+const query = item.name + (item.region ? ', ' + item.region : '');
 return ''
-  + '<button type="button" class="disc-card" '
-  + 'onclick="discoverPickCity(\'' + safeName + (safeRegion ? ', ' + safeRegion : '') + '\',' + item.lat + ',' + item.lon + ')">'
+  + '<button type="button" class="disc-card" data-disc-act="pick-city" '
+  + 'data-name="' + discAttr(query) + '" data-lat="' + item.lat + '" data-lon="' + item.lon + '">'
   +   '<div class="disc-card-photo" style="background-image:url(\'' + photo + '\')"></div>'
   +   '<div class="disc-card-body">'
   +     '<p class="disc-card-title">' + item.name + '</p>'
@@ -156,9 +167,8 @@ el.innerHTML = list.map((it, i) => discoverHomeCardHTML(it, i)).join('');
 const el = document.getElementById(elId);
 if (!el) return;
 el.innerHTML = list.map((it) => {
-  const safe = String(it.name).replace(/'/g, "\\'");
-  return '<button type="button" class="disc-link-item" '
-    + 'onclick="discoverPickCity(\'' + safe + '\',' + it.lat + ',' + it.lon + ')">'
+  return '<button type="button" class="disc-link-item" data-disc-act="pick-city" '
+    + 'data-name="' + discAttr(it.name) + '" data-lat="' + it.lat + '" data-lon="' + it.lon + '">'
     + it.name + '</button>';
 }).join('');
   }
@@ -310,7 +320,8 @@ discoverDebT = setTimeout(() => {
     .then(r => r.json()).then(data => {
       document.getElementById('discoverCityList').innerHTML = data.map(d => {
         const p = d.display_name.split(',');
-        return '<div class="disc-dd-row" onclick="discoverPickCity(\'' + p[0].replace(/'/g, "\\'") + '\',' + d.lat + ',' + d.lon + ')">'
+        return '<div class="disc-dd-row" data-disc-act="pick-city" data-name="' + discAttr(p[0])
+            + '" data-lat="' + discAttr(d.lat) + '" data-lon="' + discAttr(d.lon) + '">'
             + '<div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>'
             + '<div><div class="disc-dd-title">' + p[0] + '</div>'
             + '<div class="disc-dd-sub">' + (p.slice(1,3).join(',').trim()) + '</div></div></div>';
@@ -405,7 +416,7 @@ g.innerHTML = trails.map((t) => {
   // Classed rather than inline-styled, so the card shares .disc-card's radius
   // token and its hover lives in CSS instead of two onmouseover handlers.
   // Only the two terrain-derived colours stay inline — they are data.
-  return `<div class="disc-result" data-terrain="${ter}" onclick="discoverZoom(${t.lat},${t.lon})">
+  return `<div class="disc-result" data-terrain="${ter}" data-disc-act="zoom" data-lat="${t.lat}" data-lon="${t.lon}">
     <div class="disc-result__media" style="background:${tint.bg}" aria-hidden="true">
       <span class="disc-result__glyph">${tint.glyph}</span>
       <span class="disc-result__badge" style="background:${bc}">${ter}</span>
@@ -413,7 +424,7 @@ g.innerHTML = trails.map((t) => {
     <div class="disc-result__body">
       <div class="disc-result__name">${t.name}</div>
       <div class="disc-result__meta">${t.type.replace(/_/g,' ')} · ${d} miles away</div>
-      <button class="disc-result__cta" data-trail-name="${(t.name||'').replace(/"/g,'&quot;')}" data-trail-terrain="${ter}" data-trail-lat="${t.lat||''}" data-trail-lon="${t.lon||''}" onclick="event.stopPropagation(); openPlanTripModal({name:this.dataset.trailName, terrain:this.dataset.trailTerrain, lat:this.dataset.trailLat, lon:this.dataset.trailLon})">Plan This Trip →</button>
+      <button class="disc-result__cta" data-disc-act="plan" data-trail-name="${discAttr(t.name)}" data-trail-terrain="${discAttr(ter)}" data-trail-lat="${t.lat||''}" data-trail-lon="${t.lon||''}">Plan This Trip →</button>
     </div>
   </div>`;
 }).join('');
@@ -424,9 +435,18 @@ const ico = L.divIcon({ html: '<div style="background:#2d6a4f;border-radius:50% 
 trails.forEach(t => {
   if (!t.lat || !t.lon) return;
   const d = discoverDist(ulat, ulon, t.lat, t.lon);
-  const popupPayload = encodeURIComponent(JSON.stringify({ name: t.name, lat: t.lat, lon: t.lon }));
+  // Same data-trail-* contract as the result card's CTA, so both routes into
+  // openPlanTripModal go through the one 'plan' action below. Leaflet builds
+  // the popup inside #discoverMap, which is inside the delegation root, and
+  // its disableClickPropagation only stops mousedown/touchstart/dblclick —
+  // click still bubbles — so the delegated listener sees this link.
+  // No terrain here, matching what this popup passed before; openPlanTripModal
+  // guards on `if (o.terrain)`, so an absent attribute is the same as before.
   L.marker([t.lat, t.lon], { icon: ico }).addTo(discoverMap)
-    .bindPopup('<b>' + t.name + '</b><br>' + d + ' miles away<br><a href="#" onclick="event.preventDefault(); openPlanTripModal(JSON.parse(decodeURIComponent(\'' + popupPayload + '\')))" style="color:#2d6a4f;font-weight:600;">Plan This Trip →</a>');
+    .bindPopup('<b>' + t.name + '</b><br>' + d + ' miles away<br>'
+      + '<a href="#" data-disc-act="plan" data-trail-name="' + discAttr(t.name) + '"'
+      + ' data-trail-lat="' + discAttr(t.lat) + '" data-trail-lon="' + discAttr(t.lon) + '"'
+      + ' style="color:#2d6a4f;font-weight:600;">Plan This Trip →</a>');
 });
   }
 
@@ -439,7 +459,7 @@ return '<div class="disc-state">'
   + '<div class="disc-state__icon">🌿</div>'
   + '<h3 class="disc-state__title">No trails found within ' + m + ' miles</h3>'
   + '<p class="disc-state__body">Try a larger radius or a different location</p>'
-  + '<button class="disc-state__action" onclick="discoverExpandRadius()">+ Expand to ' + Math.min(m+10,50) + ' miles</button></div>';
+  + '<button class="disc-state__action" data-disc-act="expand">+ Expand to ' + Math.min(m+10,50) + ' miles</button></div>';
   }
   function discoverExpandRadius() {
 discoverRadiusMi = Math.min(discoverRadiusMi + 10, 50);
@@ -460,6 +480,56 @@ document.getElementById('discoverTrailResults').innerHTML = Array(6).fill(0).map
   + '</div></div>'
 ).join('');
   }
+
+  /* ===== Event delegation =====
+ Every Discover control is driven by a data-disc-act attribute read by one
+ listener on #discoverSection, rather than by an inline onclick.
+
+ The root is the section, not document, for two reasons. It is in the markup
+ at parse time and wraps every surface this file generates later — the five
+ carousels, the three link lists, the Nominatim autocomplete rows, the result
+ cards, the empty state and Leaflet's popups — so rows created after load are
+ live without rebinding anything. And being a descendant of document, it runs
+ *before* the document-level click handler further up that closes the dropdown
+ and popover. The two toggles depend on that ordering: they call
+ stopPropagation to stop the close handler undoing the open, which is what the
+ inline handlers did by the same mechanism.
+
+ Only the innermost matching element acts. That is what keeps a click on a
+ result card's "Plan This Trip" button from also firing the card's zoom —
+ the job the CTA's inline event.stopPropagation() used to do. */
+  const DISCOVER_ACTIONS = {
+'loc-toggle':    (el, e) => toggleLocDropdown(e),
+'radius-toggle': (el, e) => toggleRadiusPopover(e),
+'radius-apply':  ()      => applyDiscoverRadius(),
+'search':        ()      => triggerDiscoverSearch(),
+'nearby':        ()      => useDiscoverNearby(),
+'pill':          (el)    => setDiscoverPill(el),
+'home':          ()      => discoverHomeShow(),
+'expand':        ()      => discoverExpandRadius(),
+'pick-city':     (el)    => discoverPickCity(el.dataset.name, parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)),
+'zoom':          (el)    => discoverZoom(parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)),
+'plan':          (el, e) => {
+  e.preventDefault();
+  openPlanTripModal({
+    name:    el.dataset.trailName,
+    terrain: el.dataset.trailTerrain,
+    lat:     el.dataset.trailLat,
+    lon:     el.dataset.trailLon,
+  });
+},
+  };
+
+  (function () {
+const root = document.getElementById('discoverSection');
+if (!root) return;
+root.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-disc-act]');
+  if (!el || !root.contains(el)) return;
+  const run = DISCOVER_ACTIONS[el.dataset.discAct];
+  if (run) run(el, e);
+});
+  })();
 
   // ===== More to Discover toggle =====
   // Shows/hides the four category sections (Forest / Mountain / Lake
