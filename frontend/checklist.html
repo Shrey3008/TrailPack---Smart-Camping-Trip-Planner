@@ -1692,10 +1692,10 @@
       --hc-radius:     14px;
     }
 
-    /* ---------- Body + container width (matches dashboard's 1240px) ---------- */
+    /* ---------- Body + container width (--content-max, as on the other pages) ---------- */
     body { background: var(--hc-bg) !important; }
     main.container {
-      max-width: 1240px !important;
+      max-width: var(--content-max) !important;
       padding: 28px 28px 60px !important;
     }
 
@@ -1711,7 +1711,7 @@
       justify-content: flex-start !important;
     }
     .checklist-hero .hero-inner {
-      max-width: 1240px !important;
+      max-width: var(--content-max) !important;
       width: 100% !important;
       margin: 0 auto !important;
       padding: 90px 28px 36px !important;

@@ -33,7 +33,8 @@
      both trip pages already used; 1240 appeared only inside Discover.
      The gutter is the container's own left/right padding, kept here so the
      full-bleed calculation below can refer to it.
-     checklist.html still declares 1240px of its own and is a known follow-up. */
+     checklist.html now takes both its container and its hero inner from this
+     token too, so the hero's text edge lines up with the content below it. */
   --content-max: 1200px;
   --content-gutter: 32px;
 }
