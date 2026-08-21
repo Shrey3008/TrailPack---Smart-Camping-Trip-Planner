@@ -68,13 +68,19 @@
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: 16px;
 }
+/* Secondary tier. Every section heading on this page rendered at 1.55rem —
+   two from .section-header h2 (Recent Trips, Shared With Me) and eight from
+   this rule — so "Recent Trips" and "Browse by destination" carried identical
+   weight and nothing said the top of the page is the reader's own trips and
+   the rest is a catalogue to browse. The primary pair keeps 1.55rem in
+   dashboard-light.css; the browse headings step down to 1.25rem. */
 .disc-section-title {
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.55rem; font-weight: 700; color: #111; margin: 0;
+  font-size: 1.25rem; font-weight: 700; color: #111; margin: 0;
   letter-spacing: -0.005em;
 }
 .disc-section-sub {
-  font-size: 0.875rem; color: var(--text-secondary, #5b6472); margin: 4px 0 0;
+  font-size: 0.82rem; color: var(--text-secondary, #5b6472); margin: 3px 0 0;
 }
 .disc-section-link {
   font-size: 0.85rem; font-weight: 600; color: #2d6a4f;
@@ -107,8 +113,8 @@
 .disc-quick-tile {
   position: relative;
   display: flex; flex-direction: column; align-items: flex-start;
-  gap: 6px;
-  padding: 18px 18px 16px;
+  gap: 8px;
+  padding: 22px 18px 20px;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(45, 106, 79, .18);
   cursor: pointer;
@@ -118,7 +124,11 @@
   color: var(--tp-green-900, #1b4332);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, .05));
   transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
-  min-height: 110px;
+  /* 110 -> 142. The rows run trip 339 / discover 262 / quick tile 121 /
+     feature tile 187 at 1280, so this strip was a thin band wedged between two
+     much heavier rows. Raising it makes the descent a gradient rather than a
+     cliff; the tile keeps its own content, it just stops being squeezed. */
+  min-height: 142px;
 }
 .disc-quick-tile:hover {
   transform: translateY(-2px);
