@@ -104,6 +104,52 @@
       .navbar .nav-user #user-info,
       .navbar .nav-links .user-greeting,
       .navbar .nav-links #user-name { display: none !important; }
+      /* organizer.html is the only page carrying a brand tagline. At 141px it
+         is wider than the hamburger, and it pushed that page's brand block to
+         309px — over the budget below and straight into a second row. Hidden
+         with the greeting text, which is the same kind of secondary label. */
+      .navbar .nav-brand .tagline { display: none !important; }
+    }
+
+    /* styles.css carries a pre-redesign @media (max-width: 768px) rule that
+       stacks .navbar into a centred column. dashboard-light.css already
+       neutralises it for body.dash-light, so dashboard.html and my-trips.html
+       stayed 64px rows, and profile.html/checklist.html never load styles.css
+       at all — but admin.html and organizer.html load styles.css *without*
+       dashboard-light.css, so both grew to a ~95px two-row stack with the
+       hamburger pushed to the centre. Restating the row here fixes those two
+       from the same shared source rather than per page, and is inert wherever
+       the rule was already being overridden. */
+    @media (max-width: 768px) {
+      .navbar {
+        flex-direction: row !important;
+        align-items: center !important;
+        text-align: left !important;
+        /* The default wrap let a nav wider than the viewport fall onto a
+           second line, which is how checklist.html reached 95px while the
+           dashboard sat at 64px — same direction, different height. Forbidding
+           the wrap makes the row height the same everywhere no matter what a
+           page puts in its nav; the brand absorbs the pressure instead. */
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+      }
+      /* min-width:0 is what actually lets a flex item shrink below its content
+         width — without it the brand stays 156px and forces an overflow
+         instead of ellipsising. */
+      .navbar .nav-brand { min-width: 0 !important; }
+      .navbar .nav-brand h1,
+      .navbar .nav-brand .brand-text {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .navbar .nav-user,
+      .navbar .nav-links {
+        gap: 8px !important;
+        flex-wrap: nowrap !important;
+        flex-shrink: 0;
+      }
     }
   `;
 
