@@ -9,8 +9,19 @@
     :root {
       /* Light dashboard palette — exact tokens from spec. */
       --bg-page:       #f8f7f4;
+      /* The navbar is deliberately the one pure-white surface left. It is the
+         cross-site reference every other page mirrors through NAVBAR_CSS in
+         nav-menu.js, so it is kept on its own token and must not be folded
+         into --bg-card. */
       --bg-navbar:     #ffffff;
-      --bg-card:       #ffffff;
+      /* Cards were #ffffff on a #f8f7f4 page, which is the one thing the
+         design direction rules out. This is a warm off-white carrying a trace
+         of the green the palette is built on: it still reads as a raised
+         surface against --bg-page, without the hard white edge. */
+      --bg-card:       #fcfbf8;
+      /* Second surface, for anything that sits *on* a card or needs to recede
+         a step further (search band, toggle pill, inner wells). */
+      --bg-sunken:     #f2f1ec;
       --bg-hero:       #d8eadf;
       --border:        #e8e8e4;
       --border-strong: #d8d8d2;
@@ -18,8 +29,20 @@
       --green-light:   #40916c;
       --green-pale:    #e6f2eb;
       --text-primary:  #1a1a1a;
-      --text-secondary:#6b7280;
-      --text-faint:    #9aa3af;
+      /* Was #6b7280 — 4.51:1 on cream, which clears AA only by a rounding
+         error and fails it outright once the surface lightens. #5b6472 puts
+         muted text comfortably past 4.5:1 on both --bg-page and --bg-card. */
+      --text-secondary:#5b6472;
+      --text-faint:    #79808d;
+
+      /* ---- Spacing scale ----------------------------------------------------
+         The page previously ran three unrelated section rhythms (32 / 40 / 44)
+         and two grid gaps (14 / 18). Everything below is a 4px step, and every
+         section and grid now reads from these instead of a local literal. */
+      --space-gap:       16px;   /* tight grids: quick tiles, tool tiles */
+      --space-gap-lg:    24px;   /* card grids: trips, discover rows */
+      --space-section:   48px;   /* rhythm between major sections, desktop */
+      --space-section-sm:32px;   /* same, <=640 */
       --text-white:    #ffffff;
       --danger:        #dc2626;
       --danger-soft:   #fef2f2;
@@ -273,8 +296,8 @@
     body.dash-light .stats-bar {
       display: grid !important;
       grid-template-columns: repeat(4, 1fr) !important;
-      gap: 18px !important;
-      margin-bottom: 32px !important;
+      gap: var(--space-gap-lg) !important;
+      margin-bottom: var(--space-section) !important;
     }
     body.dash-light .stat-card {
       background: var(--bg-card) !important;
@@ -328,7 +351,7 @@
       font-size: 0.7rem !important;
       font-weight: 600 !important;
       text-transform: uppercase !important;
-      color: #6b7280 !important;
+      color: var(--text-secondary) !important;
       letter-spacing: 0.08em !important;
       margin-top: 2px;
     }
@@ -345,7 +368,10 @@
     body.dash-light .section-header h2 {
       font-family: 'Playfair Display', Georgia, serif !important;
       font-weight: 700 !important;
-      font-size: 1.5rem !important;
+      /* Was 1.5rem against .disc-section-title's 1.55rem — the same heading
+         role rendering 0.8px apart depending on which half of the page it sat
+         in. One value for both. */
+      font-size: 1.55rem !important;
       color: var(--text-primary) !important;
       margin: 0 !important;
       letter-spacing: -0.005em;
@@ -377,7 +403,7 @@
       border-bottom: 2px solid transparent;
       margin-bottom: -1px;        /* sit on top of the .filter-tabs underline */
       background: transparent;
-      color: #6b7280;
+      color: var(--text-secondary);
       cursor: pointer;
       transition: color 0.18s ease, border-color 0.18s ease;
       display: inline-flex;
@@ -422,7 +448,7 @@
       box-shadow: 0 4px 12px rgba(45, 106, 79, 0.22);
     }
 
-    body.dash-light .dashboard-section { margin-bottom: 40px; }
+    body.dash-light .dashboard-section { margin-bottom: var(--space-section); }
 
     /* ---------- Trip grid & cards (Hipcamp style) ----------
        Markup is rendered by app.js as a flat .trip-card. enhanceCard()
@@ -430,10 +456,15 @@
        .tp-progress-block before .trip-actions. The CSS below treats the
        photo as full-bleed and pads every other direct child uniformly so
        the existing app.js markup needs zero changes. */
+    /* Four across, matching .disc-row below: the page previously ran three
+       different column counts at 1280 (trips 3, quick tiles 5, discover 4),
+       which read as three unrelated layouts stacked rather than one grid.
+       Four also divides evenly at the 2-column tablet step, so the third trip
+       card no longer strands itself in a half-empty row. */
     body.dash-light .trips-grid {
       display: grid !important;
-      grid-template-columns: repeat(3, 1fr) !important;   /* desktop */
-      gap: 18px !important;
+      grid-template-columns: repeat(4, 1fr) !important;   /* desktop */
+      gap: var(--space-gap-lg) !important;
     }
     body.dash-light .trip-card {
       background: var(--bg-card) !important;
@@ -551,7 +582,7 @@
       align-items: center !important;
       gap: 6px !important;
       font-size: 0.78rem !important;
-      color: #6b7280 !important;
+      color: var(--text-secondary) !important;
     }
     body.dash-light .trip-card > .trip-date svg { flex-shrink: 0; color: #9ca3af; }
     body.dash-light .trip-card > .tp-progress-block {
@@ -577,7 +608,7 @@
     /* Hipcamp tags: small flat gray pills, no per-terrain coloring. */
     body.dash-light .trip-badge {
       background: #f3f4f6 !important;
-      color: #6b7280 !important;
+      color: var(--text-secondary) !important;
       border: 0 !important;
       border-radius: var(--radius-full) !important;
       padding: 2px 8px !important;
@@ -591,14 +622,14 @@
        all tags neutral gray. */
     body.dash-light .trip-card .trip-meta .trip-badge:first-child {
       background: #f3f4f6 !important;
-      color: #6b7280 !important;
+      color: var(--text-secondary) !important;
       border-color: transparent !important;
     }
     /* Season badge inline styles (set by app.js renderSeasonBadge) win at
        equal specificity. Force them to the neutral pill too. */
     body.dash-light .trip-card .trip-meta .trip-badge.season-badge {
       background: #f3f4f6 !important;
-      color: #6b7280 !important;
+      color: var(--text-secondary) !important;
       border: 0 !important;
     }
 
@@ -621,7 +652,7 @@
       display: flex;
       justify-content: space-between;
       font-size: 0.74rem;
-      color: #6b7280;
+      color: var(--text-secondary);
       font-weight: 500;
     }
     body.dash-light .tp-progress-label strong {
@@ -695,7 +726,7 @@
     body.dash-light .trip-card .trip-actions .btn.btn-danger {
       flex: 1 1 0 !important;
       align-self: stretch !important;
-      background: #ffffff !important;
+      background: var(--bg-card) !important;
       color: #dc2626 !important;
       border: 1px solid #fecaca !important;
       box-shadow: none !important;
@@ -794,7 +825,7 @@
       padding: 9px 20px;
       border-radius: var(--radius-full);
       border: 1px solid #fdba74;
-      background: #ffffff;
+      background: var(--bg-card);
       color: #9a3412;
       font-family: inherit;
       font-size: 0.85rem;
@@ -827,7 +858,7 @@
       letter-spacing: -0.01em;
     }
     body.dash-light .empty-state p {
-      color: #6b7280;
+      color: var(--text-secondary);
       margin: 0 0 20px;
     }
     body.dash-light .empty-state .btn.btn-primary {
@@ -1104,7 +1135,10 @@
          band) narrows with it. Setting it on :root inside the query keeps the
          two in step; hardcoding 18px here once left the band's inner edge at
          32px while every section beside it sat at 18px. */
-      :root { --content-gutter: 18px; }
+      /* Section rhythm tightens with the gutter — 48px between sections reads
+         as a gap on a 375px column, where the eye has no horizontal context to
+         balance it against. */
+      :root { --content-gutter: 18px; --space-section: var(--space-section-sm); }
       body.dash-light main.container { padding: 0 var(--content-gutter) !important; margin-top: 22px !important; }
       body.dash-light .stats-bar { grid-template-columns: repeat(2, 1fr) !important; gap: 12px !important; }
       body.dash-light .stat-card { padding: 16px 20px !important; }

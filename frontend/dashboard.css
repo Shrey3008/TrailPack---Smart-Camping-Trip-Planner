@@ -44,8 +44,11 @@
    padding and stopped ~40px short of the window on a 1280px screen.
    ============================================================================= */
 .disc-band {
-  background: #fff;
-  border-bottom: 1px solid rgba(0, 0, 0, .09);
+  /* Was a full-bleed #fff slab, which cut a hard white seam straight across a
+     cream page and read as a different site above and below it. It now carries
+     the page colour and separates with a rule alone. */
+  background: var(--bg-page, #f8f7f4);
+  border-bottom: 1px solid var(--border, #e8e8e4);
   margin-inline: calc(50% - 50vw);
   padding: 28px max(var(--content-gutter), calc(50vw - var(--content-max) / 2 + var(--content-gutter))) 0;
 }
@@ -60,7 +63,7 @@
 }
 .disc-results-block[hidden] { display: none; }
 #discoverHomeContent[hidden] { display: none; }
-.disc-section { margin-bottom: 44px; }
+.disc-section { margin-bottom: var(--space-section, 48px); }
 .disc-section-head {
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: 16px;
@@ -71,7 +74,7 @@
   letter-spacing: -0.005em;
 }
 .disc-section-sub {
-  font-size: 0.875rem; color: #6b7280; margin: 4px 0 0;
+  font-size: 0.875rem; color: var(--text-secondary, #5b6472); margin: 4px 0 0;
 }
 .disc-section-link {
   font-size: 0.85rem; font-weight: 600; color: #2d6a4f;
@@ -82,8 +85,12 @@
 /* Quick action tiles — colored pills like Hipcamp's "Available tonight". */
 .disc-quick-tiles {
   display: grid;
+  /* Five tracks for five tiles — one clean row. Briefly tried four to share a
+     column edge with the trip and discover grids, but five items in four
+     tracks strands the fifth in a row of its own, which is worse than the
+     misalignment it fixed. The gap is on the shared scale either way. */
   grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
+  gap: var(--space-gap, 16px);
 }
 /* Quick tiles were five saturated gradients — amber, teal, green, magenta,
    violet — which is exactly what theme.css §2 removed from the stat cards one
@@ -123,22 +130,27 @@
   line-height: 1;
   width: 38px; height: 38px;
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 .disc-quick-tile .qt-title { font-size: 1rem; font-weight: 700; }
 .disc-quick-tile .qt-sub   { font-size: .78rem; color: var(--tp-green-700, #2d6a4f); }
-@media (max-width: 1100px) { .disc-quick-tiles { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 720px)  { .disc-quick-tiles { grid-template-columns: repeat(2, 1fr); } }
+/* Below the full row, two tracks rather than three: five tiles over three
+   columns leaves a two-thirds row that reads as a mistake, whereas over two
+   columns the single remainder can be spanned full width and look deliberate. */
+@media (max-width: 1100px) {
+  .disc-quick-tiles { grid-template-columns: repeat(2, 1fr); }
+  .disc-quick-tiles > .disc-quick-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 
 /* Horizontal carousels — destination cards, scroll-snap on mobile. */
 .disc-row {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(240px, 1fr);
-  gap: 18px;
+  gap: var(--space-gap-lg, 24px);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   padding: 4px 4px 12px;
@@ -164,7 +176,7 @@
   display: flex; flex-direction: column;
   flex: 1;
   min-width: 0;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border-radius: var(--radius-lg);
   overflow: hidden;
   cursor: pointer;
@@ -230,7 +242,7 @@
   overflow: hidden;
 }
 .disc-card-sub {
-  font-size: .78rem; color: #6b7280; margin: 0;
+  font-size: .78rem; color: var(--text-secondary, #5b6472); margin: 0;
   display: flex; align-items: center; gap: 6px;
 }
 .disc-card-badge {
@@ -245,13 +257,13 @@
 .disc-feat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: var(--space-gap, 16px);
 }
 .disc-feat-tile {
   display: flex; flex-direction: column; gap: 8px;
   padding: 22px;
   border-radius: var(--radius-lg);
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border: 1px solid rgba(0,0,0,.07);
   cursor: pointer;
   text-decoration: none;
@@ -272,8 +284,14 @@
   font-size: 1.3rem;
 }
 .disc-feat-title { font-size: 1rem; font-weight: 700; color: #111; margin: 0; }
-.disc-feat-sub   { font-size: .82rem; color: #6b7280; margin: 0; line-height: 1.4; }
-@media (max-width: 1000px) { .disc-feat-grid { grid-template-columns: repeat(2, 1fr); } }
+.disc-feat-sub   { font-size: .82rem; color: var(--text-secondary, #5b6472); margin: 0; line-height: 1.4; }
+@media (max-width: 1000px) {
+  .disc-feat-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Three tiles over two columns leaves the third at half width beside a hole.
+     Spanning it makes the remainder read as intent, the same way the quick
+     tiles handle their fifth. */
+  .disc-feat-grid > .disc-feat-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 @media (max-width: 540px)  { .disc-feat-grid { grid-template-columns: 1fr; } }
 
 /* Trust strip / promo banner. */
@@ -307,7 +325,7 @@
 }
 .disc-link-col-title {
   font-size: .66rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .08em; color: #6b7280; margin: 0 0 12px;
+  letter-spacing: .08em; color: var(--text-secondary, #5b6472); margin: 0 0 12px;
 }
 .disc-link-list {
   display: flex;
@@ -331,12 +349,13 @@
   grid-template-columns: 1fr minmax(240px, 340px);
   gap: 28px;
   align-items: center;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border: 1px solid var(--border, #e8e8e4);
   border-left: 4px solid var(--tp-green-700, #2d6a4f);
-  border-radius: var(--radius, 12px);
+  /* 16px to match every other card on the page; this was the one 12px. */
+  border-radius: var(--radius-lg, 16px);
   padding: 24px 28px;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-section, 48px);
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(15,23,42,.05));
 }
 .next-up[hidden] { display: none; }
@@ -346,7 +365,7 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--text-secondary, #5b6472));
 }
 .next-up__name {
   font-family: 'Playfair Display', Georgia, serif;
@@ -359,12 +378,12 @@
 .next-up__when {
   margin: 0;
   font-size: 0.9rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--text-secondary, #5b6472));
 }
 .next-up__when.is-soon { color: #b45309; font-weight: 600; }
 .next-up__count {
   font-size: 0.85rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--text-secondary, #5b6472));
   margin-bottom: 8px;
 }
 .next-up__count strong { color: var(--text-primary, #1a1a1a); font-weight: 600; }
@@ -430,7 +449,7 @@
   padding: 7px 16px;
   border-radius: var(--radius-full);
   border: 1.5px solid #d1d5db;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   color: #374151;
   font-size: .82rem;
   font-weight: 500;
@@ -450,7 +469,7 @@
   grid-column: 1 / -1;
   padding: 40px 20px;
   text-align: center;
-  color: #6b7280;
+  color: var(--text-secondary, #5b6472);
   font-size: .9rem;
 }
 
@@ -474,7 +493,7 @@
   padding: 7px 14px;
   border-radius: var(--radius-full);
   border: 1.5px solid #d1d5db;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   color: #374151;
   font-size: .8rem;
   font-weight: 600;
@@ -503,7 +522,7 @@
    radius comes from the same token as .disc-card and the hover is CSS rather
    than a pair of onmouseover handlers. */
 .disc-result {
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border: 1px solid rgba(0, 0, 0, .07);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -575,7 +594,7 @@
 }
 .disc-state__body {
   font-size: .875rem;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary, var(--text-secondary, #5b6472));
   max-width: 34ch;
   margin: 0 0 12px;
 }
@@ -629,7 +648,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 22px;
-  background: #ffffff;
+  background: var(--bg-card, #fcfbf8);
   color: #1a1a1a;
   border: 1px solid #e8e8e4;
   border-radius: var(--radius-full);
@@ -718,7 +737,7 @@
 .disc-searchbar {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border: 1.5px solid #d1d5db;
   border-radius: var(--radius-full);
   height: 52px;
@@ -754,7 +773,7 @@
   letter-spacing: .06em;
   color: #374151;
 }
-.disc-field__value { font-size: .855rem; color: #6b7280; }
+.disc-field__value { font-size: .855rem; color: var(--text-secondary, #5b6472); }
 .disc-field__input {
   border: none;
   background: none;
@@ -791,7 +810,7 @@
   top: calc(100% + 10px);
   left: 0;
   width: 380px;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border: 1px solid rgba(0, 0, 0, .08);
   border-radius: var(--radius-lg);
   box-shadow: 0 12px 40px rgba(0, 0, 0, .15);
@@ -812,7 +831,7 @@
   height: 40px;
   border-radius: var(--radius-sm);
   background: #f3f4f6;
-  color: #6b7280;
+  color: var(--text-secondary, #5b6472);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -839,7 +858,7 @@
   transform: translateX(-50%);
   width: 280px;
   padding: 22px;
-  background: #fff;
+  background: var(--bg-card, #fcfbf8);
   border: 1px solid rgba(0, 0, 0, .08);
   border-radius: var(--radius-lg);
   box-shadow: 0 12px 40px rgba(0, 0, 0, .15);
