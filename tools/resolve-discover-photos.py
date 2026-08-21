@@ -10,6 +10,15 @@ Nothing at runtime calls Wikimedia; the browser only loads the resulting image
 URLs. Re-running is safe and idempotent apart from upstream edits to the
 articles.
 
+NPS_API_KEY must be set, in the environment or .env, and is checked against the
+NPS API before anything is written. Without a working key every NPS unit falls
+through to Wikimedia and the run would overwrite the output with an
+all-Wikimedia file while still reporting 40/40 and exiting 0 — so a missing key,
+a rejected key, and a collapsed NPS count all stop the run instead. Pass
+`--force` to write anyway when the all-Wikimedia build is what you actually
+want; it does not override a rejected key, since that is a mistake rather than
+an intent.
+
 Why Wikimedia and not the NPS API: developer.nps.gov requires an API key, and
 answers 403 without one. Wikimedia needs no key, covers the ten USFS/state
 properties the NPS API would have missed entirely, and returns the license and
@@ -55,6 +64,18 @@ NPS_IMG_W_OVERRIDE = {
 # visual check of what was resolved. Off unless asked for.
 REVIEW_OUT = (sys.argv[sys.argv.index('--review') + 1]
               if '--review' in sys.argv[:-1] else '')
+
+# `--force` writes the output even when the guards below would refuse: a run
+# with no key at all, or one whose NPS count collapsed. Off by default, because
+# a degraded run is indistinguishable from a good one by exit code alone — it
+# resolves 40/40 and exits 0 while having quietly replaced the NPS photography.
+FORCE = '--force' in sys.argv
+
+# How far the NPS count may fall below what PARK_CODES promises before the run
+# is treated as broken rather than as upstream churn. NPS reordering or pulling
+# one park's images is plausible; a wholesale drop means the key was rejected
+# and every unit fell through to Wikimedia.
+NPS_SHORTFALL_TOLERANCE = 2
 
 # Destinations that are NPS units in their own right, with the park code the
 # NPS API knows them by. These prefer NPS: its photographs are federal works,
@@ -283,6 +304,37 @@ def nps_photo(name, code, key):
     return None
 
 
+def validate_nps_key(key):
+    """One cheap NPS call to prove the key is accepted, before anything is written.
+
+    A rejected key is not a soft failure. nps_photo() returns None for every
+    unit, main() falls through to Wikimedia for all of them, and the run ends by
+    overwriting discover-photos.js with an all-Wikimedia file — having printed
+    nothing alarming and exited 0. Checking once up front turns that into an
+    error that stops the run.
+
+    Returns (ok, detail). `ok` is False only for an answer that actually rejects
+    the key, None when the check could not be made at all: refusing to run
+    because the network blipped would be its own kind of wrong, and the count
+    guard still catches a collapse further down.
+    """
+    q = urllib.parse.urlencode({'parkCode': 'bibe', 'limit': '1',
+                                'api_key': key})
+    p = subprocess.run(
+        ['curl', '-s', '-m', '30', '-o', os.devnull, '-w', '%{http_code}',
+         '-H', 'User-Agent: ' + UA,
+         'https://developer.nps.gov/api/v1/parks?' + q],
+        capture_output=True, text=True)
+    if p.returncode != 0:
+        return None, 'curl exit %d — network problem, not a key problem' % p.returncode
+    status = p.stdout.strip()
+    if status == '200':
+        return True, status
+    if status in ('401', '403'):
+        return False, 'HTTP %s, NPS rejected the key' % status
+    return None, 'HTTP %s — unexpected, not read as a key rejection' % status
+
+
 def destinations():
     """Parse the five DISCOVER_HOME_* lists out of discover.js."""
     src = open(DISCOVER_JS, encoding='utf-8').read()
@@ -408,9 +460,37 @@ def main():
     dests = destinations()
     key = nps_key()
     print('%d destinations parsed from discover.js' % len(dests))
-    print('NPS API key: %s\n' % ('present — %d units will prefer NPS'
-                                 % len(PARK_CODES) if key else
-                                 'ABSENT, every destination resolves via Wikimedia'))
+    print('NPS API key: %s' % ('present — %d units will prefer NPS'
+                               % len(PARK_CODES) if key else
+                               'ABSENT, every destination resolves via Wikimedia'))
+
+    if key:
+        ok, detail = validate_nps_key(key)
+        if ok is False:
+            print('\nREFUSING TO RUN: %s.' % detail)
+            print('  Every NPS unit would fall through to Wikimedia and this script')
+            print('  would overwrite %s with an all-Wikimedia' % os.path.relpath(OUT_JS, ROOT))
+            print('  file, reverting the NPS photography while still exiting 0.')
+            print('  Fix or replace NPS_API_KEY, then re-run. --force does not')
+            print('  override this: a rejected key is a mistake rather than an')
+            print('  intent. Unset NPS_API_KEY and pass --force if the all-Wikimedia')
+            print('  build is genuinely what you want.')
+            return 2
+        if ok is None:
+            print('  warning: could not validate the key (%s)' % detail)
+            print('  continuing — the NPS count guard still applies before writing')
+        else:
+            print('  key validated')
+    elif not FORCE:
+        print('\nREFUSING TO RUN: NPS_API_KEY is not set.')
+        print('  Without it every destination resolves through Wikimedia and this')
+        print('  script would overwrite %s with an' % os.path.relpath(OUT_JS, ROOT))
+        print('  all-Wikimedia file, reverting the NPS photography and adding an')
+        print('  attribution strip to each replaced card.')
+        print('  Set NPS_API_KEY in the environment or .env, or pass --force if the')
+        print('  all-Wikimedia build is genuinely what you want.')
+        return 2
+    print('')
     records, failures = [], []
 
     for d in dests:
@@ -461,6 +541,23 @@ def main():
 
     needing = sum(1 for r in records if r['credit'])
     from_nps = sum(1 for r in records if r['source'] == 'NPS')
+
+    # Last line of defence: even with a key that validated, anything that made
+    # the NPS lookups fail one by one ends here rather than in a written file.
+    eligible = len([d for d in dests if d['name'] in PARK_CODES
+                    and d['name'] not in FORCE_WIKIMEDIA])
+    if key and from_nps < eligible - NPS_SHORTFALL_TOLERANCE and not FORCE:
+        print('\nREFUSING TO OVERWRITE %s' % os.path.relpath(OUT_JS, ROOT))
+        print('  Only %d of %d NPS-eligible destinations resolved via NPS'
+              % (from_nps, eligible))
+        print('  (tolerance is %d). The rest fell through to Wikimedia.'
+              % NPS_SHORTFALL_TOLERANCE)
+        print('  Writing now would replace that much NPS photography with')
+        print('  Wikimedia files and add an attribution strip to each one.')
+        print('  Check NPS_API_KEY and the network, then re-run.')
+        print('  Pass --force to write this result anyway.')
+        return 2
+
     header = (
         '/* =============================================================================\n'
         '   Discover destination photography — GENERATED FILE, DO NOT EDIT BY HAND.\n'
