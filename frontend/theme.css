@@ -160,7 +160,9 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
 .tp-card-photo {
   display: block;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  /* Kept in step with body.dash-light .tp-card-photo in dashboard-light.css,
+     which is the more specific rule and the one that actually paints. */
+  aspect-ratio: 16 / 9;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
