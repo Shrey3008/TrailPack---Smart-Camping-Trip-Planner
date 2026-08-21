@@ -266,24 +266,40 @@
   }
 
   /* ---------- Current-page detection ----------
-     Used to suppress the dropdown row pointing at the page the
-     user is already on. Normalises both sides to a lowercased
-     filename (e.g. "my-trips.html") and treats an empty path as
-     the root dashboard ("index.html"). */
+     Used to suppress the dropdown row pointing at the page the user is
+     already on. Normalises both sides to a lowercased filename, e.g.
+     "my-trips.html".
+
+     A bare segment is read as a missing ".html" rather than as "not a page".
+     That is the whole ballgame in production: wrangler.jsonc sets
+     html_handling:"auto-trailing-slash", so the Worker serves "/my-trips" and
+     307s "/my-trips.html" to it. Every deployed URL is extension-less, and the
+     previous `return 'dashboard.html'` fallback therefore reported *every*
+     page as the dashboard — so no page suppressed its own row, and each one
+     instead suppressed whatever pointed at dashboard.html. It only ever worked
+     when opening the files locally with their .html suffix. */
+  function normaliseBasename(last) {
+    const lower = String(last || '').toLowerCase();
+    if (!lower) return '';
+    return /\.html?$/.test(lower) ? lower : lower + '.html';
+  }
   function currentPageBasename() {
     try {
       const path = (window.location.pathname || '').split(/[?#]/)[0];
       const last = path.split('/').filter(Boolean).pop() || '';
-      if (!last || !/\.html?$/i.test(last)) return 'dashboard.html';
-      return last.toLowerCase();
+      // "/" serves index.html, the marketing landing page.
+      return last ? normaliseBasename(last) : 'index.html';
     } catch (_) { return ''; }
   }
   function hrefBasename(href) {
-    if (!href) return '';
-    const url = String(href).split(/[?#]/)[0];
+    const raw = String(href || '').trim();
+    // In-page anchors and non-navigating schemes are not pages, and must not
+    // normalise down to a filename that could collide with the current one.
+    if (!raw || raw.charAt(0) === '#') return '';
+    if (/^(javascript|mailto|tel):/i.test(raw)) return '';
+    const url = raw.split(/[?#]/)[0];
     const last = url.split('/').filter(Boolean).pop() || '';
-    if (!last) return 'dashboard.html';
-    return last.toLowerCase();
+    return last ? normaliseBasename(last) : 'index.html';
   }
   function isCurrentPageHref(href) {
     const cur = currentPageBasename();
