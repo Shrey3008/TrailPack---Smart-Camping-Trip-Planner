@@ -39,6 +39,18 @@ OUT_JS = os.path.join(ROOT, 'frontend', 'discover-photos.js')
 UA = 'TrailPack-photo-resolver/1.0 (https://github.com/ TrailPack)'
 THUMB_W = 640          # a hint; MediaWiki answers with the nearest servable width
 NPS_IMG_W = 640        # nps.gov resizes on ?width=; cards render ~270 CSS px
+
+# Destinations whose NPS original is too short for the card's 4:3 crop to fill
+# from at the default width. The card is `aspect-ratio: 4/3` with
+# `background-size: cover`, so a panorama keeps only its centre 4:3 slice and
+# that slice is then scaled up to fill the card: Big Bend's 640x230 is cropped
+# to 307x230 and stretched 1.55x on a 2x screen, which reads visibly soft
+# beside neighbours that downscale into the same box. nps.gov will serve the
+# same asset wider, which brings the scale back under 1x. Only files that
+# actually upscale belong here — every other NPS image already downscales.
+NPS_IMG_W_OVERRIDE = {
+    'Big Bend National Park': 1280,   # 640x230 -> 1280x460; 1.55x up -> 0.78x
+}
 # Optional: `--review <path>` writes contact sheets next to that path for a
 # visual check of what was resolved. Off unless asked for.
 REVIEW_OUT = (sys.argv[sys.argv.index('--review') + 1]
@@ -256,7 +268,8 @@ def nps_photo(name, code, key):
             # resizer rather than a CDN variant, since ?foo=bar returns the
             # full-size original and the returned pixel dimensions track the
             # requested width.
-            'src': '%s?width=%d' % (url.split('?')[0], NPS_IMG_W),
+            'src': '%s?width=%d' % (url.split('?')[0],
+                                    NPS_IMG_W_OVERRIDE.get(name, NPS_IMG_W)),
             'by': credit or 'National Park Service',
             # Not the raw credit string for the non-NPS case: `by` already
             # carries it, and the card renders "© {by} / {license}", which

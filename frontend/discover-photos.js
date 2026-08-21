@@ -280,7 +280,7 @@ const DISCOVER_PLACE_PHOTOS = {
     credit: false
   },
   'Big Bend National Park': {
-    src: 'https://www.nps.gov/common/uploads/structured_data/8BF8356B-BB63-76A4-19F5296EF94C96B4.jpg?width=640',
+    src: 'https://www.nps.gov/common/uploads/structured_data/8BF8356B-BB63-76A4-19F5296EF94C96B4.jpg?width=1280',
     by: 'NPS', license: 'Public domain (NPS)',
     licenseUrl: 'https://www.nps.gov/aboutus/disclaimer.htm',
     page: 'https://www.nps.gov/bibe/',
