@@ -194,6 +194,38 @@
       <a class="trips-view-all" id="shared-trips-view-all" href="my-trips.html" hidden></a>
     </section>
 
+    <!-- Trip tools. Deliberately above the Discover section rather than inside
+         it: these are the three things a reader can act on, and they sat below
+         ~1900px of browse content when they lived at the bottom of
+         #discoverHomeContent. Uses .disc-section/.disc-feat-* which are bare
+         class selectors, so they style identically outside that wrapper, and
+         main.container's inner width already matches .disc-home-wrap's. -->
+    <section class="disc-section" id="trip-tools-section">
+      <div class="disc-section-head">
+        <div>
+          <h2 class="disc-section-title">Plan smart. Pack light.</h2>
+          <p class="disc-section-sub">Tools to make your next trip easier</p>
+        </div>
+      </div>
+      <div class="disc-feat-grid">
+        <a class="disc-feat-tile" href="my-trips.html">
+          <span class="disc-feat-icon">⛺</span>
+          <p class="disc-feat-title">Plan a new trip</p>
+          <p class="disc-feat-sub">Generate a personalized packing checklist for your terrain and season.</p>
+        </a>
+        <button type="button" class="disc-feat-tile" data-disc-act="nearby">
+          <span class="disc-feat-icon">🗺️</span>
+          <p class="disc-feat-title">Live trail map</p>
+          <p class="disc-feat-sub">See real trails, parks, and campsites pulled from OpenStreetMap.</p>
+        </button>
+        <a class="disc-feat-tile" href="my-trips.html">
+          <span class="disc-feat-icon">📋</span>
+          <p class="disc-feat-title">My trips</p>
+          <p class="disc-feat-sub">Pick up where you left off. Track packing progress across every trip.</p>
+        </a>
+      </div>
+    </section>
+
     <!-- ===== DISCOVER SECTION START ===== -->
 <section id="discoverSection">
 
@@ -442,32 +474,6 @@
       </div>
     </div>
 
-    <!-- Feature tiles -->
-    <div class="disc-section">
-      <div class="disc-section-head">
-        <div>
-          <h2 class="disc-section-title">Plan smart. Pack light.</h2>
-          <p class="disc-section-sub">Tools to make your next trip easier</p>
-        </div>
-      </div>
-      <div class="disc-feat-grid">
-        <a class="disc-feat-tile" href="my-trips.html">
-          <span class="disc-feat-icon">⛺</span>
-          <p class="disc-feat-title">Plan a new trip</p>
-          <p class="disc-feat-sub">Generate a personalized packing checklist for your terrain and season.</p>
-        </a>
-        <button type="button" class="disc-feat-tile" data-disc-act="nearby">
-          <span class="disc-feat-icon">🗺️</span>
-          <p class="disc-feat-title">Live trail map</p>
-          <p class="disc-feat-sub">See real trails, parks, and campsites pulled from OpenStreetMap.</p>
-        </button>
-        <a class="disc-feat-tile" href="my-trips.html">
-          <span class="disc-feat-icon">📋</span>
-          <p class="disc-feat-title">My trips</p>
-          <p class="disc-feat-sub">Pick up where you left off. Track packing progress across every trip.</p>
-        </a>
-      </div>
-    </div>
 
     <!-- SEO link grid -->
     <div class="disc-section">

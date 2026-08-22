@@ -1139,12 +1139,14 @@
       body.dash-light .dash-hero__inner { padding: 0 20px; }
     }
     @media (max-width: 640px) {
-      /* Narrow the shared gutter rather than only this container's padding, so
-         anything positioned from --content-gutter (the full-bleed Discover
-         band) narrows with it. Setting it on :root inside the query keeps the
-         two in step; hardcoding 18px here once left the band's inner edge at
-         32px while every section beside it sat at 18px. */
-      /* Section rhythm tightens with the gutter — 48px between sections reads
+      /* Narrow the shared gutter on :root rather than only this container's
+         padding, so everything positioned from --content-gutter narrows in
+         step. This originally mattered for the full-bleed Discover band, which
+         computed its own padding from the token; the band no longer breaks out
+         of the container, but main.container below still reads the token and
+         hardcoding 18px in one place and not the other is the same bug waiting
+         to happen.
+         Section rhythm tightens with the gutter — 48px between sections reads
          as a gap on a 375px column, where the eye has no horizontal context to
          balance it against. */
       :root { --content-gutter: 18px; --space-section: var(--space-section-sm); }
