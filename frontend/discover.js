@@ -596,3 +596,39 @@ btn.addEventListener('click', () => {
   syncInert(open);
 });
   })();
+
+  // ===== Browse by destination toggle (phones only) =====
+  // Same collapse mechanism as the region above, but only live at 640 and
+  // below, where the three link columns stack into one and cost about a fifth
+  // of the mobile page. Above 640 the CSS holds the region open and removes
+  // the button from the layout.
+  //
+  // Deliberately no `inert` here, unlike More to Discover, and not an
+  // oversight. That region collapses at every width, so a flag set on click is
+  // always right. This one is width-conditional: a flag set on a phone would
+  // still be set after a resize past 640, where the CSS reopens the region —
+  // leaving a visible list that cannot be focused or clicked. Keeping it
+  // correct would mean reacting to a matchMedia change event, and that is
+  // exactly the failure mode found while testing this: the query's *value*
+  // updates on a resize but the change event does not always arrive, so the
+  // flag can go stale with no second chance to clear it.
+  //
+  // The collapsed rule already sets `visibility: hidden`, which takes the
+  // subtree out of the accessibility tree and out of the focus order. It lives
+  // in the media query, so it is width-correct by construction and needs no JS
+  // at all. That is the whole reason the flag can be dropped rather than
+  // carefully maintained.
+  (function () {
+const btn    = document.getElementById('disc-links-toggle');
+const region = document.getElementById('disc-links-region');
+if (!btn || !region) return;
+const label  = btn.querySelector('.disc-more-label');
+
+btn.addEventListener('click', () => {
+  const open = region.classList.toggle('is-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (label) {
+    label.textContent = open ? 'Fewer destinations' : 'Browse all destinations';
+  }
+});
+  })();

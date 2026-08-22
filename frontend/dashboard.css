@@ -744,6 +744,36 @@
   .disc-more, .disc-more-toggle .chev { transition: none; }
 }
 
+/* ---- Browse by destination, collapsed on phones ----------------------------
+   Same mechanism as .disc-more above, scoped to 640 and below. Above that the
+   region is permanently open with no transition and the toggle is removed from
+   the layout, so the only thing this costs a desktop reader is one extra
+   wrapper element. The __inner child carries the clipping for the same reason
+   it does there: a grid animating 0fr -> 1fr needs exactly one child to size,
+   and min-height:0 is what lets that child shrink below its content. */
+.disc-links-more-wrap { display: none; }
+.disc-links-collapse { display: grid; grid-template-rows: 1fr; }
+.disc-links-collapse__inner { overflow: hidden; min-height: 0; }
+
+@media (max-width: 640px) {
+  .disc-links-more-wrap { display: block; margin: 2px 0 16px; }
+  .disc-links-collapse {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    visibility: hidden;
+    transition: grid-template-rows 0.45s ease, opacity 0.25s ease, visibility 0s linear 0.45s;
+  }
+  .disc-links-collapse.is-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+    transition: grid-template-rows 0.45s ease, opacity 0.25s ease, visibility 0s linear 0s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .disc-links-collapse { transition: none; }
+}
+
 /* =============================================================================
    Discover search bar, dropdown and radius popover.
 

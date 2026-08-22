@@ -483,19 +483,51 @@
           <p class="disc-section-sub">Jump straight to a state, park, or city</p>
         </div>
       </div>
-      <div class="disc-link-cols">
-        <div>
-          <h4 class="disc-link-col-title">Top National Parks</h4>
-          <div class="disc-link-list" id="discoverLinksParks"></div>
+      <!-- Collapsed on phones only. Three columns of eight links stack into one
+           at 640, which costs ~1600px — a fifth of the mobile page — for a
+           block nobody scrolls to on purpose. The toggle and the collapse are
+           inert above 640, where the columns fit side by side and cost little.
+
+           Structured exactly like #disc-more-region: the region animates
+           grid-template-rows 0fr -> 1fr and therefore needs exactly ONE grid
+           child to size against, which is why .disc-links-collapse__inner
+           exists and carries the overflow:hidden / min-height:0. Putting the
+           three columns directly inside the region would land them in implicit
+           rows the 0fr track never constrains, and nothing would collapse.
+
+           Unlike that region this one carries no `inert` flag: the collapsed
+           rule's `visibility: hidden` already removes the subtree from the
+           accessibility tree and the focus order, and being a media query it
+           stays correct across a resize without any JS. See discover.js. -->
+      <div class="disc-links-more-wrap">
+        <button type="button" id="disc-links-toggle" class="disc-more-toggle"
+                aria-expanded="false" aria-controls="disc-links-region">
+          <span class="disc-more-label">Browse all destinations</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+      </div>
+      <div class="disc-links-collapse" id="disc-links-region" role="region"
+           aria-labelledby="disc-links-toggle">
+       <div class="disc-links-collapse__inner">
+        <div class="disc-link-cols">
+          <div>
+            <h4 class="disc-link-col-title">Top National Parks</h4>
+            <div class="disc-link-list" id="discoverLinksParks"></div>
+          </div>
+          <div>
+            <h4 class="disc-link-col-title">Popular states</h4>
+            <div class="disc-link-list" id="discoverLinksStates"></div>
+          </div>
+          <div>
+            <h4 class="disc-link-col-title">Cities</h4>
+            <div class="disc-link-list" id="discoverLinksCities"></div>
+          </div>
         </div>
-        <div>
-          <h4 class="disc-link-col-title">Popular states</h4>
-          <div class="disc-link-list" id="discoverLinksStates"></div>
-        </div>
-        <div>
-          <h4 class="disc-link-col-title">Cities</h4>
-          <div class="disc-link-list" id="discoverLinksCities"></div>
-        </div>
+       </div>
       </div>
     </div>
 
