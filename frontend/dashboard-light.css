@@ -466,6 +466,43 @@
       grid-template-columns: repeat(4, 1fr) !important;   /* desktop */
       gap: var(--space-gap-lg) !important;
     }
+    /* A grid holding one or two trips. Shared With Me renders two cards into
+       the same four-track grid the main trips row uses, so half the row was
+       empty beneath a full-width heading and subtitle. It now declares two
+       tracks instead of four, so the grid describes what it holds — but at the
+       same track width, so the cards stay the size they are everywhere else.
+
+       The guard is deliberately `> :nth-child(3)` and not `> .trip-card:nth-child(3)`:
+       the loading skeletons are .tp-skel-card, so matching the card class would
+       drop the grid to two columns while four skeletons were on screen and snap
+       it back to four when the data landed.
+
+       If :has() is unsupported the whole selector is invalid and the rule is
+       dropped, which leaves the four-column layout exactly as it is today —
+       the degraded state is the current state, not a broken one.
+
+       Scoped to 1025 and up because that is the only width where the hole
+       exists: the grid is already two columns from 641-1024 and one column
+       below that. Unscoped it also beat the 640px one-column rule on
+       specificity — :not(:has(> :nth-child(3))) adds a class-level weight that
+       body.dash-light .trips-grid does not have — and squeezed two shared
+       cards into 157px columns at 375. */
+    @media (min-width: 1025px) {
+      body.dash-light .trips-grid:not(:has(> :nth-child(3))) {
+        /* Two tracks at the *four*-track width, not two half-width ones. A
+           shared trip and a recent trip are the same object and have to be the
+           same size: capping at 420px made the shared card 420x423 with a
+           235px photo beside a 266x339 recent card with a 148px photo, which
+           is a worse inconsistency than the empty space it was hiding. This
+           reproduces the 4-column track exactly — (100% - 3 gaps) / 4 — so the
+           card lands at 266px and every .trip-card rule then governs both
+           grids identically, with no max-width override to diverge from. */
+        grid-template-columns:
+          repeat(2, calc((100% - 3 * var(--space-gap-lg)) / 4)) !important;
+        justify-content: start;
+      }
+    }
+
     body.dash-light .trip-card {
       background: var(--bg-card) !important;
       border: 1px solid var(--border) !important;

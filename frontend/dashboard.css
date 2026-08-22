@@ -172,6 +172,16 @@
 .disc-row > * { scroll-snap-align: start; }
 @media (min-width: 900px) {
   .disc-row { grid-template-columns: repeat(4, 1fr); grid-auto-flow: initial; overflow: visible; }
+
+  /* Top National Parks holds eight destinations. Below 900 that is one
+     swipeable carousel costing a single row of height, but at 900 and up the
+     row becomes a four-track grid and the same eight cards wrap to two rows —
+     564px where every other Discover row is 260px, and the single biggest
+     block in a section already taking half the page. Capping the visible cards
+     at four leaves one row here; the four that drop out are still reachable as
+     text links in Browse by destination, and the carousel below 900 keeps all
+     eight because this rule never applies there. */
+  #discoverRowParks > .disc-card-wrap:nth-child(n + 5) { display: none; }
 }
 
 /* The wrapper exists so the photo credit can be a sibling of the card button
