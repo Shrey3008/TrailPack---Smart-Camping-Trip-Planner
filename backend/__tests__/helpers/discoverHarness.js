@@ -22,14 +22,30 @@ const FIXTURES = path.join(__dirname, 'fixtures');
 
 function createHarness() {
   const els = {};
+  const focusLog = [];
+  const scrollLog = [];
+  let activeId = null;
   function el(id) {
     if (!els[id]) {
       els[id] = {
         id, value: '', textContent: '', innerHTML: '', hidden: false,
         style: {}, dataset: {},
         classList: { toggle() {}, contains() { return false; }, add() {} },
-        setAttribute() {}, querySelector() { return null; },
-        querySelectorAll() { return []; }, addEventListener() {}
+        setAttribute() {},
+        /* Narrowly capable: the busy state focuses its primary button via
+           grid.querySelector('[data-disc-act="retry"]'), so that one shape has
+           to resolve to something focusable. Everything else still returns
+           null, as before. */
+        querySelector(sel) {
+          return /^\[data-disc-act=/.test(String(sel)) ? el(this.id + ' ' + sel) : null;
+        },
+        querySelectorAll() { return []; }, addEventListener() {},
+        // Focus and scrolling are behaviour the busy state depends on, so the
+        // stub records them rather than swallowing them.
+        focus(opts) { focusLog.push({ id: this.id, preventScroll: !!(opts && opts.preventScroll) }); activeId = this.id; },
+        blur() { if (activeId === this.id) activeId = null; },
+        scrollIntoView(opts) { scrollLog.push({ id: this.id, behavior: opts && opts.behavior }); },
+        options: [], appendChild() {}
       };
     }
     return els[id];
@@ -81,6 +97,9 @@ function createHarness() {
   const T = sandbox.__t;
   return {
     S: sandbox, els, T, el,
+    focusLog, scrollLog,
+    activeId: () => activeId,
+    clearInteractionLogs() { focusLog.length = 0; scrollLog.length = 0; activeId = null; },
     grid:  () => els.discoverTrailResults ? els.discoverTrailResults.innerHTML : '',
     count: () => els.discoverResCount
       ? els.discoverResCount.textContent + els.discoverResCount.innerHTML : '',

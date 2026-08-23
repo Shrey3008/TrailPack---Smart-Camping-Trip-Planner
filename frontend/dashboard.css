@@ -682,6 +682,40 @@
 }
 .disc-state__action:hover { background: var(--tp-green-900, #1b4332); }
 
+/* Two ways out of the busy state, so retry is not the only door when the
+   upstream is throttling. Stacked below 640 rather than left to wrap: measured
+   at 375 the pair needs 319px against 299px of content width, and the shorter
+   labels that do fit clear it by under 30px — close enough that one type
+   change would break it. */
+.disc-state__actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+@media (max-width: 640px) {
+  .disc-state__actions { flex-direction: column; width: 100%; }
+}
+
+/* The secondary action borrows .disc-res-back's ghost treatment verbatim so
+   the pair reads as one system, plus the 44px target the primary already has
+   and .disc-res-back does not need. Focus rings come from the global
+   button:focus-visible rule in theme.css — nothing here may override it. */
+.disc-state__action--ghost {
+  background: var(--bg-card, #fcfbf8);
+  border: 1.5px solid #d1d5db;
+  color: #374151;
+  min-height: 44px;
+}
+.disc-state__action--ghost:hover {
+  background: var(--bg-card, #fcfbf8);
+  border-color: #9ca3af;
+  color: #111;
+}
+
 .disc-map-wrap {
   position: sticky;
   top: 80px;

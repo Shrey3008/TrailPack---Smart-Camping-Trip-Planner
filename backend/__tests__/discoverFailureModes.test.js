@@ -247,6 +247,146 @@ describe('Discover — the Worker envelope', () => {
   });
 });
 
+describe('Discover — the busy state offers a second way out', () => {
+  /* Retry is the action least likely to work when the upstream is throttling —
+     four consecutive busy responses were observed while verifying the deploy —
+     so busy, and only busy, also points at the state picker. */
+  const busy = () => JSON.stringify({ status: 'busy', reason: 'upstream HTTP 521', retryAfter: 30 });
+
+  async function showBusy() {
+    stub(() => response(503, busy()));
+    await search(25);
+  }
+
+  test('copy is exact', async () => {
+    await showBusy();
+    expect(h.grid()).toContain('⏳');
+    expect(h.grid()).toContain('Trail service is busy');
+    expect(h.grid()).toContain('Map data is rate-limited right now. Recently searched places still load instantly.');
+    expect(h.count()).toContain('Trail service busy — this is not a report about what\u2019s nearby');
+  });
+
+  test('does not name the upstream vendor to the user', async () => {
+    await showBusy();
+    expect(h.grid()).not.toMatch(/OpenStreetMap|Overpass/i);
+  });
+
+  test('keeps Try again as the primary action, unchanged', async () => {
+    await showBusy();
+    expect(h.grid()).toMatch(/data-disc-act="retry"[^>]*>Try again</);
+  });
+
+  test('offers "Choose a state" when no state is selected', async () => {
+    h.el('discoverStateSelect').value = '';
+    await showBusy();
+    expect(h.grid()).toMatch(/data-disc-act="state-picker"[^>]*>Choose a state</);
+  });
+
+  test('offers "Try another state" once a state anchor is selected', async () => {
+    h.el('discoverStateSelect').value = 'MT';
+    await showBusy();
+    expect(h.grid()).toMatch(/data-disc-act="state-picker"[^>]*>Try another state</);
+    h.el('discoverStateSelect').value = '';
+  });
+
+  test('the secondary action uses the shared ghost treatment', async () => {
+    await showBusy();
+    expect(h.grid()).toContain('disc-state__action disc-state__action--ghost');
+  });
+
+  test('both actions sit in a wrapper that can stack', async () => {
+    await showBusy();
+    expect(h.grid()).toContain('disc-state__actions');
+  });
+
+  test('timeout and network keep exactly one action and no wrapper', async () => {
+    stub(() => response(504, JSON.stringify({ status: 'timeout' })));
+    await search(25);
+    expect(h.grid()).not.toContain('disc-state__actions');
+    expect(h.grid()).not.toContain('state-picker');
+    expect((h.grid().match(/<button/g) || []).length).toBe(1);
+
+    stub(() => new TypeError('Failed to fetch'));
+    await search(25);
+    expect(h.grid()).not.toContain('disc-state__actions');
+    expect(h.grid()).not.toContain('state-picker');
+    expect((h.grid().match(/<button/g) || []).length).toBe(1);
+  });
+
+  test('timeout and network copy is untouched', async () => {
+    stub(() => response(504, JSON.stringify({ status: 'timeout' })));
+    await search(25);
+    expect(h.grid()).toContain('The map service took too long to answer. This usually clears in a moment.');
+    expect(h.count()).toContain('Search timed out — not a report about what is nearby');
+  });
+});
+
+describe('Discover — busy-state focus and the state picker', () => {
+  const busy = () => JSON.stringify({ status: 'busy', reason: 'upstream HTTP 521' });
+
+  test('focus moves to Try again when busy replaces the results', async () => {
+    h.clearInteractionLogs();
+    stub(() => response(503, busy()));
+    await search(25);
+    expect(h.focusLog.length).toBeGreaterThan(0);
+  });
+
+  test('timeout and network do not move focus', async () => {
+    h.clearInteractionLogs();
+    stub(() => response(504, JSON.stringify({ status: 'timeout' })));
+    await search(25);
+    expect(h.focusLog).toEqual([]);
+
+    h.clearInteractionLogs();
+    stub(() => new TypeError('Failed to fetch'));
+    await search(25);
+    expect(h.focusLog).toEqual([]);
+  });
+
+  test('the state picker opens the dropdown and focuses the select', async () => {
+    h.clearInteractionLogs();
+    const stopped = { called: false };
+    S.discoverOpenStatePicker({ stopPropagation: () => { stopped.called = true; } });
+    // stopPropagation matters: a document-level listener closes this dropdown
+    // on any outside click, and the delegated handler runs first.
+    expect(stopped.called).toBe(true);
+    expect(h.els.discoverLocDropdown.hidden).toBe(false);
+    expect(h.activeId()).toBe('discoverStateSelect');
+    expect(h.focusLog.some(f => f.id === 'discoverStateSelect' && f.preventScroll)).toBe(true);
+  });
+
+  test('it scrolls the search controls into view', () => {
+    h.clearInteractionLogs();
+    S.discoverOpenStatePicker({ stopPropagation() {} });
+    expect(h.scrollLog.some(s => s.id === 'discoverLocField')).toBe(true);
+  });
+
+  test('it leaves an existing selection intact', () => {
+    h.el('discoverStateSelect').value = 'MT';
+    S.discoverOpenStatePicker({ stopPropagation() {} });
+    expect(h.el('discoverStateSelect').value).toBe('MT');
+    h.el('discoverStateSelect').value = '';
+  });
+
+  test('a successful retry moves focus to the result count', async () => {
+    stub(() => response(503, busy()));
+    await search(25);
+    h.clearInteractionLogs();
+    stub(() => response(200, baseOk));
+    S.discoverRetry();
+    await settle();
+    expect(h.activeId()).toBe('discoverResCount');
+  });
+
+  test('an ordinary search does not move focus', async () => {
+    stub(() => response(200, baseOk));
+    h.T.cache = null;
+    h.clearInteractionLogs();
+    await search(25);
+    expect(h.focusLog).toEqual([]);
+  });
+});
+
 describe('Discover — state selection', () => {
   test('a state sets its curated anchor, not a centroid', async () => {
     stub(() => response(200, baseOk));

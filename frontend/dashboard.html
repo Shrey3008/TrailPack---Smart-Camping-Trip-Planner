@@ -559,7 +559,14 @@
   <!-- Results + Map (hidden until first search; revealed by fetchDiscoverTrails). -->
   <div id="discoverResultsBlock" class="disc-results-block" hidden>
     <div class="disc-res-head">
-      <div id="discoverResCount" style="font-size:.875rem; color:#6b7280;">
+      <!-- Announces every Discover outcome — result count, empty, busy,
+           timeout — so the state change is not silent for a screen reader.
+           polite, because none of these should interrupt. tabindex="-1" makes
+           it a programmatic focus target: after a successful retry the button
+           the user was on has been replaced, and this line is what tells them
+           what happened. -->
+      <div id="discoverResCount" role="status" aria-live="polite" tabindex="-1"
+           style="font-size:.875rem; color:#6b7280;">
         Click <strong style="color:#111;">Search Trails</strong> or choose <strong style="color:#111;">Nearby</strong> to discover trails
       </div>
       <button type="button" class="disc-res-back" data-disc-act="home">← Back to Discover</button>

@@ -47,6 +47,10 @@
  first, trading memory for a refetch on the way back. */
   let discoverCache = null;
   let discoverInFlight = null;
+  /* Set only by discoverRetry(), so focus moves to the result count when a
+ retry *succeeds* and nowhere else. Moving focus on every render would yank
+ the caret out of the search box on an ordinary first search. */
+  let discoverRetryPending = false;
 
   let discoverActiveTerrain = 'all';
   /* Terrain tints for the result-card media panel. These replaced four
@@ -693,12 +697,28 @@ discoverEnsureData(lat, lon, tier)
     } else {
       discoverShowExpandPrompt(discoverRadiusMi);
     }
+    // A retry that worked: the user was on the Try again button, which has
+    // just been replaced. Send them to the line that says what happened
+    // rather than dropping focus to the top of the document.
+    if (discoverRetryPending) {
+      discoverRetryPending = false;
+      if (count && count.focus) count.focus();
+    }
   })
   .catch(err => {
     const kind = err && err.discoverKind ? err.discoverKind : 'network';
     const grid = document.getElementById('discoverTrailResults');
     if (grid) grid.innerHTML = discoverErrorHTML(kind);
     if (count) count.textContent = DISCOVER_ERR_COUNT[kind] || DISCOVER_ERR_COUNT.network;
+    discoverRetryPending = false;
+    /* Busy only. The results the user was reading have just been replaced by
+       a message and two buttons; leaving focus on <body> means a keyboard or
+       screen-reader user has to hunt for the way out. Timeout and network
+       keep their existing behaviour untouched. */
+    if (kind === 'busy' && grid) {
+      const primary = grid.querySelector('[data-disc-act="retry"]');
+      if (primary && primary.focus) primary.focus();
+    }
   });
   }
 
@@ -824,29 +844,82 @@ return '<div class="disc-state">'
   const DISCOVER_ERR_STATE = {
 timeout: { icon: '⏱️', title: 'Trail search timed out',
            body: 'The map service took too long to answer. This usually clears in a moment.' },
-busy:    { icon: '🚦', title: 'Trail service is busy',
-           body: 'The OpenStreetMap search service is rate-limiting or overloaded right now.' },
+busy:    { icon: '⏳', title: 'Trail service is busy',
+           body: 'Map data is rate-limited right now. Recently searched places still load instantly.' },
 network: { icon: '📡', title: 'Could not reach trail search',
            body: 'Check your connection and try again.' }
   };
   const DISCOVER_ERR_COUNT = {
 timeout: 'Search timed out — not a report about what is nearby',
-busy:    'Trail service busy — please retry shortly',
+busy:    'Trail service busy — this is not a report about what\u2019s nearby',
 network: 'Could not load trails — check connection'
   };
+  /* Which state the picker currently holds, if any. Read from the control
+ itself rather than a parallel variable, so it cannot disagree with what the
+ user can see selected. */
+  function discoverSelectedStateCode() {
+const sel = document.getElementById('discoverStateSelect');
+return sel && sel.value ? sel.value : '';
+  }
+
   function discoverErrorHTML(kind) {
 const s = DISCOVER_ERR_STATE[kind] || DISCOVER_ERR_STATE.network;
-return '<div class="disc-state">'
+const head = '<div class="disc-state">'
   + '<div class="disc-state__icon">' + s.icon + '</div>'
   + '<h3 class="disc-state__title">' + s.title + '</h3>'
-  + '<p class="disc-state__body">' + s.body + '</p>'
-  + '<button class="disc-state__action" data-disc-act="retry">Try again</button></div>';
+  + '<p class="disc-state__body">' + s.body + '</p>';
+const retry = '<button class="disc-state__action" data-disc-act="retry">Try again</button>';
+
+/* Only `busy` gets a second way out, and only because only `busy` earns
+   one: when the upstream is throttling, retrying is the action least
+   likely to work — four consecutive busy responses were observed while
+   verifying the deploy. A timeout usually does clear on the next attempt,
+   and a network failure is not something a different search fixes, so both
+   of those keep exactly the markup they had. */
+if (kind !== 'busy') return head + retry + '</div>';
+
+const label = discoverSelectedStateCode() ? 'Try another state' : 'Choose a state';
+return head
+  + '<div class="disc-state__actions">'
+  + retry
+  + '<button class="disc-state__action disc-state__action--ghost" data-disc-act="state-picker">'
+  + label + '</button>'
+  + '</div></div>';
+  }
+
+  /* Secondary recovery: put the user back on the state picker rather than
+ leaving retry as the only door. Deliberately does not clear the current
+ selection — someone who picked Montana and hit a busy service is choosing a
+ neighbour, not starting over.
+
+ stopPropagation matters here: a document-level listener closes this dropdown
+ on any outside click, and the delegated handler on #discoverSection runs
+ first, so without it the dropdown would open and shut in the same click —
+ the same reason toggleLocDropdown stops propagation. */
+  function discoverOpenStatePicker(e) {
+if (e) e.stopPropagation();
+closeDiscoverRP();
+discoverDDOpen = true;
+const dd = document.getElementById('discoverLocDropdown');
+if (dd) dd.hidden = false;
+
+// Focus first with preventScroll, then scroll deliberately: focusing an
+// off-screen control otherwise jumps the page and cancels a smooth scroll.
+const sel = document.getElementById('discoverStateSelect');
+if (sel) {
+  try { sel.focus({ preventScroll: true }); } catch (err) { sel.focus(); }
+}
+const field = document.getElementById('discoverLocField');
+if (field && field.scrollIntoView) {
+  field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
   }
 
   /* Re-runs the search for the current location, dropping any cached payload
  so a retry after a failure genuinely re-queries. */
   function discoverRetry() {
 if (discoverUserLat == null) return;
+discoverRetryPending = true;
 // Retry the tier that failed, not the base one — a user who asked for 100
 // miles and hit a busy service should not be silently downgraded to 50.
 const tier = discoverTierFor(discoverRadiusMi);
@@ -904,6 +977,7 @@ document.getElementById('discoverTrailResults').innerHTML = Array(6).fill(0).map
 'expand':        ()      => discoverExpandRadius(),
 'expand-search': ()      => discoverExpandSearch(),
 'retry':         ()      => discoverRetry(),
+'state-picker':  (el, e) => discoverOpenStatePicker(e),
 'pick-city':     (el)    => discoverPickCity(el.dataset.name, parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)),
 'zoom':          (el)    => discoverZoom(parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)),
 'plan':          (el, e) => {
