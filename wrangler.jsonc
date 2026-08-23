@@ -38,6 +38,13 @@
     // frontend/api/nearby-trails and the endpoint silently stops existing.
     // Naming the prefix keeps the two concerns from being able to collide,
     // and leaves every other path on exactly the old assets-first path.
+    //
+    // The ARRAY form needs Wrangler >= 4.19. Older versions do not warn and do
+    // not ignore it — they refuse the whole config with "Expected
+    // assets.run_worker_first to be of type boolean", which fails the build.
+    // Verified: 3.114, 4.0, 4.10, 4.15 and 4.18 all reject it; 4.20 and 4.125
+    // accept it. That is why wrangler is pinned in package.json rather than
+    // left to whatever version the build environment happens to supply.
     "run_worker_first": ["/api/*"],
 
     // Both values below are the current Wrangler defaults, set explicitly so
