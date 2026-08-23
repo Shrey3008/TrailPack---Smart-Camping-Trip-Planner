@@ -15,14 +15,28 @@ const trails = require('./trails.js');
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
-/* OSM trail geometry changes on the order of weeks, so a day is conservative.
+/* OSM trail geometry changes on the order of weeks, so a week is still
+   conservative — and the week is doing real work here. Overpass rate-limits
+   Cloudflare's shared egress IP, so a cold miss can come back busy for a while;
+   measured, a warm entry answers in ~0.2 s while a cold 50-mile fetch is 30-70 s
+   when it succeeds at all. Every day of retention is a day a colo does not have
+   to go back upstream. Raising 24h to 7d costs nothing and cuts repeat upstream
+   traffic for a given cell roughly sevenfold.
+
+   Two things this deliberately does not claim. The Cache API evicts LRU across
+   all domains on an edge server, so a TTL is a ceiling, not a promise — an
+   unpopular entry can still go early. And the cache is local to one data
+   centre, so "warm" is always per-colo, never global.
+
    Past SOFT_TTL a stored answer is still served immediately and refreshed
-   behind the response, so nobody waits 77 seconds for data that is merely a
-   few hours stale. Written out explicitly with waitUntil rather than trusting
-   stale-while-revalidate to be honoured by the Cache API — the behaviour we
-   depend on should be the behaviour we wrote. */
-const HARD_TTL = 86400;   // 24h, what Cache-Control advertises
-const SOFT_TTL = 21600;   // 6h, past this serve stale and refresh
+   behind the response, so nobody waits a minute for data that is merely hours
+   stale. That refresh is the explicit waitUntil below, not the
+   stale-while-revalidate directive: Cloudflare documents that cache.put does
+   not implement stale-while-revalidate at all. The directive stays on the
+   stored response as intent for anything else that reads it, but nothing here
+   depends on it. */
+const HARD_TTL = 604800;  // 7d, what Cache-Control advertises
+const SOFT_TTL = 21600;   // 6h, past this serve stale and refresh — via waitUntil
 
 /* Module scope lives as long as the isolate, so this bounds the expensive
    upstream fetches in flight *per isolate* — a real limit, but not a global

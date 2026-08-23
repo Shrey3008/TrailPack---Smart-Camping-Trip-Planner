@@ -6,7 +6,7 @@
    connection failure. The point of the route is that none of those may reach
    the browser as "there are no trails near you". */
 const path = require('path');
-const { createHandler } = require(path.resolve(__dirname, '../../src/handler.js'));
+const { createHandler, HARD_TTL, SOFT_TTL } = require(path.resolve(__dirname, '../../src/handler.js'));
 const trails = require(path.resolve(__dirname, '../../src/trails.js'));
 const { fixture, DENVER } = require('./helpers/discoverHarness');
 
@@ -281,6 +281,50 @@ describe('nearby-trails — nothing escapes as an untyped error', () => {
   });
 });
 
+describe('nearby-trails — failures carry no success-cache header', () => {
+  // The 7-day TTL is only ever attached to a stored success. A busy or
+  // timed-out upstream must not be retained for a week — or at all.
+  const DISPATCHER = '<!DOCTYPE html><html>busy</html>';
+
+  test.each([
+    ['timeout', { status: 200, body: TIMEOUT_BODY }],
+    ['429',     { status: 429, body: '' }],
+    ['504',     { status: 504, body: DISPATCHER }],
+    ['garbage', { status: 200, body: 'not json' }]
+  ])('%s: nothing is written to the cache at all', async (_l, upstream) => {
+    const s = setup(() => upstream);
+    await s.handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    expect(s.cache.store.size).toBe(0);
+  });
+
+  test.each([
+    ['timeout', { status: 200, body: TIMEOUT_BODY }],
+    ['429',     { status: 429, body: '' }],
+    ['504',     { status: 504, body: DISPATCHER }]
+  ])('%s: the client response is no-store, never s-maxage', async (_l, upstream) => {
+    const s = setup(() => upstream);
+    const res = await s.handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(res.headers.get('cache-control')).not.toContain('s-maxage');
+  });
+
+  test('a validation rejection is no-store and never reaches the cache', async () => {
+    const s = setup(() => ok(EMPTY_BODY));
+    const res = await s.handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '73' }));
+    expect(res.status).toBe(400);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    expect(s.cache.store.size).toBe(0);
+  });
+
+  test('a successful client response is also no-store — only the stored copy is cacheable', async () => {
+    // The browser holds its own tier cache; the 7 days belongs to the edge.
+    const s = setup(() => ok(EMPTY_BODY));
+    const res = await s.handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe('no-store');
+  });
+});
+
 describe('nearby-trails — caching', () => {
   test('a repeat request for the same cell is served from cache', async () => {
     const s = setup(() => ok(JSON.stringify(fixture('denver'))));
@@ -329,14 +373,44 @@ describe('nearby-trails — caching', () => {
     expect(trails.cacheKeyFor(39.74, -104.99, 50)).toMatch(/^v\d+\//);
   });
 
-  test('the cached response advertises a 24h shared TTL', async () => {
+  /* Retention is the one lever available at zero cost: the Cache API is the
+     only store in play, Overpass throttles the shared Cloudflare egress on a
+     cold miss, and a warm entry answers in ~0.2 s. Seven days is asserted
+     exactly, per tier, because a silent drop back to a day would quietly
+     multiply upstream traffic sevenfold for every cell. */
+  const captureStoredHeader = async (tier) => {
     const cache = makeCache();
     const up = makeUpstream(() => ok(EMPTY_BODY));
     let stored = null;
     cache.put = async (r, res) => { stored = res.headers.get('cache-control'); };
     const handler = createHandler({ fetch: up.fetchImpl, caches: cache });
-    await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
-    expect(stored).toContain('s-maxage=86400');
+    await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: String(tier) }));
+    return stored;
+  };
+
+  test.each([[50], [100]])('a successful %i-mile result is stored for 7 days', async (tier) => {
+    const stored = await captureStoredHeader(tier);
+    expect(stored).toContain('s-maxage=604800');
+    expect(stored).toContain('public');
+    // Exactly 7 days — not "at least", so a regression to 24h fails here.
+    expect(stored).toMatch(/s-maxage=604800(\D|$)/);
+    expect(stored).not.toContain('s-maxage=86400');
+  });
+
+  test('both tiers are stored with the identical TTL', async () => {
+    expect(await captureStoredHeader(50)).toBe(await captureStoredHeader(100));
+  });
+
+  test('the TTL constant and the stored header agree', async () => {
+    expect(HARD_TTL).toBe(604800);
+    expect(await captureStoredHeader(50)).toContain('s-maxage=' + HARD_TTL);
+  });
+
+  test('the stale refresh does not depend on the stale-while-revalidate directive', async () => {
+    // Cloudflare documents that cache.put does not implement
+    // stale-while-revalidate. The refresh has to come from the explicit
+    // waitUntil path, which the test below this one exercises.
+    expect(SOFT_TTL).toBeLessThan(HARD_TTL);
   });
 
   test('a stale entry is served immediately and refreshed behind the response', async () => {
