@@ -68,6 +68,12 @@
 .disc-section-head {
   display: flex; align-items: baseline; justify-content: space-between;
   margin-bottom: 16px;
+  /* Only the Top National Parks head has a second child (the "Search nearby"
+     link); the other seven are single-child and a gap between items cannot
+     apply to them, so this is inert everywhere else. It exists because
+     space-between alone leaves the link touching the subtitle's first line at
+     375, where the two columns consume the full 339px between them. */
+  gap: var(--space-gap, 16px);
 }
 /* Secondary tier. Every section heading on this page rendered at 1.55rem —
    two from .section-header h2 (Recent Trips, Shared With Me) and eight from
@@ -83,9 +89,20 @@
 .disc-section-sub {
   font-size: 0.82rem; color: var(--text-secondary, #5b6472); margin: 3px 0 0;
 }
+/* Sole instance on the page: "Search nearby →" beside Top National Parks.
+   As a flex item it defaulted to shrinking, and at 375 there is nothing to
+   spare — the heading column and the link measured 240.2 + 98.8 against a
+   339px head — so it was squeezed 11.7px below its 110.5px natural width and
+   dropped the arrow onto a second line, on top of the subtitle. nowrap raises
+   its automatic minimum size to the full text, which is enough on its own;
+   the head's gap keeps it off the subtitle. Reducing the type instead would
+   have bought only ~6.5px, less than the shortfall, and paid for a layout
+   fix in legibility. The head is 77px tall either way — the two-line subtitle
+   already sets that height — so nothing below moves. */
 .disc-section-link {
   font-size: 0.85rem; font-weight: 600; color: #2d6a4f;
   text-decoration: none; cursor: pointer;
+  white-space: nowrap;
 }
 .disc-section-link:hover { text-decoration: underline; }
 
