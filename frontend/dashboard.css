@@ -612,6 +612,38 @@
    its own sizes inline (1.05rem here, 1.1rem there) for the same rank of
    heading. Section titles keep Playfair; state headings are Inter, which is
    the split .empty-state already uses. */
+/* ---- State picker in the location dropdown ----
+   Its own row rather than another destination entry, because choosing a state
+   and choosing a city are different jobs: a state resolves to a curated
+   trail-access anchor, and the note underneath says which one so the search
+   never silently claims to be somewhere the user did not pick. */
+.disc-dd-row--state { cursor: default; }
+.disc-dd-state-field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.disc-dd-state-label {
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text-secondary, #5b6472);
+}
+.disc-dd-state-select {
+  width: 100%; max-width: 100%;
+  font: inherit; font-size: 0.86rem; color: #111;
+  padding: 7px 10px;
+  border: 1px solid rgba(0,0,0,.14); border-radius: var(--radius-sm, 8px);
+  background: #fff; cursor: pointer;
+}
+.disc-dd-state-select:focus-visible {
+  outline: 2px solid var(--tp-green, #2d6a4f); outline-offset: 1px;
+}
+.disc-anchor-note {
+  margin: 6px 14px 10px; font-size: 0.76rem; line-height: 1.45;
+  color: var(--text-secondary, #5b6472);
+}
+.disc-anchor-note[hidden] { display: none; }
+
+/* The 50-mile mark on the radius scale. It is a real boundary — everything
+   below it is already cached, everything above needs an explicit wider
+   search — so it is labelled rather than left as an unmarked midpoint. */
+.disc-popover__tick { color: var(--tp-green, #2d6a4f); font-weight: 600; }
+
 .disc-state {
   grid-column: 1 / -1;
   display: flex;

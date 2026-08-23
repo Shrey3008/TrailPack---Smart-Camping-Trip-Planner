@@ -1,14 +1,17 @@
 {
   // Cloudflare Workers config for TrailPack's frontend.
   //
-  // This is an assets-only Worker: there is no `main` entry-point script,
-  // which Wrangler supports for static sites with no server-side logic.
-  // The frontend is plain HTML/CSS/JS with no build step, so the source
-  // directory is served directly — nothing is compiled into a dist/.
+  // This was an assets-only Worker until the Discover rework needed somewhere
+  // to put the Overpass request. It now has a `main` entry point serving one
+  // route, /api/nearby-trails; every other path is still the static site,
+  // served by the asset server with the same html_handling and 404 behaviour
+  // as before. The frontend remains plain HTML/CSS/JS with no build step, so
+  // the assets directory is still served directly — only src/ is bundled.
   //
   // The backend is separate (Node/Express on Render) and is not deployed
   // by this config; the frontend reaches it over CORS via window.API_URL
-  // in frontend/config.js.
+  // in frontend/config.js. The Worker route is same-origin with the pages
+  // that call it, so it needs no CORS headers of its own.
   "$schema": "node_modules/wrangler/config-schema.json",
 
   // Must match the Worker that Cloudflare's Git integration already created,
@@ -19,8 +22,23 @@
   "name": "trailpack---smart-camping-trip-planner",
   "compatibility_date": "2026-08-03",
 
+  // Bundled by Wrangler's esbuild. src/trails.js is CommonJS so the jest suite
+  // can require the same file the Worker runs — one implementation, not a copy.
+  "main": "src/index.js",
+
   "assets": {
     "directory": "./frontend",
+
+    // Lets the Worker serve assets itself for anything it does not handle.
+    "binding": "ASSETS",
+
+    // Without this, a path is checked against the assets first and the Worker
+    // only runs when nothing matches. That would work today, but it makes the
+    // API route's behaviour depend on the absence of a file — add
+    // frontend/api/nearby-trails and the endpoint silently stops existing.
+    // Naming the prefix keeps the two concerns from being able to collide,
+    // and leaves every other path on exactly the old assets-first path.
+    "run_worker_first": ["/api/*"],
 
     // Both values below are the current Wrangler defaults, set explicitly so
     // the intent survives a future change of default.

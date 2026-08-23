@@ -17,6 +17,7 @@ const path = require('path');
 const vm = require('vm');
 
 const DISCOVER_JS = path.resolve(__dirname, '../../../frontend/discover.js');
+const ANCHORS_JS = path.resolve(__dirname, '../../../frontend/state-anchors.js');
 const FIXTURES = path.join(__dirname, 'fixtures');
 
 function createHarness() {
@@ -44,7 +45,8 @@ function createHarness() {
       getElementById: (id) => el(id),
       querySelectorAll: () => [],
       addEventListener: () => {},
-      createElement: () => el('tmp')
+      createElement: () => ({ value: '', textContent: '', dataset: {} }),
+      createDocumentFragment: () => { const kids = []; return { kids, appendChild: k => kids.push(k) }; }
     },
     window: { addEventListener: () => {}, scrollTo: () => {} },
     setTimeout, clearTimeout,
@@ -58,26 +60,33 @@ function createHarness() {
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
-  const src = fs.readFileSync(DISCOVER_JS, 'utf8') + `
+  // state-anchors.js first: discover.js reads STATE_ANCHORS when a state is
+  // picked and when it builds the dropdown, matching the order dashboard.html
+  // loads the two <script> tags in.
+  const src = fs.readFileSync(ANCHORS_JS, 'utf8') + '\n'
+    + fs.readFileSync(DISCOVER_JS, 'utf8') + `
 ;globalThis.__t = {
   get cache(){ return discoverCache; },       set cache(v){ discoverCache = v; },
   get inFlight(){ return discoverInFlight; }, set inFlight(v){ discoverInFlight = v; },
   get radius(){ return discoverRadiusMi; },   set radius(v){ discoverRadiusMi = v; },
   get userLat(){ return discoverUserLat; },   set userLat(v){ discoverUserLat = v; },
   get userLon(){ return discoverUserLon; },   set userLon(v){ discoverUserLon = v; },
-  FETCH_MI: DISCOVER_FETCH_MI, SHOW_N: DISCOVER_SHOW_N
+  get placeLabel(){ return discoverPlaceLabel; }, set placeLabel(v){ discoverPlaceLabel = v; },
+  TIERS: DISCOVER_TIERS, MAX_MI: DISCOVER_MAX_MI, SHOW_N: DISCOVER_SHOW_N,
+  ANCHORS: STATE_ANCHORS, ANCHORS_VERSION: ANCHORS_VERSION,
+  ACTIONS: DISCOVER_ACTIONS
 };`;
   vm.runInContext(src, sandbox, { filename: 'discover.js' });
 
   const T = sandbox.__t;
   return {
-    S: sandbox, els, T,
+    S: sandbox, els, T, el,
     grid:  () => els.discoverTrailResults ? els.discoverTrailResults.innerHTML : '',
     count: () => els.discoverResCount
       ? els.discoverResCount.textContent + els.discoverResCount.innerHTML : '',
     reset() {
       T.cache = null; T.inFlight = null; T.radius = 25;
-      T.userLat = undefined; T.userLon = undefined;
+      T.userLat = undefined; T.userLon = undefined; T.placeLabel = '';
       Object.keys(els).forEach(k => { els[k].innerHTML = ''; els[k].textContent = ''; });
     }
   };
@@ -91,6 +100,14 @@ function fixture(name) {
   return JSON.parse(fs.readFileSync(path.join(FIXTURES, name + '.overpass.json'), 'utf8'));
 }
 
+/* The *other* kind of fixture: a captured /api/nearby-trails envelope, which is
+   what the browser actually receives now that the Worker parses and trims.
+   Generated from real 100-mile payloads, so the counts in the frontend tests
+   are real OSM data. */
+function fixtureItems(name) {
+  return JSON.parse(fs.readFileSync(path.join(FIXTURES, name + '.items.json'), 'utf8'));
+}
+
 // A resolved fetch Response stand-in.
 const response = (status, body) => ({
   status, ok: status >= 200 && status < 300, text: () => Promise.resolve(body)
@@ -102,4 +119,8 @@ const settle = () => new Promise(r => setTimeout(r, 5));
 const DENVER = [39.7392, -104.9903];
 const SEATTLE = [47.6062, -122.3321];
 
-module.exports = { createHarness, fixture, response, settle, DENVER, SEATTLE, DISCOVER_JS };
+const NYC = [40.7128, -74.0060];
+const LANDER = [42.8330, -108.7307];
+
+module.exports = { createHarness, fixture, fixtureItems, response, settle,
+                   DENVER, SEATTLE, NYC, LANDER, DISCOVER_JS };

@@ -12,32 +12,42 @@
 
 // ===== DISCOVER TRAILS =====
   let discoverMap, discoverUserLat, discoverUserLon, discoverRadiusMi = 25;
+  /* Human name for the current search centre — a city, a state's curated
+ anchor, or "Current Location". Kept separate from the input's value so the
+ count line and the map pin can say where they mean without re-reading and
+ re-stripping the input. */
+  let discoverPlaceLabel = '';
   let discoverDDOpen = false, discoverRPOpen = false;
   let discoverDebT = null;
 
-  /* ---------- Single-query-then-filter ----------
- Discover fetches Overpass exactly once per location, always at the slider's
- maximum radius, and every radius change after that filters the cached set in
- memory. The old code re-queried on every Apply, which cost a multi-megabyte
- round trip per drag and — because Overpass has no distance ordering — handed
- back a *different* arbitrary 30 elements each time, so widening the radius
- swapped the results rather than extending them.
+  /* ---------- Two tiers, fetched once each, filtered locally ----------
+ Discover asks the Worker for trails once per location per tier, and every
+ radius change after that filters the cached set in memory. Overpass itself is
+ never contacted from the browser any more: /api/nearby-trails does that, and
+ returns only the fields rendered here. A 100-mile search around New York is
+ 18.22 MB and 77 s upstream; the trimmed answer is 378 KB gzipped.
 
- DISCOVER_FETCH_MI must stay >= the slider's max (dashboard.html sets max=50).
- Fetching at the max is what makes the cache complete: any radius the slider
- can select is a subset of what we already hold. */
-  const DISCOVER_FETCH_MI = 50;   // radius we always query Overpass at
-  const DISCOVER_SHOW_N   = 12;   // result cards rendered
+ Two tiers rather than one, because the old "always fetch at the slider's
+ maximum" rule stops working when the maximum is 100. It would make every
+ search a 100-mile search — a 40-77 s wait for the user who only wanted ten
+ miles. So 50 stays the default disc, and 51-100 is an explicit expanded
+ search the user asks for. Within each tier the guarantee is unchanged: one
+ request, then free filtering.
+
+ A cached tier serves any radius up to its own size, so once the 100-mile disc
+ is loaded the slider is free across its whole range and never refetches. */
+  const DISCOVER_TIERS    = { BASE: 50, EXPANDED: 100 };
+  const DISCOVER_MAX_MI   = DISCOVER_TIERS.EXPANDED;  // must match the slider's max
+  const DISCOVER_SHOW_N   = 12;                       // result cards rendered
   const DISCOVER_MI_M     = 1609.34;
 
-  /* Cached Overpass payload: { key, lat, lon, items:[{id,type,name,kind,lat,lon}] }.
- Keyed by lat/lon rounded to 2dp (~0.7 mi). A recentre inside one cache cell
- reuses the payload and re-sorts from the caller's exact coordinates, so the
- only cost of the rounding is up to ~0.7 mi of slack at the outer edge of the
- 50-mile disc — invisible at every radius the slider can reach. */
+  /* Cached payload: { key, tier, lat, lon, items }. Keyed by lat/lon rounded
+ to 2dp (~0.7 mi) — the same cell the Worker caches on, so the two layers
+ agree on what "the same place" means. One entry: a second location evicts the
+ first, trading memory for a refetch on the way back. */
   let discoverCache = null;
   let discoverInFlight = null;
-  // Terrain currently selected in the filter pill row ('all' = no filter).
+
   let discoverActiveTerrain = 'all';
   /* Terrain tints for the result-card media panel. These replaced four
  picsum.photos URLs (random stock images, seeded per terrain) that were
@@ -235,7 +245,26 @@ el.innerHTML = list.map((it) => {
 }).join('');
   }
 
+  /* Fills the state <select> from the bundled table. Runs at render time
+ rather than being written into the markup so the 51 rows live in exactly one
+ place — state-anchors.js — and the option labels cannot drift from the
+ coordinates they are meant to describe. */
+  function renderDiscoverStates() {
+const sel = document.getElementById('discoverStateSelect');
+if (!sel || typeof STATE_ANCHORS === 'undefined') return;
+if (sel.options.length > 1) return;                 // already built
+const frag = document.createDocumentFragment();
+STATE_ANCHORS.forEach(a => {
+  const o = document.createElement('option');
+  o.value = a.code;
+  o.textContent = a.name + ' — ' + a.anchor;
+  frag.appendChild(o);
+});
+sel.appendChild(frag);
+  }
+
   function renderDiscoverHome() {
+renderDiscoverStates();
 renderDiscoverRow('discoverRowParks',    DISCOVER_HOME_PARKS);
 renderDiscoverRow('discoverRowForest',   DISCOVER_HOME_FOREST);
 renderDiscoverRow('discoverRowMountain', DISCOVER_HOME_MOUNTAIN);
@@ -326,14 +355,21 @@ document.getElementById('discoverRadiusPopover').hidden = true;
 
   /* Fires on every slider input. Re-rendering straight from the cache is what
  makes the drag feel instant and costs Overpass nothing — the whole point of
- fetching at DISCOVER_FETCH_MI up front. With no cache yet (the slider is
- reachable before the first search) this only moves the labels. */
+ fetching a whole tier up front. With no cache yet (the slider is reachable
+ before the first search) this only moves the labels. */
+  /* Fires on every slider input. Renders straight from whichever tier is
+ already cached, which is what makes the drag instant and costs nothing.
+ Crossing 50 without the expanded tier loaded does NOT fetch — it shows the
+ expanded-search prompt and waits to be asked. */
   function updateDiscoverRadius(v) {
 discoverRadiusMi = parseInt(v);
 document.getElementById('discoverRadiusDisplay').textContent = v + ' miles';
 document.getElementById('discoverRadiusBig').textContent = v + ' miles';
-if (discoverCache && discoverUserLat != null) {
+if (discoverUserLat == null) return;
+if (discoverCacheCovers(discoverUserLat, discoverUserLon, discoverRadiusMi)) {
   discoverRenderFromCache(discoverUserLat, discoverUserLon, discoverRadiusMi);
+} else if (discoverCache) {
+  discoverShowExpandPrompt(discoverRadiusMi);
 }
   }
   /* Apply now only closes the popover: updateDiscoverRadius already rendered
@@ -346,9 +382,36 @@ if (discoverUserLat != null) fetchDiscoverTrails(discoverUserLat, discoverUserLo
 
   function discoverPickCity(name, lat, lon) {
 document.getElementById('discoverLocInput').value = name;
+discoverPlaceLabel = name;
 discoverUserLat = lat; discoverUserLon = lon;
+discoverCache = null;                       // new place, new disc
 closeDiscoverDD();
 fetchDiscoverTrails(lat, lon, discoverRadiusMi);
+  }
+
+  /* Selecting a state resolves entirely against the bundled anchor table in
+ state-anchors.js — no geocoder, no network. The anchor is a real trail-access
+ hub rather than the state's geometric centre, and the label says which one it
+ picked so the search never claims to be somewhere it isn't. */
+  function discoverPickState(code) {
+if (!code) return;
+const list = (typeof STATE_ANCHORS !== 'undefined') ? STATE_ANCHORS : [];
+let a = null;
+for (let i = 0; i < list.length; i++) if (list[i].code === code) { a = list[i]; break; }
+if (!a) return;
+const label = a.anchor + ', ' + a.code;
+const input = document.getElementById('discoverLocInput');
+if (input) input.value = label;
+discoverPlaceLabel = label;
+discoverUserLat = a.lat; discoverUserLon = a.lon;
+discoverCache = null;
+const note = document.getElementById('discoverAnchorNote');
+if (note) {
+  note.textContent = 'Searching from ' + a.anchor + ' — ' + a.name + '\u2019s trail gateway, not its centre.';
+  note.hidden = false;
+}
+closeDiscoverDD();
+fetchDiscoverTrails(a.lat, a.lon, discoverRadiusMi);
   }
 
   function useDiscoverNearby() {
@@ -360,6 +423,8 @@ navigator.geolocation.getCurrentPosition(
     discoverUserLat = pos.coords.latitude;
     discoverUserLon = pos.coords.longitude;
     document.getElementById('discoverLocInput').value = '📍 Current Location';
+    discoverPlaceLabel = 'your location';
+    discoverCache = null;
     fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi);
   },
   () => {
@@ -378,6 +443,8 @@ fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(v) + 
     if (d[0]) {
       discoverUserLat = parseFloat(d[0].lat);
       discoverUserLon = parseFloat(d[0].lon);
+      discoverPlaceLabel = v;
+      discoverCache = null;
       fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi);
     }
   });
@@ -404,119 +471,28 @@ discoverDebT = setTimeout(() => {
 }, 400);
   }
 
-  /* ---------- Overpass query ----------
- Deliberately minimal. Every tag filter added to the path selector was
- measured against the live API and cost 4-6x the runtime for a modest saving
- in bytes: the unfiltered union returns ~6.9 MB in ~11-20 s from Denver, the
- same union with `["bicycle"!="designated"]["foot"!="no"]` took 39.6 s, and
- with surface/access regexes on top, 66 s. Overpass has to scan tags to
- evaluate those; we already have to scan the payload client-side to sort it by
- distance, so the quality gate lives in discoverIsUrbanPath() instead, where
- it is free and can be tuned without a round trip.
+  /* ---------- Talking to the Worker ----------
+ The query building, the quality gate, the OSM parsing and the failure
+ classification all used to live here. They now live in src/trails.js and run
+ in the Worker, which means the browser never sees an Overpass payload and
+ never has to know how Overpass reports a timeout. What stays here is what has
+ to: ranking from the user's exact coordinates, and the view. */
 
- Two things are load-bearing about the `out` line. There is no `>` recursion
- and no `out skel qt`: `>` walks the *whole* matched set rather than the
- printed elements and was pulling 200,220 elements / 18.8 MB at 50 miles to
- render twelve cards. And there is no element limit, because Overpass sorts by
- type-then-id and has no notion of distance — asking it for 30 gives the
- lowest-id 30, not the nearest 30, which is why widening the radius used to
- replace the results with a different arbitrary set. We take the whole disc
- and rank it ourselves.
-
- leisure=park is gone. It was the source of Civic Center Park, 17th Street
- Plaza and Pioneer Monument Park topping a hiking app's "nearest trails". */
-  function discoverQuery(lat, lon, miles) {
-const m = Math.round(miles * DISCOVER_MI_M);
-const at = '(around:' + m + ',' + lat + ',' + lon + ');';
-return '[out:json][timeout:' + discoverTimeoutFor(miles) + '];('
-  + 'relation["route"="hiking"]["name"]' + at
-  + 'way["highway"="path"]["name"]' + at
-  + 'way["leisure"="nature_reserve"]["name"]' + at
-  + 'relation["leisure"="nature_reserve"]["name"]' + at
-  + 'node["tourism"="camp_site"]["name"]' + at
-  + ');out center;';
+  function discoverTierFor(miles) {
+return miles <= DISCOVER_TIERS.BASE ? DISCOVER_TIERS.BASE : DISCOVER_TIERS.EXPANDED;
   }
 
-  /* The old query hardcoded [timeout:25] at every radius, while 50-mile runs
- measured 11-29 s server-side and drifted higher under load — so the widest
- searches were the ones most likely to trip the timeout, and the timeout was
- being reported to the user as "no trails found". Scaling with the radius
- gives the wide searches room. 180 s is Overpass's own default ceiling. */
-  function discoverTimeoutFor(miles) {
-return Math.min(180, Math.max(25, Math.round(miles * 1.8)));
-  }
-
-  /* Two-decimal rounding, ~0.7 mi per cell. See discoverCache. */
+  /* Same 2dp cell the Worker caches on. */
   function discoverCacheKey(lat, lon) {
 return lat.toFixed(2) + ',' + lon.toFixed(2);
   }
 
-  const DISCOVER_PAVED = /^(paved|concrete|asphalt|paving_stones|wood|metal|concrete:plates)$/i;
-
-  /* The urban gate, applied only to highway=path ways — nature reserves,
- campsites and named hiking routes are destinations by definition and pass
- through untouched.
-
- Dropping leisure=park alone was not enough: downtown Denver's nearest
- highway=path ways are Larimer Way, 20th Street Multi-Use Path, Mile High
- Walk and Sports Walk, all of which carry one of the four signals below.
- Bike-park features (Slopestyle XS, Pump track) are caught by foot=no.
-
- The gate is per *segment*, and OSM splits a trail into many ways with
- inconsistent tagging, so a trail survives if any one of its segments does —
- which is why Sloan's Lake Trail still appears despite most of its segments
- being surface=concrete. That forgiveness is intentional: rejecting a whole
- named trail on one badly tagged segment loses real destinations. */
-  function discoverIsUrbanPath(t) {
-if (t.highway !== 'path') return false;
-if (t.surface && DISCOVER_PAVED.test(t.surface)) return true;
-if (t.bicycle === 'designated') return true;
-if (t.foot === 'no') return true;
-if (t.access === 'private' || t.access === 'no') return true;
-return false;
-  }
-
-  function discoverKind(t) {
-if (t.route === 'hiking')            return 'hiking route';
-if (t.leisure === 'nature_reserve')  return 'nature reserve';
-if (t.tourism === 'camp_site')       return 'campsite';
-return 'trail';
-  }
-
-  /* Overpass gives ways and relations a bbox centre under `center` (that is
- what `out center` buys) and nodes a plain lat/lon. */
-  function discoverParse(data) {
-const items = [];
-(data.elements || []).forEach(e => {
-  const t = e.tags || {};
-  if (!t.name || discoverIsUrbanPath(t)) return;
-  const la = e.lat != null ? e.lat : (e.center && e.center.lat);
-  const lo = e.lon != null ? e.lon : (e.center && e.center.lon);
-  if (la == null || lo == null) return;
-  items.push({ id: e.id, type: e.type, name: t.name, kind: discoverKind(t), lat: la, lon: lo });
-});
-return items;
-  }
-
-  /* Nearest-first, then de-duplicated by name keeping the closest instance.
- The dedupe is not cosmetic: OSM models a trail as a chain of separate named
- ways, and 52% of the raw rows around Denver are repeat segments of a trail
- already in the list. */
-  function discoverRank(items, lat, lon, miles) {
-const near = [];
-items.forEach(it => {
-  const d = discoverDistNum(lat, lon, it.lat, it.lon);
-  if (d <= miles) near.push({ item: it, dist: d });
-});
-near.sort((a, b) => a.dist - b.dist);
-const seen = {}, out = [];
-near.forEach(r => {
-  const k = r.item.name.toLowerCase();
-  if (seen[k]) return;
-  seen[k] = 1;
-  out.push(r.item);
-});
-return out;
+  /* A tier answers every radius up to its own size, so the 100-mile disc
+ covers the whole slider and the 50-mile disc covers the bottom half. */
+  function discoverCacheCovers(lat, lon, miles) {
+return !!discoverCache
+  && discoverCache.key === discoverCacheKey(lat, lon)
+  && discoverCache.tier >= discoverTierFor(miles);
   }
 
   /* Marks a failure as a *server* condition rather than an empty region, so
@@ -527,48 +503,69 @@ e.discoverKind = kind;
 return e;
   }
 
-  function discoverFetch(lat, lon) {
-const body = 'data=' + encodeURIComponent(discoverQuery(lat, lon, DISCOVER_FETCH_MI));
-return fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body })
-  .then(r => {
-    // 429 is the rate limiter (overpass-api.de allows 2 slots per IP);
-    // 504 comes back as an HTML page from the dispatcher when the server is
-    // too busy or the query hit a resource ceiling. Neither is JSON.
-    if (r.status === 429) throw discoverErr('busy', 'rate limited');
-    if (!r.ok) throw discoverErr('busy', 'HTTP ' + r.status);
-    return r.text();
-  })
-  .then(txt => {
-    let data;
-    try { data = JSON.parse(txt); }
-    catch (e) { throw discoverErr('busy', 'non-JSON response'); }
-    /* The signature this whole branch exists for: a query that ran out of
-       time or memory returns HTTP 200 with `elements: []` and a `remark`
-       string — byte-for-byte the shape of a genuinely empty area apart from
-       that one field. Verified against the live API. Reading only
-       elements.length is what made the old code report a server timeout as
-       "No trails found within 25 miles" and offer to widen the radius, which
-       makes the next query heavier and more likely to time out again. */
-    if (data.remark) throw discoverErr('timeout', data.remark);
-    return discoverParse(data);
+  /* One call to our own origin. The Worker answers with a typed envelope, so
+ there is exactly one thing to read — `status` — instead of the four separate
+ Overpass failure shapes the browser used to unpick. `empty` is a real answer
+ about the world; `timeout` and `busy` are statements about the service and
+ must never be shown as "no trails here". */
+  function discoverFetch(lat, lon, tier) {
+const url = '/api/nearby-trails?lat=' + encodeURIComponent(lat)
+  + '&lon=' + encodeURIComponent(lon) + '&tier=' + encodeURIComponent(tier);
+return fetch(url, { headers: { accept: 'application/json' } })
+  .then(res => res.text().then(text => {
+    let body = null;
+    try { body = JSON.parse(text); } catch (e) { body = null; }
+    if (body && body.status === 'timeout') throw discoverErr('timeout', body.reason);
+    if (body && body.status === 'busy')    throw discoverErr('busy', body.reason);
+    if (!res.ok || !body) throw discoverErr('busy', 'trail service returned ' + res.status);
+    return body;
+  }))
+  .catch(err => {
+    if (err && err.discoverKind) throw err;
+    throw discoverErr('network', err && err.message);
   });
   }
 
-  /* Cache-or-fetch. Resolves with the full 50-mile item list for this cell. */
-  function discoverEnsureData(lat, lon) {
+  /* Cache-or-fetch for one location at one tier. */
+  function discoverEnsureData(lat, lon, tier) {
 const key = discoverCacheKey(lat, lon);
-if (discoverCache && discoverCache.key === key) return Promise.resolve(discoverCache.items);
-if (discoverInFlight && discoverInFlight.key === key) return discoverInFlight.promise;
-const promise = discoverFetch(lat, lon).then(items => {
-  discoverCache = { key: key, lat: lat, lon: lon, items: items };
+if (discoverCache && discoverCache.key === key && discoverCache.tier >= tier) {
+  return Promise.resolve(discoverCache.items);
+}
+const flightKey = key + '/' + tier;
+if (discoverInFlight && discoverInFlight.key === flightKey) return discoverInFlight.promise;
+
+const promise = discoverFetch(lat, lon, tier).then(body => {
+  const items = body.items || [];
+  // A wider tier supersedes a narrower one for the same place.
+  if (!discoverCache || discoverCache.key !== key || tier >= discoverCache.tier) {
+    discoverCache = { key: key, tier: tier, lat: lat, lon: lon, items: items };
+  }
   discoverInFlight = null;
   return items;
 }).catch(err => {
   discoverInFlight = null;
   throw err;
 });
-discoverInFlight = { key: key, promise: promise };
+discoverInFlight = { key: flightKey, promise: promise };
 return promise;
+  }
+
+  /* Nearest-first within the radius, measured from the caller's exact
+ coordinates rather than the rounded cache cell. The Worker already collapsed
+ OSM's segment chains — one trail is modelled as many named ways sharing a
+ name — so there is nothing left to de-duplicate here; sorting a deduped set
+ and cutting it at a radius is what makes each radius a prefix-extension of
+ the one below it. */
+  function discoverRank(items, lat, lon, miles) {
+const near = [];
+for (let i = 0; i < items.length; i++) {
+  const it = items[i];
+  const d = discoverDistNum(lat, lon, it.lat, it.lon);
+  if (d <= miles) near.push({ item: it, dist: d });
+}
+near.sort(function (a, b) { return a.dist - b.dist; });
+return near.map(function (r) { return r.item; });
   }
 
   /* Reveal the results view. Runs once per search, not per radius change. */
@@ -611,10 +608,10 @@ if (discoverMap) setTimeout(() => discoverMap.invalidateSize(), 0);
  Called on every radius change too, so the ring tracks the slider. */
   function discoverPositionMap(lat, lon, miles) {
 if (!discoverMap) return;
-discoverMap.setView([lat, lon], miles > 35 ? 9 : miles > 20 ? 10 : 11);
+discoverMap.setView([lat, lon], miles > 70 ? 8 : miles > 35 ? 9 : miles > 20 ? 10 : 11);
 discoverMap.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Circle) discoverMap.removeLayer(l); });
 const uIcon = L.divIcon({ html: '<div style="background:#2d6a4f;color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)">YOU</div>', className: '', iconSize: [30,30], iconAnchor: [15,15] });
-L.marker([lat, lon], { icon: uIcon }).addTo(discoverMap).bindPopup('<b>Your Location</b>');
+L.marker([lat, lon], { icon: uIcon }).addTo(discoverMap).bindPopup('<b>' + (discoverPlaceLabel || 'Your Location') + '</b>');
 L.circle([lat, lon], { radius: miles * DISCOVER_MI_M, color: '#2d6a4f', fillColor: '#2d6a4f', fillOpacity: 0.05, weight: 1.5, dashArray: '6,4' }).addTo(discoverMap);
   }
 
@@ -628,46 +625,74 @@ renderDiscoverCards(shown, lat, lon);
 renderDiscoverPins(shown, lat, lon);
 applyDiscoverPillFilter();
 
-const locEl = document.getElementById('discoverLocInput');
-const loc   = locEl ? locEl.value.replace('📍 ', '') : '';
 const count = document.getElementById('discoverResCount');
 if (!count) return;
+const where = discoverPlaceLabel || 'your location';
 if (!ranked.length) {
-  count.textContent = 'No trails within ' + miles + ' miles of ' + loc;
+  count.textContent = 'No trails within ' + miles + ' miles of ' + where;
   return;
 }
 // ranked.length is the honest total for the radius; the grid shows the
 // nearest DISCOVER_SHOW_N of them.
 count.innerHTML = '<strong style="color:#111;">' + ranked.length + ' trail'
   + (ranked.length === 1 ? '' : 's') + '</strong> within <strong style="color:#111;">'
-  + miles + ' miles</strong> of ' + loc
+  + miles + ' miles</strong> of ' + discAttr(where)
   + (ranked.length > shown.length ? ' · showing nearest ' + shown.length : '');
   }
 
-  /* Entry point for every search. Fetches at most once per location cell;
- a radius change on an already-loaded location never reaches here. */
-  function fetchDiscoverTrails(lat, lon, miles, opts) {
-const key = discoverCacheKey(lat, lon);
-const force = !!(opts && opts.force);
-if (force && discoverCache && discoverCache.key === key) discoverCache = null;
-const cached = !!(discoverCache && discoverCache.key === key);
+  /* Shown when the slider passes 50 and the wider disc has not been fetched.
+ Deliberately a prompt and not a fetch: the expanded search is 13-18 MB and
+ 40-77 s upstream on a cold cache, which is not something to start because a
+ thumb moved. */
+  function discoverShowExpandPrompt(miles) {
+const grid = document.getElementById('discoverTrailResults');
+if (grid) {
+  grid.innerHTML = '<div class="disc-state">'
+    + '<div class="disc-state__icon">🧭</div>'
+    + '<h3 class="disc-state__title">Search further out?</h3>'
+    + '<p class="disc-state__body">Results so far cover ' + DISCOVER_TIERS.BASE
+    + ' miles. Going to ' + miles + ' searches a wider area — it can take up to a minute the first time.</p>'
+    + '<button class="disc-state__action" data-disc-act="expand-search">Search up to '
+    + DISCOVER_MAX_MI + ' miles</button></div>';
+}
+const count = document.getElementById('discoverResCount');
+if (count) count.textContent = 'Showing trails within ' + DISCOVER_TIERS.BASE
+  + ' miles — expand to reach ' + miles;
+discoverPositionMap(discoverUserLat, discoverUserLon, miles);
+  }
 
-discoverShowResultsView(!cached);
-discoverPositionMap(lat, lon, miles);
-if (cached) { discoverRenderFromCache(lat, lon, miles); return; }
+  /* The explicit opt-in. Only this and a fresh search may start a request. */
+  function discoverExpandSearch() {
+if (discoverUserLat == null) return;
+discoverLoadTier(discoverUserLat, discoverUserLon, discoverRadiusMi, DISCOVER_TIERS.EXPANDED, false);
+  }
 
+  function discoverLoadingHTML(tier) {
+return tier === DISCOVER_TIERS.EXPANDED
+  ? 'Searching up to ' + DISCOVER_MAX_MI + ' miles — this can take up to a minute…'
+  : 'Searching…';
+  }
+
+  /* Shared miss path for both tiers. */
+  function discoverLoadTier(lat, lon, miles, tier, resetPills) {
 showDiscoverSkeletons();
 const count = document.getElementById('discoverResCount');
-if (count) count.textContent = 'Searching…';
+if (count) count.textContent = discoverLoadingHTML(tier);
+const key = discoverCacheKey(lat, lon);
 
-discoverEnsureData(lat, lon)
+discoverEnsureData(lat, lon, tier)
   .then(() => {
-    // Guard against a slow response for a location the user has since
-    // moved away from.
+    // Guard against a slow response for a location the user has left.
     if (!discoverCache || discoverCache.key !== key) return;
-    discoverRenderFromCache(discoverUserLat != null ? discoverUserLat : lat,
-                            discoverUserLon != null ? discoverUserLon : lon,
-                            discoverRadiusMi);
+    const atLat = discoverUserLat != null ? discoverUserLat : lat;
+    const atLon = discoverUserLon != null ? discoverUserLon : lon;
+    // The slider may have moved past this tier while the request was in
+    // flight. Ask rather than chaining straight into a second, slower query.
+    if (discoverCacheCovers(atLat, atLon, discoverRadiusMi)) {
+      discoverRenderFromCache(atLat, atLon, discoverRadiusMi);
+    } else {
+      discoverShowExpandPrompt(discoverRadiusMi);
+    }
   })
   .catch(err => {
     const kind = err && err.discoverKind ? err.discoverKind : 'network';
@@ -675,6 +700,32 @@ discoverEnsureData(lat, lon)
     if (grid) grid.innerHTML = discoverErrorHTML(kind);
     if (count) count.textContent = DISCOVER_ERR_COUNT[kind] || DISCOVER_ERR_COUNT.network;
   });
+  }
+
+  /* Entry point for every search. Never fetches the expanded tier on its own —
+ a fresh search always starts from the base disc, and going wider is the
+ user's call. */
+  function fetchDiscoverTrails(lat, lon, miles, opts) {
+const key = discoverCacheKey(lat, lon);
+const force = !!(opts && opts.force);
+if (force && discoverCache && discoverCache.key === key) discoverCache = null;
+const covered = discoverCacheCovers(lat, lon, miles);
+
+discoverShowResultsView(!covered);
+discoverPositionMap(lat, lon, miles);
+
+if (covered) { discoverRenderFromCache(lat, lon, miles); return; }
+// Slider is already past the base tier and we have base data for this spot:
+// ask before spending a minute on the wider disc.
+if (discoverCache && discoverCache.key === key
+    && discoverTierFor(miles) > discoverCache.tier) {
+  discoverShowExpandPrompt(miles);
+  return;
+}
+// Always start from the base disc, whatever the slider says. If it is set
+// beyond 50 the prompt appears when this lands, from the one decision point
+// in discoverLoadTier's success path.
+discoverLoadTier(lat, lon, miles, DISCOVER_TIERS.BASE, true);
   }
 
   function discoverTerrain(name) {
@@ -750,7 +801,11 @@ trails.forEach(t => {
   function discoverEmptyHTML(m) {
 // Same shape as .empty-state on the trips grid — big glyph, Inter heading,
 // muted body, pill action — so the two empty states in the app match.
-const wider = Math.min(m + 10, DISCOVER_FETCH_MI);
+// Only offer to widen as far as the cached tier already reaches. Beyond
+// that the honest control is the expanded-search prompt, which says what it
+// will cost, not a button that quietly starts a minute-long query.
+const reach = discoverCache ? discoverCache.tier : DISCOVER_TIERS.BASE;
+const wider = Math.min(m + 10, reach);
 return '<div class="disc-state">'
   + '<div class="disc-state__icon">🌿</div>'
   + '<h3 class="disc-state__title">No trails found within ' + m + ' miles</h3>'
@@ -792,12 +847,17 @@ return '<div class="disc-state">'
  so a retry after a failure genuinely re-queries. */
   function discoverRetry() {
 if (discoverUserLat == null) return;
-fetchDiscoverTrails(discoverUserLat, discoverUserLon, discoverRadiusMi, { force: true });
+// Retry the tier that failed, not the base one — a user who asked for 100
+// miles and hit a busy service should not be silently downgraded to 50.
+const tier = discoverTierFor(discoverRadiusMi);
+discoverCache = null;
+discoverLoadTier(discoverUserLat, discoverUserLon, discoverRadiusMi, tier, false);
   }
 
   /* Widening now re-filters the cached 50-mile payload. No network. */
   function discoverExpandRadius() {
-discoverRadiusMi = Math.min(discoverRadiusMi + 10, DISCOVER_FETCH_MI);
+const reach = discoverCache ? discoverCache.tier : DISCOVER_TIERS.BASE;
+discoverRadiusMi = Math.min(discoverRadiusMi + 10, reach);
 const slider = document.getElementById('discoverRadiusSlider');
 if (slider) slider.value = discoverRadiusMi;
 updateDiscoverRadius(discoverRadiusMi);
@@ -842,6 +902,7 @@ document.getElementById('discoverTrailResults').innerHTML = Array(6).fill(0).map
 'pill':          (el)    => setDiscoverPill(el),
 'home':          ()      => discoverHomeShow(),
 'expand':        ()      => discoverExpandRadius(),
+'expand-search': ()      => discoverExpandSearch(),
 'retry':         ()      => discoverRetry(),
 'pick-city':     (el)    => discoverPickCity(el.dataset.name, parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)),
 'zoom':          (el)    => discoverZoom(parseFloat(el.dataset.lat), parseFloat(el.dataset.lon)),

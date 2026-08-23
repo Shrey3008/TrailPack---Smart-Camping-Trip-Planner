@@ -291,6 +291,26 @@
               <div class="disc-dd-sub">Use your current location</div>
             </div>
           </div>
+          <!-- Search near a place vs. browse a state are different jobs, so
+               the state control is its own labelled row rather than another
+               entry in the destination list. Selecting one sets a curated
+               trail-access anchor from state-anchors.js; no geocoder is
+               contacted, which is also what keeps this clear of the Nominatim
+               policy against client-side autocomplete. -->
+          <div class="disc-dd-heading">Search near a state</div>
+          <div class="disc-dd-row disc-dd-row--state">
+            <div class="disc-dd-icon">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg>
+            </div>
+            <div class="disc-dd-state-field">
+              <label class="disc-dd-state-label" for="discoverStateSelect">U.S. state</label>
+              <select id="discoverStateSelect" class="disc-dd-state-select"
+                      onchange="discoverPickState(this.value)" aria-describedby="discoverAnchorNote">
+                <option value="">Choose a state…</option>
+              </select>
+            </div>
+          </div>
+          <p id="discoverAnchorNote" class="disc-anchor-note" hidden></p>
           <div class="disc-dd-heading">Popular destinations</div>
           <div id="discoverCityList">
             <div class="disc-dd-row" data-disc-act="pick-city" data-name="Chicago, Illinois" data-lat="41.8781" data-lon="-87.6298"><div class="disc-dd-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="disc-dd-title">Chicago, Illinois</div><div class="disc-dd-sub">United States</div></div></div>
@@ -305,8 +325,11 @@
         <div id="discoverRadiusPopover" class="disc-popover" hidden>
           <div class="disc-popover__title">Search Radius</div>
           <div id="discoverRadiusBig" class="disc-popover__value">25 miles</div>
-          <input type="range" id="discoverRadiusSlider" class="disc-popover__slider" min="1" max="50" value="25" oninput="updateDiscoverRadius(this.value)">
-          <div class="disc-popover__scale"><span>1 mi</span><span>50 mi</span></div>
+          <input type="range" id="discoverRadiusSlider" class="disc-popover__slider" min="1" max="100" value="25" oninput="updateDiscoverRadius(this.value)">
+          <!-- 50 is marked because it is a real boundary, not decoration:
+               everything up to it is already cached and free, and past it the
+               search has to go wider and is asked for explicitly. -->
+          <div class="disc-popover__scale"><span>1 mi</span><span class="disc-popover__tick">50 · cached</span><span>100 mi</span></div>
           <button class="disc-popover__apply" data-disc-act="radius-apply">Apply</button>
         </div>
       </div>
@@ -700,6 +723,7 @@
 
   <!-- Discover Trails behaviour; see discover.js. Must load after Leaflet
        (calls L.map) and after dashboard-light.js (calls openPlanTripModal). -->
+  <script src="state-anchors.js"></script>
   <script src="discover.js"></script>
 </body>
 </html>
