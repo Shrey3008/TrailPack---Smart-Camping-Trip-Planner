@@ -134,7 +134,9 @@ function createHandler(options) {
     return work;
   }
 
-  async function handle(request, ctx) {
+  /* Everything below runs inside handle()'s boundary. Kept separate so the
+     boundary itself has nothing in it that can throw. */
+  async function route(request, ctx) {
     if (request.method !== 'GET') {
       return jsonResponse(405, { status: 'error', error: 'method not allowed' }, { allow: 'GET' });
     }
@@ -151,9 +153,17 @@ function createHandler(options) {
     const cacheKey = trails.cacheKeyFor(lat, lon, tier);
 
     if (cacheStore) {
-      const hit = await cacheStore.match(cacheRequestFor(cacheKey));
-      if (hit) {
-        const payload = await hit.json();
+      // A stored entry can be unreadable — a truncated write, an eviction
+      // mid-read, a schema that predates a rename. That is a cache miss, not a
+      // failure: fall through and fetch rather than failing a request over it.
+      let payload = null;
+      try {
+        const hit = await cacheStore.match(cacheRequestFor(cacheKey));
+        if (hit) payload = await hit.json();
+      } catch (e) {
+        payload = null;
+      }
+      if (payload) {
         const ageSec = Math.max(0, Math.round((Date.now() - (payload.storedAt || 0)) / 1000));
         // Stale but usable: answer now, refresh behind the response.
         if (ageSec > SOFT_TTL && ctx && typeof ctx.waitUntil === 'function') {
@@ -185,6 +195,22 @@ function createHandler(options) {
       age: 0,
       items: result.items
     });
+  }
+
+  /* The exception boundary. Without it an unhandled throw leaves the Worker
+     runtime to answer, which it does with a plain-text 500 carrying a stack
+     trace — verified locally against workerd. That is the wrong content type
+     for a JSON route, it tells the caller nothing it can act on, and it leaks
+     internals. Every reply from this route is a typed envelope, including the
+     one that means "we broke". */
+  async function handle(request, ctx) {
+    try {
+      return await route(request, ctx);
+    } catch (e) {
+      // Reaches `wrangler tail`, never the client.
+      console.error('nearby-trails failed', e && e.stack ? e.stack : e);
+      return jsonResponse(500, { status: 'error', error: 'trail search failed' });
+    }
   }
 
   return { handle: handle, cacheRequestFor: cacheRequestFor };

@@ -204,6 +204,83 @@ describe('nearby-trails — failures stay failures', () => {
   });
 });
 
+describe('nearby-trails — nothing escapes as an untyped error', () => {
+  // Verified against workerd: an unhandled throw is answered by the runtime
+  // with a plain-text 500 carrying a stack trace. Wrong content type for a
+  // JSON route, useless to the caller, and it leaks internals.
+  const silence = () => jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  test('a throwing cache store still yields a typed envelope', async () => {
+    const spy = silence();
+    const handler = createHandler({
+      fetch: async () => new Response(EMPTY_BODY, { status: 200 }),
+      caches: { async match() { throw new Error('cache backend exploded'); }, async put() {} }
+    });
+    const res = await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    // An unreadable cache is a miss, so this succeeds rather than erroring.
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toMatch(/application\/json/);
+    spy.mockRestore();
+  });
+
+  test('a corrupt cached entry reads as a miss and refetches', async () => {
+    const up = makeUpstream(() => ok(EMPTY_BODY));
+    const handler = createHandler({
+      fetch: up.fetchImpl,
+      caches: {
+        async match() { return new Response('{"items": [trunc', { headers: { 'content-type': 'application/json' } }); },
+        async put() {}
+      }
+    });
+    const res = await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe('empty');
+    expect(up.calls).toHaveLength(1);
+  });
+
+  test('an unexpected internal failure is a typed 500, not a stack trace', async () => {
+    const spy = silence();
+    const handler = createHandler({
+      fetch: async () => new Response(EMPTY_BODY, { status: 200 }),
+      caches: {
+        // Throws on the write path, after the miss is already committed to.
+        async match() { return undefined; },
+        async put() { throw new Error('quota exceeded'); }
+      }
+    });
+    const res = await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    expect(res.status).toBe(500);
+    expect(res.headers.get('content-type')).toMatch(/application\/json/);
+    const body = await res.json();
+    expect(body).toEqual({ status: 'error', error: 'trail search failed' });
+    spy.mockRestore();
+  });
+
+  test('the error body carries no internals', async () => {
+    const spy = silence();
+    const handler = createHandler({
+      fetch: async () => { throw Object.assign(new Error('/Users/someone/secret/path.js exploded'), { stack: 'at /Users/someone/secret' }); },
+      caches: { async match() { return undefined; }, async put() { throw new Error('boom at /Users/someone/secret'); } }
+    });
+    const res = await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    const text = await res.text();
+    expect(text).not.toMatch(/Users|stack|at \//);
+    expect(text).not.toMatch(/exploded/);
+    spy.mockRestore();
+  });
+
+  test('the failure is logged where operators can see it, not sent to the client', async () => {
+    const spy = silence();
+    const handler = createHandler({
+      fetch: async () => new Response(EMPTY_BODY, { status: 200 }),
+      caches: { async match() { return undefined; }, async put() { throw new Error('quota exceeded'); } }
+    });
+    await handler.handle(req({ lat: '39.74', lon: '-104.99', tier: '50' }));
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
 describe('nearby-trails — caching', () => {
   test('a repeat request for the same cell is served from cache', async () => {
     const s = setup(() => ok(JSON.stringify(fixture('denver'))));

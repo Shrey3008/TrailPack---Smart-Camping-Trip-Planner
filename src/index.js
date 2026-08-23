@@ -28,7 +28,20 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/api/nearby-trails') {
-      return api.handle(request, ctx);
+      // Second boundary. handle() already catches its own work; this covers
+      // anything that could go wrong reaching it, so the route cannot fall
+      // through to the runtime's plain-text 500 with a stack trace on it.
+      // Scoped to the API path on purpose — asset serving keeps the exact
+      // behaviour it has today, including its own error handling.
+      try {
+        return await api.handle(request, ctx);
+      } catch (e) {
+        console.error('nearby-trails boundary', e && e.stack ? e.stack : e);
+        return new Response(JSON.stringify({ status: 'error', error: 'trail search failed' }), {
+          status: 500,
+          headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
+        });
+      }
     }
     // Everything else is the static site, exactly as before.
     return env.ASSETS.fetch(request);
