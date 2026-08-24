@@ -295,10 +295,15 @@
   margin-top: 8px;
 }
 
-/* Feature tiles row — like Hipcamp's "New ways to find yourself outside". */
+/* Feature tiles row — like Hipcamp's "New ways to find yourself outside".
+   Three tracks for the three tiles the section actually holds. It asked for
+   four, which left the fourth track empty and ~272px of dead space to the
+   right of the last tile at every width the rule applied to. Same reasoning
+   .disc-quick-tiles states for its five: the track count follows the tile
+   count, and the 2-column breakpoint below already handles the odd one. */
 .disc-feat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-gap, 16px);
 }
 .disc-feat-tile {
