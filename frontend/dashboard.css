@@ -233,6 +233,10 @@
   width: 100%; aspect-ratio: 4/3;
   background-size: cover; background-position: center;
   background-color: #e5e7eb;
+  /* The photo variant is now an <img> (so it can lazy-load); object-fit
+     reproduces the crop that background-size: cover used to give it.
+     Both properties are inert on the --tint variant, still a <div>. */
+  display: block; object-fit: cover;
 }
 /* Fallback panel for a destination with no photo in discover-photos.js —
    same idea as .disc-result__media, a category swatch that claims nothing. */

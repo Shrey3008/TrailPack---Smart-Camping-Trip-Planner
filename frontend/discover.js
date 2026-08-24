@@ -197,9 +197,13 @@ const query = item.name + (item.region ? ', ' + item.region : '');
 // No photo → terrain tint panel, matching the result cards' media panel.
 let media;
 if (photo) {
-  media = '<div class="disc-card-photo" style="background-image:url(\''
-        + discAttr(photo.src) + '\')" role="img" aria-label="'
-        + discAttr(item.name) + '"></div>';
+  // An <img> rather than a background-image: these carousels sit well below
+  // the fold, and only an <img> can carry loading="lazy". As a background the
+  // browser fetched all of them during layout, whatever the user scrolled to.
+  // alt carries the same accessible name the old role="img" + aria-label did.
+  media = '<img class="disc-card-photo" src="' + discAttr(photo.src) + '"'
+        + ' loading="lazy" decoding="async"'
+        + ' alt="' + discAttr(item.name) + '">';
 } else {
   const tint = DISCOVER_TERRAIN_TINT[item.terrain] || DISCOVER_TERRAIN_TINT.forest;
   media = '<div class="disc-card-photo disc-card-photo--tint" style="background:'
