@@ -96,28 +96,51 @@
     // people on the trail. Slot 1 is an Unsplash forest-group shot;
     // slots 2-5 are user-supplied photos hosted locally under
     // frontend/assets/hero/. All five share a similar warm-natural
-    // grade so the rotation feels like one branded collection. Drop
-    // replacement art at the same paths and the rotator picks it up
-    // with no code change.
+    // grade so the rotation feels like one branded collection.
+    //
+    // The local four ship as WebP at two widths. The hero is a full-bleed
+    // band (280px tall, 240/220 at the 1024/640 breakpoints) with
+    // background-size: cover, so width is the only dimension that binds —
+    // hence 1920 for desktop and 1280, which still covers a high-DPR phone.
+    // The pre-resize JPEGs live outside the deployed tree, in
+    // assets-source/hero/; regenerate the variants from those.
+    //
+    // WebP-only is deliberate: every browser that can run this file's
+    // syntax has decoded WebP since 2020 (Safari 14, Chrome 32, Firefox 65).
     const HERO_PHOTOS = [
-      // 1. Forest hiking group — friends on a forest path (Holly Mandarich)
-      'https://images.unsplash.com/photo-1551632811-561732d1e306?w=1600&q=80&auto=format&fit=crop',
+      // 1. Forest hiking group — friends on a forest path (Holly Mandarich).
+      //    Remote, and Unsplash's `auto=format` already negotiates WebP.
+      { remote: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=1600&q=80&auto=format&fit=crop' },
       // 2. Sunset silhouettes — group on a hillside at golden hour
-      'assets/hero/hero-2.jpg',
+      { base: 'assets/hero/hero-2' },
       // 3. Alpine valley trail — group hiking above an alpine lake
-      'assets/hero/hero-3.jpg',
+      { base: 'assets/hero/hero-3' },
       // 4. Emerald lake hikers — three hikers on a path beside a turquoise lake
-      'assets/hero/hero-4.jpg',
+      { base: 'assets/hero/hero-4' },
       // 5. Red-rock canyon hiker — hiker stepping up sandstone in a desert canyon
-      'assets/hero/hero-5.jpg',
+      { base: 'assets/hero/hero-5' },
     ];
     const HERO_INTERVAL_MS = 5000;
     const HERO_FADE_MS     = 700;
 
-    // Fire-and-forget preload so each crossfade swaps to an already-cached
-    // image and never reveals a blank layer mid-transition.
-    function preloadHeroPhotos() {
-      HERO_PHOTOS.forEach((src) => { const img = new Image(); img.src = src; });
+    // Resolved once: the rotation is a fixed-height band, so a mid-session
+    // resize never needs a different variant badly enough to justify
+    // re-fetching an image the browser has already cached.
+    const HERO_VARIANT_W =
+      (window.innerWidth || 1280) * (window.devicePixelRatio || 1) > 1280 ? 1920 : 1280;
+
+    function heroUrl(photo) {
+      return photo.remote || (photo.base + '-' + HERO_VARIANT_W + '.webp');
+    }
+
+    // Warm exactly one image — the one the next tick will show. The previous
+    // version preloaded all five up front, which pulled ~2.9 MB of JPEG on
+    // every dashboard load to serve a crossfade that starts 5 seconds later.
+    // Fetching one interval ahead keeps the swap seamless for the same reason
+    // the blanket preload did, without the initial-load cost.
+    function preloadHeroPhoto(idx) {
+      const img = new Image();
+      img.src = heroUrl(HERO_PHOTOS[idx]);
     }
 
     // Idempotent rotator. Both index.html and my-trips.html call
@@ -157,10 +180,10 @@
       let activeIdx = 0;     // index into HERO_PHOTOS currently shown
       let activeLayer = layerA;
       let inactiveLayer = layerB;
-      activeLayer.style.backgroundImage = "url('" + HERO_PHOTOS[activeIdx] + "')";
+      activeLayer.style.backgroundImage = "url('" + heroUrl(HERO_PHOTOS[activeIdx]) + "')";
       activeLayer.classList.add('is-visible');
 
-      preloadHeroPhotos();
+      preloadHeroPhoto((activeIdx + 1) % HERO_PHOTOS.length);
 
       // Clear any leftover interval from a previous init on the same window.
       if (window.__tpHeroIntervalId) {
@@ -174,7 +197,9 @@
         // animation frame flip opacity so the transition actually runs
         // (without the rAF the browser may batch image-set + class-add
         // and skip the fade).
-        inactiveLayer.style.backgroundImage = "url('" + HERO_PHOTOS[nextIdx] + "')";
+        inactiveLayer.style.backgroundImage = "url('" + heroUrl(HERO_PHOTOS[nextIdx]) + "')";
+        // Warm the one after this so its crossfade is just as seamless.
+        preloadHeroPhoto((nextIdx + 1) % HERO_PHOTOS.length);
         requestAnimationFrame(() => {
           inactiveLayer.classList.add('is-visible');
           activeLayer.classList.remove('is-visible');
