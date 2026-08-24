@@ -840,84 +840,6 @@
     // plus "X of Y items packed". No other files touched.
     const itemCache = new Map(); // tripId -> { total, packed }
 
-    const DISCOVER_PHOTO_POOL = {
-      forest: [
-        'https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=80',
-        'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=600&q=80',
-        'https://images.unsplash.com/photo-1511497584788-876760111969?w=600&q=80',
-        'https://images.unsplash.com/photo-1473773508845-188df298d2d1?w=600&q=80',
-        'https://images.unsplash.com/photo-1425913397330-cf8af2ff40a1?w=600&q=80',
-        'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=600&q=80',
-        'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=600&q=80',
-        'https://images.unsplash.com/photo-1467173572719-f14b9fb86e5f?w=600&q=80',
-        'https://images.unsplash.com/photo-1476231682828-37e571bc172f?w=600&q=80',
-        'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=600&q=80',
-        'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=600&q=80',
-        'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=600&q=80',
-        'https://images.unsplash.com/photo-1440342359743-84fcb8c21f21?w=600&q=80',
-        'https://images.unsplash.com/photo-1446329813274-7c9036bd9a1f?w=600&q=80',
-        'https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=600&q=80'
-      ],
-      mountain: [
-        'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&q=80',
-        'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=600&q=80',
-        'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80',
-        'https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=600&q=80',
-        'https://images.unsplash.com/photo-1483728642387-6c3bdd6c93e5?w=600&q=80',
-        'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=600&q=80',
-        'https://images.unsplash.com/photo-1522163182402-834f871fd851?w=600&q=80',
-        'https://images.unsplash.com/photo-1491555103944-7c647fd857e6?w=600&q=80',
-        'https://images.unsplash.com/photo-1544198365-f5d60b6d8190?w=600&q=80',
-        'https://images.unsplash.com/photo-1439853949212-36589f9a3aac?w=600&q=80',
-        'https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=600&q=80',
-        'https://images.unsplash.com/photo-1520637836862-4d197d17c93a?w=600&q=80',
-        'https://images.unsplash.com/photo-1458442310124-dde6edb43d10?w=600&q=80',
-        'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600&q=80'
-      ],
-      beach: [
-        'https://images.unsplash.com/photo-1505228395891-9a51e7e86bf6?w=600&q=80',
-        'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=600&q=80',
-        'https://images.unsplash.com/photo-1473116763249-2faaef81ccda?w=600&q=80',
-        'https://images.unsplash.com/photo-1520942702018-0862200e6873?w=600&q=80',
-        'https://images.unsplash.com/photo-1471922694854-ff1b63b20054?w=600&q=80',
-        'https://images.unsplash.com/photo-1509233725247-49e657c54213?w=600&q=80',
-        'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=600&q=80'
-      ],
-      lake: [
-        'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&q=80',
-        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80',
-        'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&q=80',
-        'https://images.unsplash.com/photo-1455763916899-e8b50eca9967?w=600&q=80',
-        'https://images.unsplash.com/photo-1475688621402-4257606b5f44?w=600&q=80',
-        'https://images.unsplash.com/photo-1416169607655-0c2b3ce2e1cc?w=600&q=80',
-        'https://images.unsplash.com/photo-1532274402911-5a369e4c4bb5?w=600&q=80',
-        'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=600&q=80',
-        'https://images.unsplash.com/photo-1519904981063-b0cf448d479e?w=600&q=80',
-        'https://images.unsplash.com/photo-1464278533981-50106e6176b1?w=600&q=80',
-        'https://images.unsplash.com/photo-1485470733090-0aae1788d5af?w=600&q=80',
-        'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80',
-        'https://images.unsplash.com/photo-1510797215324-95aa89f43c33?w=600&q=80',
-        'https://images.unsplash.com/photo-1549880338-65ddcdfd017b?w=600&q=80',
-        'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=600&q=80'
-      ],
-      desert: [
-        'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=600&q=80',
-        'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&q=80',
-        'https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=600&q=80',
-        'https://images.unsplash.com/photo-1511884642898-4c92249e20b6?w=600&q=80',
-        'https://images.unsplash.com/photo-1473473433806-a27a84e5a9d8?w=600&q=80',
-        'https://images.unsplash.com/photo-1518457900804-7c1965b31ce8?w=600&q=80',
-        'https://images.unsplash.com/photo-1528702748617-c64d49f918af?w=600&q=80',
-        'https://images.unsplash.com/photo-1473580044384-7ba9967e16a0?w=600&q=80',
-        'https://images.unsplash.com/photo-1504701954957-2010ec3bcec1?w=600&q=80',
-        'https://images.unsplash.com/photo-1455156218388-5e61b526818b?w=600&q=80',
-        'https://images.unsplash.com/photo-1682686580452-37f1892ee5e8?w=600&q=80',
-        'https://images.unsplash.com/photo-1445262102387-5fbb30a5e59d?w=600&q=80',
-        'https://images.unsplash.com/photo-1518021964703-4b2030f03085?w=600&q=80',
-        'https://images.unsplash.com/photo-1504198453048-49b667b8e8b7?w=600&q=80'
-      ]
-    };
-
     async function fetchItemStats(tripId) {
       if (itemCache.has(tripId)) return itemCache.get(tripId);
       try {
@@ -945,19 +867,21 @@
       // (legacy) first-badge color hook.
       if (terrain) card.setAttribute('data-terrain', terrain.toLowerCase());
 
-      // Hipcamp-style full-bleed terrain photo as the very first child.
-      // URL comes from DISCOVER_PHOTO_POOL[trip.terrain][trip.photoIndex || 0]
-      // (photoIndex is rendered by app.js onto the card as data-photo-index).
-      // CSS [data-terrain] rules remain as a fallback for legacy cards.
+      // Full-bleed terrain photo as the very first child. The photo itself
+      // comes from the [data-terrain] rules in theme.css, which is why this
+      // sets the attribute and no URL.
+      //
+      // It used to pick a URL from DISCOVER_PHOTO_POOL by data-photo-index and
+      // write it to the element's style attribute. Those theme.css rules are
+      // !important, so they outranked that inline style and the pool had not
+      // decided a rendered photo in a long time — two Forest trips at
+      // different indexes rendered the same image. The pool and the lookup are
+      // gone; data-photo-index is still rendered by app.js and still ignored
+      // here, exactly as before.
       const photo = document.createElement('div');
       photo.className = 'tp-card-photo';
       photo.setAttribute('aria-hidden', 'true');
       if (terrain) photo.setAttribute('data-terrain', terrain.toLowerCase());
-      const photoIndex = parseInt(card.dataset.photoIndex, 10) || 0;
-      const poolKey    = (terrain || '').toLowerCase();
-      const poolArr    = DISCOVER_PHOTO_POOL[poolKey] || DISCOVER_PHOTO_POOL.forest;
-      const photoUrl   = poolArr[photoIndex] || poolArr[0];
-      if (photoUrl) photo.style.backgroundImage = `url('${photoUrl}')`;
       card.insertBefore(photo, card.firstChild);
 
       // Extract tripId from the card's inline onclick (app.js renders: viewChecklist('<id>')).
