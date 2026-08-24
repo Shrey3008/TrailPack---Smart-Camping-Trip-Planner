@@ -59,7 +59,7 @@
       height: 320px;
       padding-top: 0;
       background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.5)),
-        url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1600&q=80');
+        url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=1600');
       background-size: cover;
       background-position: center;
       background-repeat: no-repeat;
@@ -1700,11 +1700,19 @@
     }
 
     /* ---------- Hero: full-bleed photo + dark gradient + left-aligned ---------- */
+    /* This !important background outranks the inline style renderHero() writes,
+       so it — not TERRAIN_PHOTO — is what the hero actually shows, at every
+       width and for every terrain. Verified in the browser: setting the inline
+       style leaves the computed value unchanged. Swapping the URL here is
+       therefore what makes the hero public domain; TERRAIN_PHOTO alone would
+       have changed nothing visible. Grand Teton keeps the mountain photo this
+       rule already showed, so the rendered result is identical apart from the
+       licence. */
     .checklist-hero {
       height: 360px !important;
       background-image:
         linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.20) 55%, rgba(0,0,0,.55) 100%),
-        url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1800&q=80') !important;
+        url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=1600') !important;
       background-size: cover !important;
       background-position: center !important;
       align-items: stretch !important;
@@ -3038,20 +3046,27 @@
         return '';
       }
 
-      /* ---------- Hero (terrain-based Unsplash photo) ---------- */
+      /* ---------- Hero (terrain-based NPS photo) ---------- */
       // Keys are lowercased trip.terrain values. Default falls back
       // to the mountain photo per spec.
+      /* National Park Service photography — works of the U.S. federal
+         government, so public domain with no attribution condition. Same
+         sourcing the Discover cards use (see discover-photos.js), and the
+         reason these are NPS asset ids rather than Unsplash ids.
+
+         nps.gov resizes server-side on ?width=, so one id serves every size
+         the app needs; 1600 is what this full-bleed hero asks for. */
       const TERRAIN_PHOTO = {
-        mountain: 'photo-1464822759023-fed622ff2c3b',
-        forest:   'photo-1448375240586-882707db888b',
-        desert:   'photo-1509316785289-025f5b846b35',
-        beach:    'photo-1507525428034-b723cf961d3e',
-        lake:     'photo-1439066615861-d1af74d74000',
+        mountain: '769E01AF-98C8-ECA3-7799030A09A7F685',  // Grand Teton NP
+        forest:   '7961FEFE-AD2A-61A1-2CB953E4FDBD749D',  // Muir Woods
+        desert:   '3C79931C-1DD8-B71B-0BF201E3DB540D04',  // Arches NP
+        beach:    '2E8C5E69-C194-1A0A-1DE7866FA06F95E1',  // Apostle Islands
+        lake:     '3C7B227E-1DD8-B71B-0BEECDD24771C381',  // Crater Lake NP
       };
       function heroPhotoUrl(terrain) {
         const key = (terrain || '').toLowerCase();
         const id = TERRAIN_PHOTO[key] || TERRAIN_PHOTO.mountain;
-        return 'https://images.unsplash.com/' + id + '?w=1600&q=80';
+        return 'https://www.nps.gov/common/uploads/structured_data/' + id + '.jpg?width=1600';
       }
       function renderHero() {
         const hero = document.getElementById('checklist-hero');

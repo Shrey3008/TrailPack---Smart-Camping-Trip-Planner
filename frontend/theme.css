@@ -108,38 +108,41 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
 /* ---------------------------------------------------------------------------
    3. Trip card photography.
 
-   Two systems were competing. dashboard-light.css carries a terrain-matched
-   set (the result of the earlier miscategorisation fix), but dashboard-light.js
-   overwrites it from a per-terrain pool indexed by trip.photoIndex, and that
-   pool is not terrain-accurate: a Desert trip at index 8 renders a blurred
-   figure pressing against frosted glass, and a Forest trip at index 5 renders a
-   storm over dead scrub. photoIndex is assigned randomly at trip creation, so
-   which trips look wrong is luck of the draw.
+   These rules are the only thing that decides a trip card's photo. Two systems
+   used to compete: dashboard-light.js wrote a URL from a per-terrain pool onto
+   the element's style attribute, and this block out-ranked it with !important
+   because the pool was not terrain-accurate — a Desert trip at index 8 rendered
+   a blurred figure against frosted glass. The pool has since been deleted, it
+   having decided nothing for a long time.
 
-   The pool lives in JavaScript, which this pass must not touch, so the photo is
-   pinned here from the terrain instead. !important is required specifically
-   because JS writes the URL to the element's style attribute.
+   !important is kept even so. It costs nothing, and it is the guard that made
+   the competing writer harmless; removing it would quietly re-open that door.
 
-   Trade-off, deliberate: every trip of a given terrain now shows the same
-   photo, where the pool intended variety. Correct-and-repeated beats varied-
-   and-occasionally-alarming. Restoring variety means curating the pool in
-   dashboard-light.js — a JS change, so out of scope here.
+   Trade-off, deliberate: every trip of a given terrain shows the same photo,
+   where the pool intended variety. Correct-and-repeated beats varied-and-
+   occasionally-alarming. Real variety needs a photo per trip, which needs
+   somewhere to store one — the Trip schema has no such field.
+
+   Photography is National Park Service, a work of the U.S. federal government
+   and so public domain with no attribution condition. Same sourcing the
+   Discover cards use; see discover-photos.js. nps.gov resizes server-side on
+   ?width=, so one asset id serves every size the app needs.
    ------------------------------------------------------------------------- */
 .tp-card-photo[data-terrain] {
-  background-image: url('https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=900&q=80') !important;
+  background-image: url('https://www.nps.gov/common/uploads/structured_data/3C80B539-1DD8-B71B-0BEAAA4AC31E7D5B.jpg?width=900') !important;
 }
 .tp-card-photo[data-terrain="mountain"],
 .tp-card-photo[data-terrain="mountains"] {
-  background-image: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900&q=80') !important;
+  background-image: url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=900') !important;
 }
 .tp-card-photo[data-terrain="forest"],
 .tp-card-photo[data-terrain="woods"],
 .tp-card-photo[data-terrain="jungle"] {
-  background-image: url('https://images.unsplash.com/photo-1448375240586-882707db888b?w=900&q=80') !important;
+  background-image: url('https://www.nps.gov/common/uploads/structured_data/7961FEFE-AD2A-61A1-2CB953E4FDBD749D.jpg?width=900') !important;
 }
 .tp-card-photo[data-terrain="desert"],
 .tp-card-photo[data-terrain="dunes"] {
-  background-image: url('https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=900&q=80') !important;
+  background-image: url('https://www.nps.gov/common/uploads/structured_data/3C79931C-1DD8-B71B-0BF201E3DB540D04.jpg?width=900') !important;
 }
 /* Water terrains. These must be listed even though the catch-all above would
    otherwise cover them: the catch-all is !important, so without these three it
@@ -150,7 +153,7 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
 .tp-card-photo[data-terrain="beach"],
 .tp-card-photo[data-terrain="coast"],
 .tp-card-photo[data-terrain="lake"] {
-  background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&q=80') !important;
+  background-image: url('https://www.nps.gov/common/uploads/structured_data/3C7B227E-1DD8-B71B-0BEECDD24771C381.jpg?width=900') !important;
 }
 
 /* Full-bleed crop: edge to edge across the top of the card, square top corners
