@@ -796,10 +796,76 @@
       border-color: #fca5a5 !important;
       text-decoration: none !important;
     }
-    /* Very narrow phones: stack so each stays a comfortable tap target. */
+    /* ---------- Trip card overflow menu ----------
+       Replaces the danger button that used to sit beside the primary. The
+       note above records why the old stacked text link was unsafe: 73x23px,
+       under the thumb, cascading to every item on the trip. The lesson holds
+       here — the toggle and the menu item are both full 44px targets, so
+       moving the action behind a menu does not reintroduce a small one. */
+    body.dash-light .trip-more { position: relative; flex: 0 0 auto; }
+    body.dash-light .trip-more__toggle {
+      width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    body.dash-light .trip-more__toggle:hover,
+    body.dash-light .trip-more__toggle[aria-expanded="true"] {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      color: #1a1a1a;
+    }
+    /* Anchored to the right edge of the card so a menu on the last column
+       cannot push the grid sideways; the card itself is overflow:hidden, so
+       the menu opens upward into the card rather than past its bottom edge. */
+    body.dash-light .trip-more__menu {
+      position: absolute;
+      right: 0;
+      bottom: calc(100% + 6px);
+      z-index: 5;
+      min-width: 168px;
+      padding: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,0.12));
+    }
+    body.dash-light .trip-more__menu[hidden] { display: none; }
+    body.dash-light .trip-more__item {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      min-height: 44px;
+      padding: 0 12px;
+      background: transparent;
+      border: 0;
+      border-radius: var(--radius-sm);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+    }
+    body.dash-light .trip-more__item--danger { color: #dc2626; }
+    body.dash-light .trip-more__item--danger:hover { background: #fef2f2; color: #b91c1c; }
+
+    /* Very narrow phones. This used to stack the row, because it held two
+       full-width buttons that could not sit side by side. It now holds one
+       button and a 44px square, which fit on the narrowest phone — and
+       stacking would stretch the toggle to full width, reading as a second
+       primary action. So the row stays a row and the primary takes the slack. */
     @media (max-width: 380px) {
-      body.dash-light .trip-card > .trip-actions { flex-direction: column !important; }
-      body.dash-light .trip-card .trip-actions .btn { flex: 0 0 auto !important; }
+      body.dash-light .trip-card > .trip-actions { flex-direction: row !important; }
+      body.dash-light .trip-card .trip-actions .btn.btn-primary { flex: 1 1 auto !important; }
     }
 
     /* ---------- Loading skeletons (trip grid) ----------

@@ -288,9 +288,17 @@ async function loadTrips() {
           <button class="btn btn-primary" onclick="event.stopPropagation(); viewChecklist('${trip.tripId}')">
             View Checklist
           </button>
-          <button class="btn btn-danger" onclick="event.stopPropagation(); deleteTrip('${trip.tripId}')">
-            Delete Trip
-          </button>
+          <div class="trip-more" data-trip-more>
+            <button type="button" class="trip-more__toggle" data-trip-more-toggle
+                    aria-haspopup="true" aria-expanded="false"
+                    aria-label="More actions for ${escapeAttr(trip.name)}">
+              <span aria-hidden="true">&#8943;</span>
+            </button>
+            <div class="trip-more__menu" data-trip-more-menu role="menu" hidden>
+              <button type="button" role="menuitem" class="trip-more__item trip-more__item--danger"
+                      data-trip-delete="${escapeAttr(trip.tripId)}">Delete trip</button>
+            </div>
+          </div>
         </div>
       </div>
     `).join('');
@@ -374,6 +382,66 @@ async function loadSharedTrips() {
 }
 
 
+/* ---------- Trip card overflow menu ----------
+   "Delete Trip" used to sit beside "View Checklist" as a full danger button on
+   every card — a destructive action given primary weight, repeated once per
+   trip and, on a phone, directly under the thumb aiming for the primary one.
+   It lives behind a menu now. deleteTrip() still runs its own danger-styled
+   confirm, so this adds a deliberate tap, not a second prompt.
+
+   One capture-phase listener, not a handler per card. Capture matters: the
+   whole .trip-card carries an inline onclick that opens the checklist, and
+   that handler sits on an ancestor of these controls. A bubble-phase listener
+   here would run *after* it, so the card would already have navigated away.
+   Intercepting on the way down is what keeps the menu clickable at all. */
+function closeAllTripMenus(except) {
+  document.querySelectorAll('[data-trip-more]').forEach((wrap) => {
+    if (wrap === except) return;
+    const menu = wrap.querySelector('[data-trip-more-menu]');
+    const toggle = wrap.querySelector('[data-trip-more-toggle]');
+    if (menu) menu.hidden = true;
+    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  });
+}
+
+document.addEventListener('click', (e) => {
+  const toggle = e.target.closest?.('[data-trip-more-toggle]');
+  const item   = e.target.closest?.('[data-trip-delete]');
+
+  if (toggle || item) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  if (toggle) {
+    const wrap = toggle.closest('[data-trip-more]');
+    const menu = wrap.querySelector('[data-trip-more-menu]');
+    const opening = menu.hidden;
+    closeAllTripMenus(wrap);
+    menu.hidden = !opening;
+    toggle.setAttribute('aria-expanded', String(opening));
+    return;
+  }
+
+  if (item) {
+    closeAllTripMenus();
+    deleteTrip(item.getAttribute('data-trip-delete'));
+    return;
+  }
+
+  // Any other click anywhere dismisses an open menu.
+  closeAllTripMenus();
+}, true);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const open = document.querySelector('[data-trip-more-menu]:not([hidden])');
+  if (!open) return;
+  const toggle = open.closest('[data-trip-more]')?.querySelector('[data-trip-more-toggle]');
+  closeAllTripMenus();
+  if (toggle) toggle.focus();   // Escape should not strand focus in a hidden menu
+});
+
 // View checklist for a trip
 function viewChecklist(tripId) {
   console.log('viewChecklist called with tripId:', tripId);
@@ -411,6 +479,13 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+/* escapeHtml goes through textContent -> innerHTML, which escapes &, < and >
+   but leaves quotes alone — safe in a text node, not inside an attribute.
+   Anything interpolated into an attribute value goes through this instead. */
+function escapeAttr(text) {
+  return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 
