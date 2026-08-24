@@ -267,13 +267,16 @@ body.dash-light .stat-card[data-accent="purple"]::before { background: var(--tp-
   margin-inline: calc(50% - 50vw);
   padding: 56px max(24px, calc(50vw - 416px));
   /* Two washes, not one. The flat green tint alone left the name sitting over
-     the bright tent fabric at the left of the frame, where white type lost its
-     contrast; the horizontal scrim darkens exactly the side the text occupies
-     and fades out across the rest of the photo. */
+     the bright left of the frame, where white type lost its contrast; the
+     horizontal scrim darkens exactly the side the text occupies and fades out
+     across the rest of the photo. Both washes are unchanged — only the
+     photograph beneath them moved to a public-domain NPS file (Crater Lake,
+     NPS Photo), which is bright across the whole frame and so needs the scrim
+     for the same reason the previous photo did. */
   background-image:
     linear-gradient(90deg, rgba(12, 34, 25, 0.62) 0%, rgba(12, 34, 25, 0.34) 45%, rgba(12, 34, 25, 0.12) 100%),
     linear-gradient(rgba(20, 51, 38, 0.62), rgba(20, 51, 38, 0.62)),
-    url('https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?w=1600&q=80');
+    url('https://www.nps.gov/common/uploads/structured_data/3C7B227E-1DD8-B71B-0BEECDD24771C381.jpg?width=1600');
   background-size: cover;
   background-position: center 55%;
   border-bottom: none;

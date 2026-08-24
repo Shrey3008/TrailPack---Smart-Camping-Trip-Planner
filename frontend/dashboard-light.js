@@ -108,9 +108,11 @@
     // WebP-only is deliberate: every browser that can run this file's
     // syntax has decoded WebP since 2020 (Safari 14, Chrome 32, Firefox 65).
     const HERO_PHOTOS = [
-      // 1. Forest hiking group — friends on a forest path (Holly Mandarich).
-      //    Remote, and Unsplash's `auto=format` already negotiates WebP.
-      { remote: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=1600&q=80&auto=format&fit=crop' },
+      // 1. Hiker on an overlook above the Blue Ridge (NPS Photo / Neal Lewis,
+      //    Shenandoah NP). Remote, and public domain as a federal work — the
+      //    last Unsplash image on this surface. It keeps a person on the trail,
+      //    which is what the other four have in common.
+      { remote: 'https://www.nps.gov/common/uploads/structured_data/3C80B539-1DD8-B71B-0BEAAA4AC31E7D5B.jpg?width=1600' },
       // 2. Sunset silhouettes — group on a hillside at golden hour
       { base: 'assets/hero/hero-2' },
       // 3. Alpine valley trail — group hiking above an alpine lake
