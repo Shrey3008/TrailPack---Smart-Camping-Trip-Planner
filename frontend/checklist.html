@@ -58,7 +58,10 @@
       width: 100%;
       height: 320px;
       padding-top: 0;
-      background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.5)),
+      /* What paints before renderHero() runs. Same scrim it will write, so the
+         wash does not shift when the terrain photo replaces this one. */
+      background-image:
+        linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.20) 55%, rgba(0,0,0,.55) 100%),
         url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=1600');
       background-size: cover;
       background-position: center;
@@ -1700,19 +1703,17 @@
     }
 
     /* ---------- Hero: full-bleed photo + dark gradient + left-aligned ---------- */
-    /* This !important background outranks the inline style renderHero() writes,
-       so it — not TERRAIN_PHOTO — is what the hero actually shows, at every
-       width and for every terrain. Verified in the browser: setting the inline
-       style leaves the computed value unchanged. Swapping the URL here is
-       therefore what makes the hero public domain; TERRAIN_PHOTO alone would
-       have changed nothing visible. Grand Teton keeps the mountain photo this
-       rule already showed, so the rendered result is identical apart from the
-       licence. */
+    /* No background-image here. It used to set one with !important, which
+       out-ranks the inline style renderHero() writes, so TERRAIN_PHOTO never
+       reached the page and every trip's hero showed the same photograph
+       whatever its terrain. The scrim this rule carried now lives in
+       renderHero() alongside the photo, so the wash is identical and the
+       image finally follows the trip.
+
+       Sizing and alignment stay here: they are layout, not artwork, and
+       nothing writes them from JS. */
     .checklist-hero {
       height: 360px !important;
-      background-image:
-        linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.20) 55%, rgba(0,0,0,.55) 100%),
-        url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=1600') !important;
       background-size: cover !important;
       background-position: center !important;
       align-items: stretch !important;
@@ -3074,8 +3075,14 @@
         const hero = document.getElementById('checklist-hero');
         if (!hero) return;
         const url = heroPhotoUrl(trip && trip.terrain);
+        // The scrim moved here from the .checklist-hero !important rule below,
+        // which used to supply both wash and photo. That rule out-ranked this
+        // line, so the hero showed one photo for every terrain; it now sets no
+        // background-image and this runs. The gradient is copied verbatim —
+        // three stops, dark at top and bottom for the copy that sits there —
+        // so the wash is unchanged and only the photograph varies.
         hero.style.backgroundImage =
-          "linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.5)), url('" + url + "')";
+          "linear-gradient(180deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.20) 55%, rgba(0,0,0,.55) 100%), url('" + url + "')";
 
         const tripDisplayName = (trip && trip.name) || 'Trip';
         document.getElementById('hero-trip-name').textContent = tripDisplayName;
