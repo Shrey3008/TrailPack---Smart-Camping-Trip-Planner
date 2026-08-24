@@ -1270,6 +1270,42 @@
       body.dash-light .stat-card { padding: 16px 20px !important; }
       body.dash-light .stat-card .stat-value { font-size: 1.7rem !important; }
       body.dash-light .trips-grid { grid-template-columns: 1fr !important; }       /* mobile */
+
+      /* ---------- Compact trip card ----------
+         At one column the card kept its desktop shape: a 16/9 photo across
+         the full width, then the body beneath it. That made each card 399px
+         tall with 198px of it photograph, so four trips ran to 1849px — most
+         of a phone page spent scrolling past your own trips to reach anything
+         else, with the text that identifies them squeezed into the bottom half.
+
+         Same content, turned on its side: the photo becomes a fixed strip on
+         the left and the body reads down the right. The card keeps the column
+         flexbox it uses above this breakpoint and simply reserves a gutter for
+         the photo, which is then positioned into it.
+
+         A grid with the photo spanning `1 / -1` was the obvious shape and does
+         not work: these rows are implicit, and -1 resolves against the explicit
+         grid, so the photo spanned only the first row. Pinning an explicit row
+         count would break on the shared-trips card, which has no progress
+         block. Taking the photo out of flow sidesteps the child count. */
+      body.dash-light .trip-card {
+        padding-left: 104px !important;   /* the strip the photo sits in */
+        min-height: 0 !important;
+      }
+      body.dash-light .trip-card > .tp-card-photo {
+        position: absolute;
+        left: 0; top: 0; bottom: 0;       /* full card height, whatever it is */
+        width: 104px;
+        height: auto;
+        aspect-ratio: auto;               /* the card height leads now, not the ratio */
+      }
+      /* The fade exists to lift a white body off the photo below it. Side by
+         side there is nothing beneath it to lift, and a bottom fade just
+         greys the image out. */
+      body.dash-light .trip-card > .tp-card-photo::after { display: none; }
+      /* margin-top:auto pushed the actions to the bottom of a tall card; at
+         this size the card is only as tall as its content. */
+      body.dash-light .trip-card > .trip-actions { margin-top: 4px !important; }
       body.dash-light .dash-hero  { height: 220px; }
       body.dash-light .dash-hero__greeting { font-size: 1.7rem; }
       body.dash-light .dash-hero__sub { font-size: 0.95rem; }
