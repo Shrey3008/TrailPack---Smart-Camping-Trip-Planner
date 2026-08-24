@@ -89,6 +89,11 @@ describe('deploy config — assets', () => {
       expect(f).not.toMatch(/\.items\.json$/);
       expect(f).not.toMatch(/\.overpass\.json$/);
       expect(f).not.toMatch(/(^|\/)node_modules\//);
+      // Build sources, not deliverables. The pre-resize hero originals sat in
+      // frontend/assets/hero/_originals for months — 18 MB uploaded on every
+      // build that no page ever requested. They live in assets-source/ now;
+      // the underscore prefix is the convention that keeps them out of here.
+      expect(f).not.toMatch(/(^|\/)_/);
     });
   });
 });
