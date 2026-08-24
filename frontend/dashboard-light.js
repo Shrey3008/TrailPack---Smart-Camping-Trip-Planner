@@ -362,11 +362,19 @@
       const { total, packed } = await fetchItemStats(trip.tripId);
       const pct = total > 0 ? Math.round((packed / total) * 100) : 0;
       if (countEl) {
+        // Same de-duplication as the trip cards: the bar beneath already
+        // carries the proportion, so the text carries the exact numbers.
+        // Leaving the percentage on only one of the two progress displays
+        // would read as a bug rather than a difference.
         countEl.innerHTML = total > 0
-          ? `<strong>${packed}</strong> of <strong>${total}</strong> items packed · ${pct}%`
+          ? `<strong>${packed}</strong> of <strong>${total}</strong> items packed`
           : 'No items on this checklist yet';
       }
       if (fillEl) fillEl.style.width = pct + '%';
+      // Matches the trip cards' empty track, so a trip nobody has packed for
+      // looks unstarted rather than broken.
+      const nextUpBar = fillEl && fillEl.parentElement;
+      if (nextUpBar) nextUpBar.dataset.tpProgress = pct === 0 ? 'empty' : 'partial';
     }
 
     // ---------- Filter tabs ----------
@@ -962,10 +970,12 @@
       const actions = card.querySelector('.trip-actions');
       const block = document.createElement('div');
       block.className = 'tp-progress-block';
+      // The percentage used to sit opposite the count, which stated the same
+      // fact twice — the bar already carries the proportion, so the text
+      // carries the exact numbers and nothing else.
       block.innerHTML = `
         <div class="tp-progress-label">
           <span><strong>0</strong> of <strong>0</strong> items packed</span>
-          <span>0%</span>
         </div>
         <div class="tp-progress-bar"><div class="tp-progress-fill"></div></div>
       `;
@@ -978,9 +988,12 @@
         const fill  = block.querySelector('.tp-progress-fill');
         if (label) label.innerHTML = `
           <span><strong>${packed}</strong> of <strong>${total}</strong> items packed</span>
-          <span>${pct}%</span>
         `;
         if (fill) fill.style.width = pct + '%';
+        // A 0% fill is an invisible element inside a grey track, which reads
+        // as a bar that failed to render rather than a trip nobody has packed
+        // for yet. The flag lets CSS mark the track as a real empty state.
+        block.dataset.tpProgress = pct === 0 ? 'empty' : 'partial';
       });
     }
 

@@ -719,6 +719,18 @@
       border-radius: var(--radius-full);
       transition: width 0.5s ease;
     }
+    /* Nothing packed yet. Without this the track is a flat grey line holding a
+       zero-width fill, which reads as a bar that failed to load rather than a
+       trip that has not been started. A dashed track says "empty" on purpose. */
+    body.dash-light .next-up__bar[data-tp-progress="empty"],
+    body.dash-light .tp-progress-block[data-tp-progress="empty"] .tp-progress-bar {
+      background: transparent;
+      border: 1px dashed var(--border);
+      /* border-box so the dashed outline sits inside each bar's own height
+         rather than adding to it — the two bars are 5px and 6px, so this
+         rule must not name a height of its own. */
+      box-sizing: border-box;
+    }
 
     /* ---------- Trip card actions ----------
        A side-by-side row: "View Checklist" takes the larger share and stays
