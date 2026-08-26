@@ -30,7 +30,7 @@
     : null;
 
   const DEFAULT_LOCAL = 'http://localhost:3000';
-  const DEFAULT_PROD = 'https://trailpack-smart-camping-trip-planner.onrender.com';
+  const DEFAULT_PROD = 'https://trailpack-smart-camping-trip-planner-agq7.onrender.com';
 
   window.API_URL = queryOverride || metaOverride || (isLocalhost ? DEFAULT_LOCAL : DEFAULT_PROD);
 })();
