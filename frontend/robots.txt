@@ -1,0 +1,25 @@
+# TrailPack — crawl policy for the static frontend.
+#
+# Everything behind sign-in is disallowed. Not as a security control (these
+# paths are all reachable without one; the guard is that they hold no data
+# until the API authenticates you) but because they render an empty shell to a
+# signed-out visitor, and an index full of empty shells is worse than no index.
+#
+# Paths are prefixes, so one line covers both URL shapes a page has —
+# /dashboard and /dashboard.html — now that cleanUrls is on.
+
+User-agent: *
+
+# /checklist would otherwise swallow /checklist-preview, which is a public
+# marketing page. Longest match wins, so this has to be stated first.
+Allow: /checklist-preview
+
+Disallow: /dashboard
+Disallow: /checklist
+Disallow: /my-trips
+Disallow: /profile
+Disallow: /organizer
+Disallow: /admin
+Disallow: /accept-invite
+
+Sitemap: https://trailpack-smart-camping.vercel.app/sitemap.xml

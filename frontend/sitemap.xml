@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Public pages only — the signed-in app is disallowed in robots.txt.
+
+  Extension-less URLs, which vercel.json's cleanUrls makes canonical on Vercel
+  and which the Worker's html_handling has always served. The .html forms still
+  resolve on both hosts; they are just not the address being advertised.
+
+  These URLs must stay on the same host as the canonical and og:url tags in
+  index.html. Changing hosts means changing both files together.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://trailpack-smart-camping.vercel.app/</loc>
+    <lastmod>2026-08-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://trailpack-smart-camping.vercel.app/checklist-preview</loc>
+    <lastmod>2026-08-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://trailpack-smart-camping.vercel.app/register</loc>
+    <lastmod>2026-08-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://trailpack-smart-camping.vercel.app/login</loc>
+    <lastmod>2026-08-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>
