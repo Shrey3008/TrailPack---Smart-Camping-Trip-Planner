@@ -23,13 +23,17 @@ const SOURCE = fs.readFileSync(CONFIG_PATH, 'utf8');
 
 const PROD = 'https://trailpack-smart-camping-trip-planner.onrender.com';
 
-function resolveApiUrl({ hostname, search = '', meta = null }) {
+function resolveConfig({ hostname, search = '', meta = null }) {
   const window = { location: { hostname, search } };
   const document = { querySelector: () => (meta ? { content: meta } : null) };
   const sandbox = { window, document, URLSearchParams };
   vm.createContext(sandbox);
   vm.runInContext(SOURCE, sandbox);
-  return window.API_URL;
+  return window;
+}
+
+function resolveApiUrl(opts) {
+  return resolveConfig(opts).API_URL;
 }
 
 describe('?api= cannot redirect a deployed page', () => {
@@ -95,5 +99,51 @@ describe('the legitimate paths still work', () => {
 
   test('a file:// style empty hostname is still treated as local', () => {
     expect(resolveApiUrl({ hostname: '' })).toBe('http://localhost:3000');
+  });
+});
+
+/* window.TRAILS_API_URL — which host answers /api/nearby-trails.
+ *
+ * The route lives on the Cloudflare Worker. The same frontend is also served
+ * from Vercel as static files, where a relative /api/nearby-trails is a 404 and
+ * Discover reported it to the user as "the trail service is busy" forever. */
+describe('Discover points at whichever host actually has the route', () => {
+  const WORKER = 'https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev';
+
+  function resolveTrailsUrl(opts) {
+    return resolveConfig(opts).TRAILS_API_URL;
+  }
+
+  test('THE BUG: a static host gets the Worker absolutely, not a relative 404', () => {
+    expect(resolveTrailsUrl({ hostname: 'trailpack-smart-camping.vercel.app' })).toBe(WORKER);
+  });
+
+  test('any other future static host gets the same treatment', () => {
+    expect(resolveTrailsUrl({ hostname: 'mytrailpack.netlify.app' })).toBe(WORKER);
+  });
+
+  test('the Worker itself stays same-origin, so the call needs no CORS', () => {
+    expect(resolveTrailsUrl({ hostname: 'trailpack---smart-camping-trip-planner.shrey30patel.workers.dev' }))
+      .toBe('');
+  });
+
+  test('a preview subdomain on workers.dev is same-origin too', () => {
+    expect(resolveTrailsUrl({ hostname: 'staging.trailpack.workers.dev' })).toBe('');
+  });
+
+  test('localhost stays same-origin, where wrangler dev serves the route', () => {
+    expect(resolveTrailsUrl({ hostname: 'localhost' })).toBe('');
+    expect(resolveTrailsUrl({ hostname: '127.0.0.1' })).toBe('');
+    expect(resolveTrailsUrl({ hostname: '' })).toBe('');
+  });
+
+  test('?api= cannot redirect trail search either', () => {
+    // Distinct from API_URL: no session token is sent here, but a page that
+    // could be pointed at an attacker's trail service could be fed arbitrary
+    // trail names and coordinates to render.
+    expect(resolveTrailsUrl({
+      hostname: 'trailpack-smart-camping.vercel.app',
+      search: '?api=https://attacker.example',
+    })).toBe(WORKER);
   });
 });

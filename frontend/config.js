@@ -1,5 +1,7 @@
-// Single source of truth for backend API base URL.
-// Loaded before every other script so window.API_URL is always defined.
+// Single source of truth for the two API base URLs the frontend talks to:
+// window.API_URL (the Render backend) and window.TRAILS_API_URL (the Cloudflare
+// Worker's /api/nearby-trails, which powers Discover).
+// Loaded before every other script so both are always defined.
 (function () {
   if (window.__trailpackConfigLoaded) return;
   window.__trailpackConfigLoaded = true;
@@ -33,4 +35,29 @@
   const DEFAULT_PROD = 'https://trailpack-smart-camping-trip-planner-agq7.onrender.com';
 
   window.API_URL = queryOverride || metaOverride || (isLocalhost ? DEFAULT_LOCAL : DEFAULT_PROD);
+
+  // ---- Trail search (Discover) ----------------------------------------------
+  //
+  // /api/nearby-trails is a route on the Cloudflare Worker (src/index.js), not
+  // on the Render backend. The frontend is now served from two hosts and only
+  // one of them has that route:
+  //
+  //   - Cloudflare Worker   assets + code, so the route is same-origin
+  //   - Vercel              static files only, so the route 404s
+  //
+  // A relative URL is therefore right on one host and wrong on the other. Where
+  // the route exists locally we keep using it — same-origin means no CORS and
+  // no preflight, and it is the arrangement the Worker's cache was designed
+  // around. Everywhere else falls back to the Worker's absolute URL, which
+  // answers cross-origin because the route sends Access-Control-Allow-Origin.
+  //
+  // An empty base is deliberate: it makes the same-origin case a plain relative
+  // path, exactly what this code did before there was a second host.
+  const WORKER_ORIGIN = 'https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev';
+
+  // `wrangler dev` serves the route on localhost too, so local development
+  // stays same-origin and needs no network round trip to Cloudflare.
+  const servesTrailsRoute = isLocalhost || host.endsWith('.workers.dev');
+
+  window.TRAILS_API_URL = servesTrailsRoute ? '' : WORKER_ORIGIN;
 })();
