@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Checklist Preview · TrailPack</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap" rel="stylesheet">
@@ -44,10 +45,15 @@
   }
 
   /* ---------- Hero ---------- */
+  /* Grand Teton NP — the same NPS asset id checklist.html's TERRAIN_PHOTO maps
+     `mountain` to, so this preview shows what a real mountain trip renders.
+     National Park Service photography is a work of the U.S. federal
+     government: public domain, no attribution condition, and no third-party
+     host to go dark on us. nps.gov resizes server-side on ?width=. */
   .hero{
     position:relative; height:380px; overflow:hidden;
     background:#222 center/cover no-repeat;
-    background-image:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1800&q=80');
+    background-image:url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=1600');
   }
   .hero::after{
     content:""; position:absolute; inset:0;
@@ -62,7 +68,12 @@
     font-size:.72rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase;
     opacity:.92; margin-bottom:14px;
   }
-  .hero-title{font-size:2.6rem; font-weight:700; line-height:1.1; margin-bottom:10px; max-width:24ch}
+  /* The colour is not redundant with .hero-inner's. `h1,h2,h3,h4` on line 27
+     sets a colour on the element itself, and an explicit declaration always
+     beats an inherited one no matter how specific the ancestor's selector is —
+     so the title rendered in --ink (#111) on a dark photo and the first word
+     disappeared into the mountain. Stating it here is what actually wins. */
+  .hero-title{font-size:2.6rem; font-weight:700; line-height:1.1; margin-bottom:10px; max-width:24ch; color:#fff}
   .hero-sub{font-size:1rem; opacity:.92; margin-bottom:18px}
   .hero-meta{display:flex; flex-wrap:wrap; gap:8px}
   .hero-chip{
@@ -203,9 +214,11 @@
     background:#fff; border-radius:var(--radius); border:1px solid var(--line);
     box-shadow:var(--shadow-card); overflow:hidden;
   }
+  /* Same Grand Teton photo as the hero, at the width this card needs — the
+     sidebar is showing the same trip. */
   .card-photo{
     height:140px; background:#ddd center/cover no-repeat;
-    background-image:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80');
+    background-image:url('https://www.nps.gov/common/uploads/structured_data/769E01AF-98C8-ECA3-7799030A09A7F685.jpg?width=800');
   }
   .card-body{padding:16px 18px}
   .card-h{font-size:1rem; font-weight:700; margin-bottom:4px}
