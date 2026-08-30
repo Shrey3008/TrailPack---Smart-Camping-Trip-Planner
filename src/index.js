@@ -24,6 +24,42 @@ import { createHandler } from './handler.js';
 // persist across requests the way the backpressure design assumes.
 const api = createHandler();
 
+/* Origins allowed to call /api/nearby-trails cross-origin.
+
+   The route was same-origin-only by construction: it shipped alongside the
+   pages that call it, so it needed no CORS headers at all. That stopped being
+   true when the frontend was also deployed to Vercel as plain static files —
+   that host has no serverless functions, so Discover there has to reach this
+   Worker across origins or not work.
+
+   An allowlist rather than `*`, even though the payload is public trail data:
+   `*` would also let any page anywhere spend this Worker's Overpass budget,
+   which is the scarce thing here. Requests carry no credentials and the route
+   reads nothing user-specific, so an echoed origin leaks nothing.
+
+   Same-origin requests send no Origin header and never reach this list. */
+const ALLOWED_ORIGINS = [
+  'https://trailpack-smart-camping.vercel.app'
+];
+
+/* Adds the CORS header when the caller is on the list. Rebuilt rather than
+   mutated: a response served out of the Cache API has immutable headers, and
+   this route serves most of its traffic from there. */
+function withCors(response, request) {
+  const origin = request.headers.get('Origin');
+  if (!origin || !ALLOWED_ORIGINS.includes(origin)) return response;
+
+  const headers = new Headers(response.headers);
+  headers.set('Access-Control-Allow-Origin', origin);
+  // The answer differs by Origin now, so caches must key on it.
+  headers.append('Vary', 'Origin');
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: headers
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -34,13 +70,13 @@ export default {
       // Scoped to the API path on purpose — asset serving keeps the exact
       // behaviour it has today, including its own error handling.
       try {
-        return await api.handle(request, ctx);
+        return withCors(await api.handle(request, ctx), request);
       } catch (e) {
         console.error('nearby-trails boundary', e && e.stack ? e.stack : e);
-        return new Response(JSON.stringify({ status: 'error', error: 'trail search failed' }), {
+        return withCors(new Response(JSON.stringify({ status: 'error', error: 'trail search failed' }), {
           status: 500,
           headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }
-        });
+        }), request);
       }
     }
     // Everything else is the static site, exactly as before.
