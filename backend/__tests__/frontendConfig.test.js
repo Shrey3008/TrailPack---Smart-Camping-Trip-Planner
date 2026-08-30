@@ -21,7 +21,12 @@ const vm = require('vm');
 const CONFIG_PATH = path.join(__dirname, '..', '..', 'frontend', 'config.js');
 const SOURCE = fs.readFileSync(CONFIG_PATH, 'utf8');
 
-const PROD = 'https://trailpack-smart-camping-trip-planner.onrender.com';
+// Pinned on purpose: the guard below is that ?api= cannot move window.API_URL
+// off this value, which needs a literal to compare against. It is therefore a
+// second copy of config.js's DEFAULT_PROD and has to change with it — the two
+// went out of sync when the backend moved to a new Render URL, and this suite
+// failed on dev until they matched again.
+const PROD = 'https://trailpack-smart-camping-trip-planner-agq7.onrender.com';
 
 function resolveConfig({ hostname, search = '', meta = null }) {
   const window = { location: { hostname, search } };
