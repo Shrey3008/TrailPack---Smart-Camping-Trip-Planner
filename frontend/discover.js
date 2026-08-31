@@ -11,6 +11,15 @@
    ============================================================================= */
 
 // ===== DISCOVER TRAILS =====
+  /* Discover's user-facing messages. dashboard.html loads ui.js, so showToast
+   is normally there; the native fallback only covers the case where it is
+   not, and matches the guarded pattern used in dashboard-light.js and
+   organizer.js. */
+  function tpNotify(message, type = 'error') {
+    if (window.showToast) window.showToast(message, type);
+    else alert(message);
+  }
+
   let discoverMap, discoverUserLat, discoverUserLon, discoverRadiusMi = 25;
   /* Human name for the current search centre — a city, a state's curated
  anchor, or "Current Location". Kept separate from the input's value so the
@@ -425,7 +434,12 @@ fetchDiscoverTrails(a.lat, a.lon, discoverRadiusMi);
   function useDiscoverNearby() {
 closeDiscoverDD();
 document.getElementById('discoverLocInput').value = '📍 Detecting...';
-if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
+if (!navigator.geolocation) {
+  // Clear the pending label too, or the field sits on 'Detecting...' forever.
+  document.getElementById('discoverLocInput').value = '';
+  tpNotify('This browser cannot share your location — pick a city instead.');
+  return;
+}
 navigator.geolocation.getCurrentPosition(
   pos => {
     discoverUserLat = pos.coords.latitude;
@@ -437,7 +451,7 @@ navigator.geolocation.getCurrentPosition(
   },
   () => {
     document.getElementById('discoverLocInput').value = '';
-    alert('Location denied — please pick a city instead');
+    tpNotify('Location denied — pick a city instead.');
   }
 );
   }
