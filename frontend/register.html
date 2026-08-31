@@ -363,6 +363,15 @@
       outline: none;
       box-shadow: 0 0 0 4px rgba(45,106,79,0.22);
     }
+
+    /* The inputs and the submit button had focus treatments; the text links
+       beside them did not, so tabbing past the form left no visible position.
+       Same ring as the button rather than the browser default. */
+    a:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(45,106,79,0.22);
+      border-radius: 4px;
+    }
     .btn-submit:disabled {
       cursor: not-allowed;
       opacity: 0.85;

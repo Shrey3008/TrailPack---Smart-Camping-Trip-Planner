@@ -1,0 +1,29 @@
+/* ============================================================================
+   Keyboard focus ring.
+
+   theme.css already gives every interactive element an on-brand ring, but four
+   pages do not load it: index, checklist-preview, forgot-password and
+   accept-invite. That is the entire path a signed-out visitor walks — landing,
+   preview, password reset, invite accept — with no visible focus at all, so
+   tabbing through any of them left no indication of where you were.
+
+   This file carries that one rule and nothing else, so a page can adopt the
+   focus ring without also taking on theme.css's tokens and component overrides.
+
+   Load it early. Every rule here is a bare element selector, so any page that
+   already styles its own focus outranks it on specificity and keeps its own
+   treatment — this fills gaps rather than overriding what exists.
+   ========================================================================== */
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  /* --tp-green-500 comes from theme.css where it is loaded; the literal is the
+     same value, for the pages here that do not load it. */
+  outline: 2px solid var(--tp-green-500, #40916c);
+  outline-offset: 2px;
+}
