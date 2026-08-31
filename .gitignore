@@ -56,3 +56,6 @@ screenshots/
 # `wrangler deploy --dry-run`; the deployed Worker is built from src/ on
 # Cloudflare's side, so none of this belongs in the repo.
 .wrangler/
+
+# Local dev server config for the Claude Code browser preview (not shared).
+.claude/launch.json
