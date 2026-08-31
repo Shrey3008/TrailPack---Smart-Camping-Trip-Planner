@@ -25,8 +25,9 @@
       --bg-hero:       #d8eadf;
       --border:        #e8e8e4;
       --border-strong: #d8d8d2;
-      --green:         #2d6a4f;
-      --green-light:   #40916c;
+      /* Aliased to tokens.css; same value, one definition site. */
+      --green:         var(--tp-green-700);
+      --green-light:   var(--tp-green-500);
       --green-pale:    #e6f2eb;
       --text-primary:  #1a1a1a;
       /* Was #6b7280 — 4.51:1 on cream, which clears AA only by a rounding

@@ -8,13 +8,15 @@
 /* CSS Variables - Design System */
 :root {
   /* Primary Colors */
-  --primary: #1B4332;
+  /* Aliased to the brand scale in tokens.css rather than restating the hex.
+     Same value; one definition site. */
+  --primary: var(--tp-green-900);
   --primary-dark: #152E23;
   --primary-light: #2D5A45;
   
   /* Accent Colors */
-  --accent: #40916C;
-  --accent-light: #74C69D;
+  --accent: var(--tp-green-500);
+  --accent-light: var(--tp-green-300);
   --accent-lighter: #95D5B2;
   
   /* Background Colors */

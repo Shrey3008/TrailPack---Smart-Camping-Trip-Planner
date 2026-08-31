@@ -15,24 +15,11 @@
    changes, and nothing renames or removes an id or class that JS reads.
    ========================================================================== */
 
-:root {
-  /* Green scale. Four steps that stay distinguishable side by side, so a row of
-     stat cards can be varied without reaching outside the palette. */
-  --tp-green-900: #1b4332;
-  --tp-green-700: #2d6a4f;
-  --tp-green-500: #40916c;
-  --tp-green-300: #74c69d;
-  --tp-green-100: #d8f3e3;
-
-  /* Warm off-white. Never #fff — pure white reads clinical against the
-     photography and is the thing the design brief calls out by name. */
-  --tp-canvas: #f8f7f4;
-  --tp-surface: #fffdfa;
-
-  --tp-ease: cubic-bezier(0.4, 0, 0.2, 1);
-  --tp-duration: 180ms;
-  --tp-duration-slow: 320ms;
-}
+/* The brand scale, the canvas pair and the motion tokens moved to tokens.css,
+   which every page loads. This file is loaded by six of the twelve, so tokens
+   declared here were unavailable to the other half — styles.css could not
+   alias to them, and index, login, register and checklist-preview each kept
+   their own copies. Consuming them here, defining them there. */
 
 /* ---------------------------------------------------------------------------
    1. Motion.
