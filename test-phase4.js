@@ -324,12 +324,14 @@ class Phase4Tester {
     // Test animations
     await this.runTest('CSS Animations', async () => {
       try {
-        const animationStyles = document.querySelector('link[href*="animations.css"]');
+        // animations.css was deleted; its three surviving keyframes live in
+        // theme.css, which is what carries motion for this page now.
+        const animationStyles = document.querySelector('link[href*="theme.css"]');
         if (animationStyles) {
           return { 
             passed: true, 
             message: 'Animation styles loaded',
-            details: 'Enhanced animations CSS file present'
+            details: 'Motion keyframes present via theme.css'
           };
         } else {
           return { passed: false, message: 'Animation styles missing' };

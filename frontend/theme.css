@@ -458,3 +458,58 @@ body.profile-page,
 body.admin-page {
   background: var(--tp-canvas);
 }
+
+/* ---------------------------------------------------------------------------
+   9. Motion keyframes.
+
+   Salvaged from animations.css, which was deleted in the same commit. That file
+   was a parallel design system — its own Bootstrap-derived token namespace, a
+   ripple and a shimmer sweep in a visual language this app does not use, and
+   1,000 lines of which 46 of 56 selectors targeted classes that appear in no
+   markup. No page ever loaded it.
+
+   Eight of its eleven keyframes were duplicates of animations this codebase
+   already implements under better names: `spin` exists five more times across
+   admin.css, styles.css, login, profile and register; `shimmer` is
+   tp-skel-shimmer in dashboard-light.css and discoverShimmer in dashboard.css;
+   the fade and slide variants are card-fade-up, dash-fade-in and sa-fade-in.
+   Those were dropped rather than moved.
+
+   These three had no equivalent anywhere. They are namespaced to match
+   tp-skel-shimmer and tp-toast-rise, and timed from the tokens at the top of
+   this file so motion stays consistent with the transitions above.
+   ------------------------------------------------------------------------- */
+
+/* A single settle-and-rest hop. Intended for confirming a discrete action —
+   an item checked off, a milestone reached — where a fade reads as too soft. */
+@keyframes tp-bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40%                     { transform: translateY(-10px); }
+  60%                     { transform: translateY(-5px); }
+}
+
+/* Attention without motion sickness: a 5% swell, looped. For a live or
+   unread indicator, not for anything the eye has to read while it moves. */
+@keyframes tp-pulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Grows a bar to a width the caller sets, so a progress fill can animate to
+   its value instead of appearing at it:
+     .bar { --tp-progress-width: 43%; animation: tp-progress-fill 320ms var(--tp-ease); } */
+@keyframes tp-progress-fill {
+  from { width: 0%; }
+  to   { width: var(--tp-progress-width, 100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Reduced motion means none of the three run at all. tp-progress-fill is
+     included deliberately: a bar that jumps to its value still communicates
+     the value, which is the part that carries information. */
+  [style*="tp-bounce"], [style*="tp-pulse"], [style*="tp-progress-fill"],
+  .tp-bounce, .tp-pulse, .tp-progress-fill {
+    animation: none;
+  }
+}

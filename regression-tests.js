@@ -290,18 +290,21 @@ class RegressionTester {
     await this.runTest('CSS Styles Loading', async () => {
       try {
         const stylesheets = document.querySelectorAll('link[rel="stylesheet"]');
-        const hasAnimations = Array.from(stylesheets).some(link => 
-          link.href.includes('animations.css')
+        // Motion keyframes moved into theme.css when animations.css was deleted.
+        // tokens.css is the one sheet every page loads, so it is the invariant
+        // worth asserting here.
+        const hasTokens = Array.from(stylesheets).some(link => 
+          link.href.includes('tokens.css')
         );
         const hasMainStyles = Array.from(stylesheets).some(link => 
           link.href.includes('styles.css')
         );
         
-        if (stylesheets.length >= 3 && hasMainStyles && hasAnimations) {
+        if (stylesheets.length >= 3 && hasMainStyles && hasTokens) {
           return { 
             passed: true, 
             message: 'CSS stylesheets loading correctly',
-            details: `Found ${stylesheets.length} stylesheets, including animations`
+            details: `Found ${stylesheets.length} stylesheets, including tokens`
           };
         } else {
           return { 
