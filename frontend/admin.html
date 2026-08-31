@@ -9,6 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200..800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js is fetched from here for the admin doughnuts. -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 
   <!-- Existing app stylesheets stay loaded so admin.js's pre-existing
        class hooks (e.g. .modal, .form-select) keep working. The inline
@@ -818,6 +820,9 @@
     let statusChart = null;
 
     function makeDoughnut(ctx, labels, values, colors) {
+      // Chart.js is a CDN script; renderEmptyChart already covers the no-data
+      // case, so reuse it when the library itself never arrived.
+      if (typeof Chart === 'undefined') return null;
       return new Chart(ctx, {
         type: 'doughnut',
         data: {

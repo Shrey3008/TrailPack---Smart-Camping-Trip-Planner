@@ -79,7 +79,10 @@ desert:   { bg: '#fdeee2', fg: '#c2410c', glyph: '🏜️' }
   };
 
   window.addEventListener('load', () => {
-if (document.getElementById('discoverMap')) {
+// Leaflet comes from a CDN. If it is blocked the ReferenceError used to escape
+// this handler and take renderDiscoverHome() with it, so a failed map also blanked
+// the Discover content below it. Map is optional; the content is not.
+if (document.getElementById('discoverMap') && typeof L !== 'undefined') {
   discoverMap = L.map('discoverMap').setView([41.8781, -87.6298], 9);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     attribution: '© OpenStreetMap © CARTO', maxZoom: 19, subdomains: 'abcd'
