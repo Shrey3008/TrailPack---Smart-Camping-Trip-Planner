@@ -511,13 +511,19 @@ e.discoverKind = kind;
 return e;
   }
 
-  /* One call to our own origin. The Worker answers with a typed envelope, so
+  /* One call to the Worker. The Worker answers with a typed envelope, so
  there is exactly one thing to read — `status` — instead of the four separate
  Overpass failure shapes the browser used to unpick. `empty` is a real answer
  about the world; `timeout` and `busy` are statements about the service and
- must never be shown as "no trails here". */
+ must never be shown as "no trails here".
+
+ The base comes from config.js because only one of the two hosts serving this
+ file also serves the route: it is empty (a relative path, as before) on the
+ Worker and on localhost, and the Worker's absolute URL on Vercel, which has
+ no serverless functions and used to 404 here. */
   function discoverFetch(lat, lon, tier) {
-const url = '/api/nearby-trails?lat=' + encodeURIComponent(lat)
+const base = window.TRAILS_API_URL || '';
+const url = base + '/api/nearby-trails?lat=' + encodeURIComponent(lat)
   + '&lon=' + encodeURIComponent(lon) + '&tier=' + encodeURIComponent(tier);
 return fetch(url, { headers: { accept: 'application/json' } })
   .then(res => res.text().then(text => {

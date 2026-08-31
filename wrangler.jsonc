@@ -10,8 +10,10 @@
   //
   // The backend is separate (Node/Express on Render) and is not deployed
   // by this config; the frontend reaches it over CORS via window.API_URL
-  // in frontend/config.js. The Worker route is same-origin with the pages
-  // that call it, so it needs no CORS headers of its own.
+  // in frontend/config.js. The Worker route is same-origin with the pages this
+  // config deploys, but the same frontend is also served from Vercel as static
+  // files with no route of its own, so src/index.js answers that one origin
+  // with a CORS header — see ALLOWED_ORIGINS there.
   "$schema": "node_modules/wrangler/config-schema.json",
 
   // Must match the Worker that Cloudflare's Git integration already created,
