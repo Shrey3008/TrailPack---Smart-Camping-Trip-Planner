@@ -2043,6 +2043,13 @@
       border-color: var(--green, #2d6a4f);
       background: rgba(45, 106, 79, 0.05);
     }
+    .ed-hint {
+      margin: 5px 0 0;
+      font-size: .78rem;
+      line-height: 1.4;
+      color: var(--hc-muted, #6b7280);
+    }
+
     .ed-edit-btn:focus-visible {
       outline: 2px solid rgba(45, 106, 79, 0.6);
       outline-offset: 2px;
@@ -2089,7 +2096,11 @@
       margin-bottom: 4px;
       letter-spacing: 0.01em;
     }
-    .ed-field input[type="date"] {
+    /* Both input types, not just date: the destination field added alongside
+       the dates is type="text" and picked up none of this when the selector
+       named one type. */
+    .ed-field input[type="date"],
+    .ed-field input[type="text"] {
       display: block;
       width: 100%;
       box-sizing: border-box;
@@ -2102,7 +2113,8 @@
       border-radius: 10px;
       transition: border-color .15s, box-shadow .15s;
     }
-    .ed-field input[type="date"]:focus {
+    .ed-field input[type="date"]:focus,
+    .ed-field input[type="text"]:focus {
       outline: none;
       border-color: var(--green, #2d6a4f);
       box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
@@ -2839,7 +2851,7 @@
             <div class="ts-row" id="ts-dates-row" hidden>
               <span class="k">Dates</span>
               <span class="v" id="ts-dates">—</span>
-              <button type="button" id="ed-edit-btn" class="ed-edit-btn" aria-label="Edit trip dates" title="Edit trip dates">✏️ Edit</button>
+              <button type="button" id="ed-edit-btn" class="ed-edit-btn" aria-label="Edit trip details" title="Edit trip details">✏️ Edit</button>
             </div>
           </div>
         </div>
@@ -2899,11 +2911,17 @@
       </div>
     </div>
 
-    <!-- Edit Trip Dates modal -->
+    <!-- Edit trip details: destination + dates -->
     <div class="ed-modal" id="ed-modal" role="dialog" aria-modal="true" aria-labelledby="ed-modal-title" hidden>
       <div class="ed-modal-card">
-        <h3 class="ed-modal-title" id="ed-modal-title">Edit trip dates</h3>
+        <h3 class="ed-modal-title" id="ed-modal-title">Edit trip details</h3>
         <form id="ed-form" novalidate>
+          <div class="ed-field">
+            <label for="ed-location">Destination</label>
+            <input type="text" id="ed-location" name="location" autocomplete="off"
+                   placeholder="e.g. Estes Park, Colorado">
+            <p class="ed-hint">Used to look up the forecast. A town or city works better than a park name.</p>
+          </div>
           <div class="ed-field">
             <label for="ed-start">Start date</label>
             <input type="date" id="ed-start" name="startDate" required>
@@ -4399,6 +4417,11 @@
         endEl.parentNode.replaceChild(freshEnd, endEl);
         endEl = freshEnd;
 
+        // Prefilled from the trip, blank when it has none — which is the case
+        // this field was added for.
+        const locEl = document.getElementById('ed-location');
+        if (locEl) locEl.value = (trip && trip.location) || '';
+
         const today = todayIsoDate();
         const prefStart = toIsoDate(trip && trip.startDate);
         const prefEnd   = toIsoDate(trip && trip.endDate);
@@ -4437,12 +4460,18 @@
         if (ev && ev.preventDefault) ev.preventDefault();
         const startEl = document.getElementById('ed-start');
         const endEl   = document.getElementById('ed-end');
+        const locEl   = document.getElementById('ed-location');
         const errEl   = document.getElementById('ed-error');
         const saveBtn = document.getElementById('ed-save');
         if (!startEl || !endEl || !errEl || !saveBtn) return;
 
         const startVal = startEl.value || null;
         const endVal   = endEl.value   || null;
+        // Trimmed, and '' rather than null when cleared: PUT /trips/:id runs
+        // location through normalizeLocation() and stores null for an empty
+        // string, so clearing the field is a supported way to unset it.
+        const locVal   = locEl ? locEl.value.trim() : null;
+        const previousLocation = (trip && trip.location) || '';
         const today    = todayIsoDate();
 
         // Reject manually entered past dates (the picker already blocks
@@ -4463,9 +4492,14 @@
           endEl.focus();
           return;
         }
-        if (!startVal && !endVal) {
-          errEl.textContent = 'Please enter at least one date.';
-          startEl.focus();
+        // A destination on its own is a valid edit now, so this no longer
+        // demands a date — but it still rejects a wholly empty form, which
+        // would otherwise null the destination and both dates in one save.
+        // Clearing one field while another holds a value still works, which
+        // is how a destination or a date gets removed deliberately.
+        if (!startVal && !endVal && !locVal) {
+          errEl.textContent = 'Enter a destination or at least one date.';
+          (locEl || startEl).focus();
           return;
         }
         errEl.textContent = '';
@@ -4476,24 +4510,37 @@
         try {
           await api('/trips/' + tripId, {
             method: 'PUT',
-            body: JSON.stringify({ startDate: startVal, endDate: endVal }),
+            body: JSON.stringify({ startDate: startVal, endDate: endVal, location: locVal }),
           });
           // Mutate the in-scope trip object so renderHero(), the CSV
           // exporter, and the html2pdf snapshot all see the new dates.
           if (trip) {
             trip.startDate = startVal;
             trip.endDate   = endVal;
+            if (locVal !== null) trip.location = locVal || null;
           }
           if (window.currentTrip) {
             window.currentTrip.startDate = startVal;
             window.currentTrip.endDate   = endVal;
+            if (locVal !== null) window.currentTrip.location = locVal || null;
           }
           renderHero();
           closeEditDatesModal();
-          (window.showToast ? window.showToast('Dates updated!', 'success')
-                             : showToast('Dates updated!', 'success'));
+
+          // Saving a destination is the one edit the weather panel cares
+          // about, and it is the whole point of the "Add a location" route
+          // into this modal — so re-run the lookup rather than making the
+          // user reload to see the forecast they just enabled.
+          const changedLocation = locVal !== null && locVal !== previousLocation;
+          if (changedLocation) loadWeatherHero();
+
+          const what = changedLocation
+            ? (startVal || endVal ? 'Trip updated' : 'Destination saved')
+            : 'Dates updated';
+          (window.showToast ? window.showToast(what, 'success')
+                             : showToast(what, 'success'));
         } catch (err) {
-          errEl.textContent = 'Could not save dates: ' + (err.message || err);
+          errEl.textContent = 'Could not save: ' + (err.message || err);
         } finally {
           saveBtn.disabled = false;
           saveBtn.textContent = prevLabel;
@@ -4855,10 +4902,15 @@
         box.hidden = false;
 
         // Opens the trip editor already on the page rather than adding a
-        // second way to set the same field.
+        // second way to set the same field, and puts the cursor in the field
+        // the button names — the modal also carries dates, which are not what
+        // was asked for here.
         const openTripEditor = () => {
           const edit = document.getElementById('ed-edit-btn');
-          if (edit) edit.click();
+          if (!edit) return;
+          edit.click();
+          const locEl = document.getElementById('ed-location');
+          if (locEl) locEl.focus();
         };
 
         if (reason === 'geo-blocked') {
