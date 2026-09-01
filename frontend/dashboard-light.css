@@ -869,52 +869,8 @@
       body.dash-light .trip-card .trip-actions .btn.btn-primary { flex: 1 1 auto !important; }
     }
 
-    /* ---------- Loading skeletons (trip grid) ----------
-       Sit inside .trips-grid, so they inherit the same column count as the
-       real cards and the grid does not reflow when the data lands. */
-    body.dash-light .tp-skel-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      min-height: 320px;
-    }
-    body.dash-light .tp-skel-photo { width: 100%; aspect-ratio: 16 / 9; }
-    body.dash-light .tp-skel-body {
-      padding: 14px 14px 15px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    body.dash-light .tp-skel-badges { display: flex; gap: 6px; }
-    body.dash-light .tp-skel-photo,
-    body.dash-light .tp-skel-line,
-    body.dash-light .tp-skel-pill,
-    body.dash-light .tp-skel-bar,
-    body.dash-light .tp-skel-button {
-      background: linear-gradient(90deg, #eef0ee 0%, #f7f8f6 50%, #eef0ee 100%);
-      background-size: 200% 100%;
-      animation: tp-skel-shimmer 1.4s ease-in-out infinite;
-    }
-    body.dash-light .tp-skel-line   { height: 12px; border-radius: 6px; width: 70%; }
-    body.dash-light .tp-skel-line--title { height: 18px; width: 85%; }
-    body.dash-light .tp-skel-line--short { width: 45%; height: 10px; }
-    body.dash-light .tp-skel-pill   { height: 18px; width: 62px; border-radius: var(--radius-full); }
-    body.dash-light .tp-skel-bar    { height: 5px; border-radius: var(--radius-full); margin-top: 2px; }
-    body.dash-light .tp-skel-button { height: 38px; border-radius: 8px; margin-top: 4px; }
-    @keyframes tp-skel-shimmer {
-      0%   { background-position: 100% 0; }
-      100% { background-position: -100% 0; }
-    }
-    /* A shimmer that never stops is the kind of motion this setting exists to
-       suppress; the shapes still communicate "loading" without it. */
-    @media (prefers-reduced-motion: reduce) {
-      body.dash-light .tp-skel-photo,
-      body.dash-light .tp-skel-line,
-      body.dash-light .tp-skel-pill,
-      body.dash-light .tp-skel-bar,
-      body.dash-light .tp-skel-button { animation: none; }
-    }
+    /* Loading skeletons moved to theme.css, so pages that do not load this
+       sheet can use them too. */
 
     /* ---------- Load failure panel ----------
        Replaces the unstyled legacy .error-message, which told the user to

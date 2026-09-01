@@ -2747,7 +2747,16 @@
       <div class="qa-chips" id="qa-chips"></div>
     </div>
 
-    <div id="categories"><div class="loading">Loading your checklist…</div></div>
+    <div id="categories">
+      <p class="tp-sr-only">Loading your checklist…</p>
+      <div class="tp-skel-block" aria-hidden="true">
+        <div class="tp-skel-line tp-skel-line--title"></div>
+        <div class="tp-skel-line"></div>
+        <div class="tp-skel-line tp-skel-line--short"></div>
+        <div class="tp-skel-line"></div>
+        <div class="tp-skel-line tp-skel-line--short"></div>
+      </div>
+    </div>
 
     <!-- Trip actions: moved to the bottom of the main column so they
          live below the full checklist instead of above it. Same class,
@@ -2790,7 +2799,11 @@
         </summary>
         <hr class="category-divider">
         <div class="card-body" id="risk-body">
-          <div class="muted-note">Loading risk analysis…</div>
+          <p class="tp-sr-only">Loading risk analysis…</p>
+          <div class="tp-skel-block" aria-hidden="true">
+            <div class="tp-skel-line"></div>
+            <div class="tp-skel-line tp-skel-line--short"></div>
+          </div>
         </div>
       </details>
     </section>
@@ -2804,7 +2817,11 @@
         </summary>
         <hr class="category-divider">
         <div class="card-body" id="collab-body">
-          <div class="muted-note">Loading collaborators…</div>
+          <p class="tp-sr-only">Loading collaborators…</p>
+          <div class="tp-skel-block" aria-hidden="true">
+            <div class="tp-skel-line"></div>
+            <div class="tp-skel-line tp-skel-line--short"></div>
+          </div>
         </div>
       </details>
     </section>

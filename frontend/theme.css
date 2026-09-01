@@ -511,3 +511,88 @@ body.admin-page {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   10. Loading skeletons.
+
+   These lived in dashboard-light.css behind a body.dash-light prefix, which
+   meant the only two pages that could show a skeleton were the two that
+   already did. Everywhere else fell back to a line of centred grey text —
+   five different loading treatments across the app, and the good one was
+   locked to the dashboard.
+
+   Moved here unscoped. Nothing outside that one block ever styled these class
+   names, so dropping the body prefix changes no specificity contest; dashboard
+   and my-trips both load this sheet after that one, so they render as before.
+
+   --bg-card and --border are dashboard-light.css's, and pages like checklist
+   do not have them. The fallbacks are what those pages get.
+   ------------------------------------------------------------------------- */
+.tp-skel-card {
+  background: var(--bg-card, var(--tp-surface));
+  border: 1px solid var(--border, #e8e8e4);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 320px;
+}
+.tp-skel-photo { width: 100%; aspect-ratio: 16 / 9; }
+.tp-skel-body {
+  padding: 14px 14px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tp-skel-badges { display: flex; gap: 6px; }
+.tp-skel-photo,
+.tp-skel-line,
+.tp-skel-pill,
+.tp-skel-bar,
+.tp-skel-button {
+  background: linear-gradient(90deg, #eef0ee 0%, #f7f8f6 50%, #eef0ee 100%);
+  background-size: 200% 100%;
+  animation: tp-skel-shimmer 1.4s ease-in-out infinite;
+}
+.tp-skel-line   { height: 12px; border-radius: 6px; width: 70%; }
+.tp-skel-line--title { height: 18px; width: 85%; }
+.tp-skel-line--short { width: 45%; height: 10px; }
+.tp-skel-pill   { height: 18px; width: 62px; border-radius: var(--radius-full); }
+.tp-skel-bar    { height: 5px; border-radius: var(--radius-full); margin-top: 2px; }
+.tp-skel-button { height: 38px; border-radius: 8px; margin-top: 4px; }
+
+/* A block of plain lines, for a region that is a list rather than a card grid.
+   No min-height and no photo: it stands in for text, not for a card. */
+.tp-skel-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+@keyframes tp-skel-shimmer {
+  0%   { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+/* A shimmer that never stops is the kind of motion this setting exists to
+   suppress; the shapes still communicate "loading" without it. */
+@media (prefers-reduced-motion: reduce) {
+  .tp-skel-photo,
+  .tp-skel-line,
+  .tp-skel-pill,
+  .tp-skel-bar,
+  .tp-skel-button { animation: none; }
+}
+
+/* Text for screen readers only. The skeletons above are aria-hidden shapes,
+   so without this a loading region announces nothing at all — the grey
+   "Loading…" line they replace was doing that job. Kept inside the container
+   the render overwrites, so it clears itself when the data lands. */
+.tp-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
