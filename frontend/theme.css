@@ -491,6 +491,17 @@ body.admin-page {
   to   { width: var(--tp-progress-width, 100%); }
 }
 
+/* Utility classes, so a caller starts one of the three by adding a class
+   rather than repeating an animation shorthand at each call site. The guard
+   below is written against exactly these names. */
+.tp-bounce {
+  /* transform needs a block box, and the labels this lands on are inline. */
+  display: inline-block;
+  animation: tp-bounce 600ms var(--tp-ease) both;
+}
+.tp-pulse { animation: tp-pulse 2s var(--tp-ease) infinite; }
+.tp-progress-fill { animation: tp-progress-fill var(--tp-duration-slow) var(--tp-ease) both; }
+
 @media (prefers-reduced-motion: reduce) {
   /* Reduced motion means none of the three run at all. tp-progress-fill is
      included deliberately: a bar that jumps to its value still communicates

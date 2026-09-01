@@ -3129,6 +3129,12 @@
         updateProgress();
       }
 
+      // Whether the list was complete the last time updateProgress ran.
+      // Starts null rather than false so the first call after load only records
+      // where things stand: opening a checklist that is already finished is
+      // silent, finishing one while looking at it is not.
+      let wasComplete = null;
+
       function updateProgress() {
         // Recompute totals from the live items array on every call so
         // newly added items (including AI suggestions) are reflected
@@ -3146,10 +3152,45 @@
         if (lbPct) lbPct.textContent = pct + '%';
         if (fill) fill.style.width = pct + '%';
 
+        // An empty list is not a finished one, so total > 0 is part of the test
+        // and not just a guard against dividing by zero.
+        const complete = total > 0 && packed === total;
+
         const startBtn = document.getElementById('start-trip-btn');
-        if (startBtn) startBtn.disabled = !(total > 0 && packed === total);
+        if (startBtn) startBtn.disabled = !complete;
+
+        if (wasComplete === false && complete) celebrateComplete();
+        wasComplete = complete;
 
         renderPersonBreakdown();
+      }
+
+      // The last item getting checked off is the point of the whole page, and
+      // until now it passed in silence — the only acknowledgement was the Start
+      // Trip button quietly becoming clickable.
+      //
+      // Fires on the transition into complete, so unchecking and rechecking an
+      // item celebrates again. That is deliberate: it is the same moment.
+      function celebrateComplete() {
+        const label = document.querySelector('.ct-prog-label');
+        if (label) {
+          // Remove-reflow-add, so a second completion restarts the animation
+          // instead of doing nothing because the class is already there.
+          label.classList.remove('tp-bounce');
+          void label.offsetWidth;
+          label.classList.add('tp-bounce');
+          label.addEventListener('animationend', () => label.classList.remove('tp-bounce'), { once: true });
+        }
+
+        // Point at the next step rather than just applauding. The action is
+        // only offered when Start Trip is genuinely available — updateProgress
+        // has already set its disabled state by the time this runs.
+        const startBtn = document.getElementById('start-trip-btn');
+        const action = startBtn && !startBtn.disabled
+          ? { label: 'Start trip', onClick: () => startBtn.click() }
+          : null;
+
+        showToast('Everything packed — you’re ready to go.', 'success', action);
       }
 
       // Per-person packed counts, shown under the main bar.
