@@ -1455,6 +1455,57 @@
     }
 
     /* Theme gradients */
+    /* ---- Empty / error state -------------------------------------------
+       The panel used to render its whole layout with every value replaced by
+       an em-dash: six dashes, a placeholder icon and a five-day strip of
+       nothing, occupying the largest block above the fold. That reads as a
+       broken widget rather than as missing information.
+
+       is-empty hides the readings instead and shows one sentence naming the
+       cause, plus the single action that resolves it. The gradient, the
+       location line and the icon stay — they keep the card recognisable and
+       hold its place in the grid. */
+    .wx-hero.is-empty .wx-temp,
+    .wx-hero.is-empty .wx-hilo,
+    .wx-hero.is-empty .wx-pills,
+    .wx-hero.is-empty .wx-forecast { display: none; }
+
+    .wx-hero.is-empty .wx-content { padding-bottom: 22px; }
+
+    /* The weather glyph is sized for a 64px sun. A pin at that size dominates
+       a card whose whole point is that it has little to say, so it steps back
+       to roughly the size of the text it sits above. */
+    .wx-hero.is-empty .wx-emoji { font-size: 30px; opacity: .85; }
+    .wx-hero.is-empty .wx-icon-wrap { margin: 2px 0 0; min-height: 0; }
+    .wx-hero.is-empty .wx-icon-wrap::before { display: none; }
+
+    .wx-empty { margin-top: 10px; text-align: center; }
+
+    .wx-empty-msg {
+      margin: 0 0 12px;
+      font-size: .92rem;
+      line-height: 1.45;
+      color: rgba(255, 255, 255, 0.92);
+      max-width: 30ch;
+      margin-inline: auto;
+    }
+
+    /* Matches .wx-pill's translucent-on-gradient treatment rather than the
+       page's green buttons, which would fight the photo behind the card. */
+    .wx-empty-action {
+      font: inherit;
+      font-size: .86rem;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: var(--radius-full, 9999px);
+      padding: 8px 18px;
+      cursor: pointer;
+      transition: background var(--tp-duration, 180ms) var(--tp-ease, ease);
+    }
+    .wx-empty-action:hover { background: rgba(255, 255, 255, 0.32); }
+
     .wx-hero .wx-gradient[data-theme="sunny"]              { background: linear-gradient(180deg, #4A90D9 0%, #87CEEB 100%); }
     .wx-hero .wx-gradient[data-theme="partlyCloudy"]       { background: linear-gradient(180deg, #5B8DB8 0%, #8FB8D8 100%); }
     .wx-hero .wx-gradient[data-theme="cloudy"]             { background: linear-gradient(180deg, #6B7B8D 0%, #9BABB8 100%); }
@@ -2629,6 +2680,14 @@
             <span class="wx-pill"><span class="wx-pill-icon">💧</span><span id="wx-humidity">—</span></span>
             <span class="wx-pill"><span class="wx-pill-icon">💨</span><span id="wx-wind">—</span></span>
             <span class="wx-pill" id="wx-uv-tile"><span id="wx-uv-label">☀️ UV</span> <span id="wx-uv-value">—</span></span>
+          </div>
+
+          <!-- Shown instead of the readings above when there is nothing to
+               read. Says which of the two things went wrong and offers the
+               one action that fixes it. Hidden whenever weather resolves. -->
+          <div class="wx-empty" id="wx-empty" hidden>
+            <p class="wx-empty-msg" id="wx-empty-msg"></p>
+            <button type="button" class="wx-empty-action" id="wx-empty-action" hidden></button>
           </div>
         </div>
       </div>
@@ -4763,22 +4822,97 @@
         return theme;
       }
 
-      function wxHeroUnavailable(locLabel, condLabel) {
+      // Two different failures used to look identical: a trip that has no
+      // location to look weather up for, and a lookup that was attempted and
+      // failed. Both filled every reading with an em-dash and left the full
+      // layout standing. Naming which one happened is the whole fix — one of
+      // them the reader can act on, the other they can only retry.
+      //
+      // reason: 'geo-blocked'     permission denied, permanent, no retry offered
+      //         'geo-unavailable' geolocation timed out or failed, retryable
+      //         'no-location'     trip has no destination to look up
+      //         'lookup-failed'   a place was known but the forecast did not load
+      function wxHeroUnavailable(reason, locLabel) {
         const el = (id) => document.getElementById(id);
-        el('wx-loc-text').textContent = locLabel || (trip && trip.location) || 'Location unavailable';
-        el('wx-cond-text').textContent = condLabel || 'Weather unavailable';
-        el('wx-emoji').textContent = '🌤️';
-        el('wx-temp').textContent = '—°';
-        el('wx-feels').textContent = 'Feels —';
-        el('wx-humidity').textContent = '—';
-        el('wx-wind').textContent = '—';
-        el('wx-high').textContent = '—';
-        el('wx-low').textContent = '—';
-        const uvLabel = el('wx-uv-label');
-        const uvValue = el('wx-uv-value');
-        if (uvLabel) uvLabel.textContent = '☀️ UV';
-        if (uvValue) uvValue.textContent = '—';
+        const hero = el('wx-hero');
+        const msg = el('wx-empty-msg');
+        const action = el('wx-empty-action');
+        const box = el('wx-empty');
+
+        const place = locLabel || (trip && trip.location) || '';
+
+        el('wx-loc-text').textContent = place
+          || (reason === 'geo-blocked' ? 'Location blocked'
+             : reason === 'geo-unavailable' ? 'Location unavailable'
+             : 'No location set');
+        el('wx-cond-text').textContent = '';
+        el('wx-emoji').textContent =
+          (reason === 'no-location' || reason === 'geo-blocked' || reason === 'geo-unavailable') ? '📍' : '🌤️';
         wxApplyTheme('cloudy', null);
+
+        if (!hero || !box || !msg || !action) return;
+        hero.classList.add('is-empty');
+        box.hidden = false;
+
+        // Opens the trip editor already on the page rather than adding a
+        // second way to set the same field.
+        const openTripEditor = () => {
+          const edit = document.getElementById('ed-edit-btn');
+          if (edit) edit.click();
+        };
+
+        if (reason === 'geo-blocked') {
+          // Permission is denied for the site, which a page cannot undo:
+          // calling getCurrentPosition again does nothing once the browser has
+          // stopped asking. So the offered action is the one that works
+          // without location access at all — naming a destination — and the
+          // browser route is described rather than presented as a button.
+          msg.textContent = 'Location access is blocked, so TrailPack can\u2019t detect where you are. '
+            + 'Add a destination to this trip, or re-enable location for this site in your browser settings.';
+          action.textContent = 'Add a location';
+          action.hidden = false;
+          action.onclick = openTripEditor;
+        } else if (reason === 'geo-unavailable') {
+          // Timed out or position unavailable, but not denied — a retry can
+          // genuinely succeed here, and may re-show the permission prompt.
+          msg.textContent = 'Couldn\u2019t get your location. Add a destination to this trip, or try again.';
+          action.textContent = 'Use my location';
+          action.hidden = false;
+          action.onclick = () => {
+            hero.classList.remove('is-empty');
+            box.hidden = true;
+            el('wx-cond-text').textContent = 'Locating\u2026';
+            loadWeatherHero();
+          };
+        } else if (reason === 'no-location') {
+          msg.textContent = 'Add a destination and TrailPack will show the forecast for your dates.';
+          action.textContent = 'Add a location';
+          action.hidden = false;
+          action.onclick = openTripEditor;
+        } else {
+          msg.textContent = place
+            ? `Couldn't load the forecast for ${place}.`
+            : "Couldn't load the forecast.";
+          action.textContent = 'Try again';
+          action.hidden = false;
+          action.onclick = () => {
+            // Back to the loading state so a retry that also fails does not
+            // look like a button that did nothing.
+            hero.classList.remove('is-empty');
+            box.hidden = true;
+            el('wx-cond-text').textContent = 'Loading…';
+            loadWeatherHero();
+          };
+        }
+      }
+
+      // Undoes wxHeroUnavailable, so a successful load after a failed one
+      // does not leave the panel collapsed.
+      function wxHeroClearEmpty() {
+        const hero = document.getElementById('wx-hero');
+        const box = document.getElementById('wx-empty');
+        if (hero) hero.classList.remove('is-empty');
+        if (box) box.hidden = true;
       }
 
       // Resolve coordinates via the Geolocation API. Always resolves —
@@ -4799,7 +4933,7 @@
       }
 
       function wxRenderHero(data) {
-        if (!data) { wxHeroUnavailable(); return; }
+        if (!data) { wxHeroUnavailable('lookup-failed'); return; }
         const el = (id) => document.getElementById(id);
 
         // Apply iPhone-style theme (gradient + FX) based on condition + day/night.
@@ -4881,6 +5015,11 @@
         return !GENERIC_TERRAIN_WORDS.has(trimmed.toLowerCase());
       }
 
+      // Set inside loadWeatherHero once the trip is known. The catch block
+      // needs it: a thrown geolocation denial on a trip with no destination is
+      // "no location", the same throw on a trip that has one is a failed lookup.
+      let wxLocationKnown = false;
+
       async function loadWeatherHero() {
         try {
           console.log('loadWeatherHero: starting');
@@ -4918,6 +5057,9 @@
           const GENERIC = ['mountain','lake','forest','trail','valley','beach','desert','jungle'];
           const loc = trip.location || trip.terrain || '';
           const isGeneric = GENERIC.some(w => loc.toLowerCase().includes(w));
+          // A generic terrain word is not a destination: "Mountain" cannot be
+          // geocoded, which is why these trips fall through to GPS.
+          wxLocationKnown = hasCoords || (!!loc && !isGeneric);
           console.log('location:', loc, '| isGeneric:', isGeneric, '| coords:', hasCoords ? `${tripLat},${tripLon}` : 'none');
 
           let weatherUrl;
@@ -4936,11 +5078,30 @@
             // /weather is behind authenticate middleware too — send the JWT.
             const res = await fetch(weatherUrl, { headers: authHeaders });
             data = await res.json();
+          } else if (!('geolocation' in navigator)) {
+            wxHeroUnavailable('no-location');
+            return;
           } else {
-            // GPS fallback
-            const pos = await new Promise((resolve, reject) =>
-              navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000})
-            );
+            // GPS fallback, reached only when the trip has no coordinates and
+            // no geocodable location string.
+            //
+            // This rejection used to fall through to the outer catch, which
+            // could not tell a blocked permission from a network error and
+            // painted the whole panel with em-dashes either way. Handled here
+            // so the reason survives.
+            let pos;
+            try {
+              pos = await new Promise((resolve, reject) =>
+                navigator.geolocation.getCurrentPosition(resolve, reject, {timeout:8000})
+              );
+            } catch (geoErr) {
+              // GeolocationPositionError codes: 1 PERMISSION_DENIED,
+              // 2 POSITION_UNAVAILABLE, 3 TIMEOUT. Only 1 is permanent — the
+              // other two are worth a retry, 1 is not, and offering one would
+              // be a button that cannot work.
+              wxHeroUnavailable(geoErr && geoErr.code === 1 ? 'geo-blocked' : 'geo-unavailable');
+              return;
+            }
             const {latitude: lat, longitude: lon} = pos.coords;
             const res = await fetch(`${WX_API_BASE}/weather?lat=${lat}&lon=${lon}`, {
               headers: authHeaders,
@@ -4953,9 +5114,12 @@
           // Delegate to the iPhone-style themed renderer — it handles the
           // gradient/FX, pill formatting, "Today" prepend, and forecast strip.
           if (data && !data.message) {
+            wxHeroClearEmpty();
             wxRenderHero(data);
           } else {
-            wxHeroUnavailable(loc, data && data.message);
+            // The API answered but had nothing for this place, which is a
+            // failed lookup even when the trip does have a destination.
+            wxHeroUnavailable(wxLocationKnown ? 'lookup-failed' : 'no-location', loc);
           }
 
           // Remove "Weather unavailable" text if showing
@@ -4964,7 +5128,7 @@
 
         } catch (err) {
           console.error('loadWeatherHero FAILED:', err);
-          wxHeroUnavailable();
+          wxHeroUnavailable(wxLocationKnown ? 'lookup-failed' : 'no-location');
         }
       }
 
