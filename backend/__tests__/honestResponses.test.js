@@ -213,7 +213,14 @@ describe('9. the shared-trips endpoint is the working one', () => {
   });
 
   test('the two-segment dashboards are not shadowed by /trips/:id', async () => {
-    const token = await seedUser('u1', 'u1@test.com');
+    // Seeded as an organizer because the route now carries
+    // authorize('organizer', 'admin'); it previously answered any authenticated
+    // caller. What this test is about is route ordering — that the two-segment
+    // path reaches its own handler instead of being swallowed by /trips/:id —
+    // so it needs a caller the handler will actually serve. A plain user now
+    // gets 403, which is still proof of reaching the route rather than 404 from
+    // being shadowed; tripStatusAndOrganizerGuard.test.js pins that separately.
+    const token = await seedUser('u1', 'u1@test.com', 'organizer');
     const organizer = await request(app)
       .get('/trips/organizer/dashboard')
       .set('Authorization', `Bearer ${token}`);
