@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Type checking.
+       `strict` is not on in the Vite template this project was scaffolded
+       from, so it is set here deliberately. It is the whole reason for
+       choosing TypeScript on this migration: without it, every value coming
+       back from the API is implicitly `any` and the compiler agrees with any
+       claim made about it, which is the opposite of the point.
+
+       `noUncheckedIndexedAccess` is the one addition beyond `strict`. The API
+       returns arrays and record lookups constantly (checklist items grouped by
+       category), and without it `items[0]` is typed as present even when the
+       array is empty. */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}

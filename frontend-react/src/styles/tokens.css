@@ -1,0 +1,65 @@
+/* ============================================================================
+   Design tokens.
+
+   Copied from frontend/tokens.css so the React app is visually continuous with
+   the vanilla site during the migration — a user clicking between the two
+   should not see the product change shape.
+
+   Copied rather than imported: the two apps build differently (one has no
+   build step at all) and a shared file across them would be a coupling neither
+   deployment can express. The values are stable and small; when the migration
+   finishes, this file is the one that survives.
+   ========================================================================== */
+
+:root {
+  /* Corner radii — one scale, four steps plus a pill.
+       sm   – inputs, chips, small controls
+       base – cards, buttons, most surfaces
+       lg   – large panels and modals
+       full – pills / fully rounded */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  --content-max: 1200px;
+  --content-gutter: 32px;
+
+  /* Brand green. Four steps that stay distinguishable side by side. */
+  --tp-green-900: #1b4332;
+  --tp-green-700: #2d6a4f;
+  --tp-green-500: #40916c;
+  --tp-green-300: #74c69d;
+  --tp-green-100: #d8f3e3;
+
+  /* Warm off-white. Never #fff — pure white reads clinical against the
+     photography, which the design brief calls out by name. */
+  --tp-canvas: #f8f7f4;
+  --tp-surface: #fffdfa;
+
+  --tp-ink: #1c1b18;
+  --tp-ink-muted: #5d5b54;
+  --tp-border: #e4e1d9;
+
+  --tp-danger: #b3261e;
+  --tp-danger-bg: #fdeceb;
+
+  --tp-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --tp-duration: 180ms;
+  --tp-duration-slow: 320ms;
+}
+
+/* Respect a system request for reduced motion. The vanilla auth pages animate
+   their content in from opacity:0 with fill-mode `both`, which is why
+   Lighthouse intermittently recorded no contentful paint on /login and
+   /register at all (see baseline/lighthouse-before.json). This app does not
+   repeat that: content is opaque by default and any transition is additive. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
