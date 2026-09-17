@@ -348,9 +348,25 @@ The backend allowlist ([backend/server.js](backend/server.js)) is built from:
    unconditional, so local development works with nothing configured
 
 There is **no hardcoded production origin**. Adding a frontend origin is a
-config change, not a code change. The Cloudflare frontend is allowed through
-**(1)**: `CORS_ALLOWED_ORIGINS` holds the exact Worker origin. Two details of
-the parser are easy to get wrong and fail silently:
+config change, not a code change. Both deployed frontends must therefore appear
+in **(1)**:
+
+```
+https://trailpack-smart-camping.vercel.app
+https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev
+```
+
+> This section previously stated that `CORS_ALLOWED_ORIGINS` already held the
+> exact Worker origin. Measured against production on 2026-09-17, it did not: a
+> preflight `OPTIONS /trips` from the Vercel origin answered 204 and the same
+> request from the Worker origin answered 403, so every authenticated feature on
+> the Worker deployment — login, trips, checklist — was failing while its static
+> pages looked healthy. Because the value lives only in the Render dashboard,
+> nothing in this repository could contradict the claim. `__tests__/cors.test.js`
+> now pins both origins against the required config so the pair cannot drift
+> again unnoticed.
+
+Two details of the parser are easy to get wrong and fail silently:
 
 - It splits on **commas only**. Space, semicolon and newline separators produce
   one entry that matches nothing.

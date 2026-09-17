@@ -77,4 +77,53 @@ describe('the allowlist has no hardcoded production origin', () => {
     expect(allowed('https://trailpack-frontend.workers.dev')).toBe(true);
     expect(allowed('https://mytrailpack.netlify.app')).toBe(false);
   });
+
+  describe('the two origins the frontend is actually served from', () => {
+    // Measured against production on 2026-09-17: a preflight
+    // `OPTIONS /trips` from the Vercel origin answered 204, and the same
+    // request from the Cloudflare Worker origin answered 403. The Worker is
+    // the deployment wrangler.jsonc treats as primary — it is the one that
+    // also serves /api/nearby-trails — so every authenticated feature on it
+    // (login, trips, checklist) was broken while the static pages looked fine.
+    //
+    // The cause is configuration, not code: CORS_ALLOWED_ORIGINS on the Render
+    // service listed only Vercel. These tests pin the value that has to be set,
+    // so the Worker origin cannot be dropped again without a red build. There
+    // is deliberately still no hardcoded default in server.js — the suite above
+    // enforces that, and this block does not weaken it.
+    const VERCEL = 'https://trailpack-smart-camping.vercel.app';
+    const WORKER = 'https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev';
+    const REQUIRED_CONFIG = `${VERCEL},${WORKER}`;
+
+    test('both deployed frontends are allowed by the required config', () => {
+      const allowed = withEnv(REQUIRED_CONFIG);
+      expect(allowed(VERCEL)).toBe(true);
+      expect(allowed(WORKER)).toBe(true);
+    });
+
+    test('listing only Vercel is what broke the Worker', () => {
+      // The state production was actually in.
+      const allowed = withEnv(VERCEL);
+      expect(allowed(VERCEL)).toBe(true);
+      expect(allowed(WORKER)).toBe(false);
+    });
+
+    test('the required config grants nothing else', () => {
+      const allowed = withEnv(REQUIRED_CONFIG);
+      expect(allowed('https://evil.example.com')).toBe(false);
+      // Another account's Worker on the shared workers.dev parent domain.
+      expect(allowed('https://attacker.someoneelse.workers.dev')).toBe(false);
+      // A lookalike that merely ends with the same words.
+      expect(allowed('https://nottrailpack-smart-camping.vercel.app')).toBe(false);
+    });
+
+    test('a "*.workers.dev" wildcard would be far too broad — do not use it', () => {
+      // workers.dev is a shared parent domain: anyone can deploy under it.
+      // Recording the consequence here so the wildcard is not reached for as a
+      // convenience later.
+      const allowed = withEnv('*.workers.dev');
+      expect(allowed(WORKER)).toBe(true);
+      expect(allowed('https://attacker.someoneelse.workers.dev')).toBe(true);
+    });
+  });
 });
