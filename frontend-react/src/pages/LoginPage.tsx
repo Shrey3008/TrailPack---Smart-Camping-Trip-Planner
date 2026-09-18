@@ -2,15 +2,15 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
-import { FormError, SubmitButton, TextField } from '../components/Field';
+import { BrandPanel, PaneMobileLogo } from '../components/BrandPanel';
+import { AuthPasswordField, AuthSubmit, AuthTextField } from '../components/AuthField';
 
 interface LocationState {
   from?: { pathname: string };
   /**
    * Set by the pages that hand off to sign-in — registration and the end of
    * the password reset. Without rendering it, someone who has just created an
-   * account arrives at a blank form with no sign anything worked, and the
-   * natural reading is that the submission failed.
+   * account arrives at a blank form with no sign anything worked.
    */
   notice?: string;
 }
@@ -24,12 +24,9 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
-  // Clear a stale message when the page is left, so returning here does not
-  // show the previous attempt's failure against an empty form.
   useEffect(() => () => clearError(), [clearError]);
 
   const state = location.state as LocationState | null;
-  // Where ProtectedRoute wanted to send them before the redirect.
   const from = state?.from?.pathname ?? '/';
   const notice = state?.notice;
 
@@ -37,8 +34,8 @@ export function LoginPage() {
 
   function validate(): boolean {
     const next: { email?: string; password?: string } = {};
-    if (!email.trim()) next.email = 'Enter your email address.';
-    if (!password) next.password = 'Enter your password.';
+    if (!email.trim()) next.email = 'Please enter a valid email.';
+    if (!password) next.password = 'Password is required.';
     setFieldErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -50,67 +47,97 @@ export function LoginPage() {
       await login({ email: email.trim(), password });
       navigate(from, { replace: true });
     } catch {
-      // The message is already in auth state; FormError renders it. Swallowed
-      // here so an expected 401 does not surface as an unhandled rejection.
+      // Message already in auth state; rendered below. Swallowed so an
+      // expected 401 is not an unhandled rejection.
     }
   }
 
   return (
-    <main className="auth-layout">
-      <div className="auth-card">
-        <p className="auth-card__brand">TrailPack</p>
-        <h1 className="auth-card__title">Sign in</h1>
-        <p className="auth-card__subtitle">Pick up where you left off.</p>
+    <div className="auth-shell">
+      <BrandPanel />
 
-        {/* A success handoff from registration or password reset. `role="status"`
-            rather than "alert": it is good news and should not interrupt what a
-            screen reader is already saying. Hidden once a sign-in attempt
-            fails, so the two messages never contradict each other on screen. */}
-        {notice && !error ? (
-          <p className="form-success" role="status">
-            {notice}
+      <main className="pane">
+        <div className="form-wrap">
+          <PaneMobileLogo />
+
+          <header className="pane__intro">
+            <p className="pane__greeting">Welcome back 👋</p>
+            <h1>Sign in to TrailPack</h1>
+          </header>
+
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <AuthTextField
+              label="Email"
+              type="email"
+              name="email"
+              value={email}
+              placeholder="you@example.com"
+              autoComplete="email"
+              autoFocus
+              disabled={isSubmitting}
+              error={fieldErrors.email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setFieldErrors((p) => (p.email ? { ...p, email: undefined } : p));
+              }}
+            />
+
+            <AuthPasswordField
+              label="Password"
+              name="password"
+              value={password}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              disabled={isSubmitting}
+              error={fieldErrors.password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setFieldErrors((p) => (p.password ? { ...p, password: undefined } : p));
+              }}
+            />
+
+            <div className="form-row">
+              {/* "Remember me" is presentational here, as it is on the vanilla
+                  page: the session lives in sessionStorage and ends with the
+                  tab either way. Kept so the layout matches, and deliberately
+                  not wired to anything it does not actually do. */}
+              <label className="checkbox">
+                <input type="checkbox" name="remember-me" disabled={isSubmitting} />
+                Remember me
+              </label>
+              <Link to="/forgot-password" className="forgot-link">
+                Forgot password?
+              </Link>
+            </div>
+
+            {notice && !error ? (
+              <div className="auth-success" role="status">
+                {notice}
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="auth-error" role="alert">
+                {error}
+              </div>
+            ) : null}
+
+            <AuthSubmit pending={isSubmitting} pendingLabel="Signing in…">
+              Sign In
+            </AuthSubmit>
+          </form>
+
+          <div className="divider">
+            <span>or</span>
+          </div>
+
+          <p className="signup">
+            Don&rsquo;t have an account? <Link to="/register">Sign up</Link>
           </p>
-        ) : null}
 
-        <FormError message={error} />
-
-        {/* noValidate: the browser's own bubbles are unstyled, inconsistent
-            across browsers, and not announced the way our messages are. */}
-        <form onSubmit={handleSubmit} noValidate>
-          <TextField
-            label="Email"
-            type="email"
-            name="email"
-            value={email}
-            autoComplete="email"
-            autoFocus
-            disabled={isSubmitting}
-            error={fieldErrors.email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <TextField
-            label="Password"
-            type="password"
-            name="password"
-            value={password}
-            autoComplete="current-password"
-            disabled={isSubmitting}
-            error={fieldErrors.password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <SubmitButton pending={isSubmitting} pendingLabel="Signing in…">
-            Sign in
-          </SubmitButton>
-        </form>
-
-        <p className="auth-card__footer">
-          <Link to="/forgot-password">Forgot your password?</Link>
-          <br />
-          New here? <Link to="/register">Create an account</Link>
-        </p>
-      </div>
-    </main>
+          <p className="copyright">© 2026 TrailPack</p>
+        </div>
+      </main>
+    </div>
   );
 }

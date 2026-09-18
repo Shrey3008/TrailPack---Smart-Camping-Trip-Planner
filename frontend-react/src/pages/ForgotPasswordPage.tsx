@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { ApiError } from '../api/client';
 import { authApi } from '../api/auth';
-import { FormError, SubmitButton, TextField } from '../components/Field';
+import { BrandPanel, PaneMobileLogo } from '../components/BrandPanel';
+import { AuthPasswordField, AuthSubmit, AuthTextField } from '../components/AuthField';
 
 /**
  * Password recovery, which the API models as three ordered steps:
@@ -13,12 +14,16 @@ import { FormError, SubmitButton, TextField } from '../components/Field';
  *   3. POST /auth/forgot/reset-password → done
  *
  * Modelled as a discriminated union rather than a pile of booleans, so the
- * resetToken is only reachable in the step that actually has one. That is not
- * decoration: step 3 cannot compile without having passed through step 2.
+ * resetToken is only reachable in the step that has one: step 3 cannot compile
+ * without having passed through step 2.
  *
  * Step 2's trap, from routes/auth.js: a WRONG ANSWER IS HTTP 200 with
  * `{ success: false }`, deliberately, so the client does not branch on status.
  * Treating a resolved promise as success would let anyone through.
+ *
+ * Uses the same two-panel shell as sign-in and registration. The vanilla site's
+ * forgot-password page is a plainer layout, but matching it would put a third
+ * different auth design in front of the user mid-flow.
  */
 type Stage =
   | { step: 'email' }
@@ -42,7 +47,7 @@ export function ForgotPasswordPage() {
 
   async function submitEmail(event: FormEvent) {
     event.preventDefault();
-    if (!email.trim()) return setError('Enter your email address.');
+    if (!email.trim()) return setError('Please enter a valid email.');
     setPending(true);
     setError(null);
     try {
@@ -60,7 +65,7 @@ export function ForgotPasswordPage() {
   async function submitAnswer(event: FormEvent) {
     event.preventDefault();
     if (stage.step !== 'answer') return;
-    if (!answer.trim()) return setError('Enter your answer.');
+    if (!answer.trim()) return setError('Please enter your answer.');
     setPending(true);
     setError(null);
     try {
@@ -106,92 +111,119 @@ export function ForgotPasswordPage() {
     }
   }
 
+  const greeting =
+    stage.step === 'email'
+      ? 'Forgot your password?'
+      : stage.step === 'answer'
+        ? 'Verify it’s you'
+        : 'Almost there';
+
   return (
-    <main className="auth-layout">
-      <div className="auth-card">
-        <p className="auth-card__brand">TrailPack</p>
-        <h1 className="auth-card__title">Reset your password</h1>
+    <div className="auth-shell">
+      <BrandPanel />
 
-        <FormError message={error} />
+      <main className="pane">
+        <div className="form-wrap">
+          <PaneMobileLogo />
 
-        {stage.step === 'email' ? (
-          <>
-            <p className="auth-card__subtitle">
-              Enter your email and we’ll ask your security question.
-            </p>
-            <form onSubmit={submitEmail} noValidate>
-              <TextField
+          <header className="pane__intro">
+            <p className="pane__greeting">{greeting}</p>
+            <h1>Reset your password</h1>
+          </header>
+
+          {stage.step === 'email' ? (
+            <form className="auth-form" onSubmit={submitEmail} noValidate>
+              <AuthTextField
                 label="Email"
                 type="email"
                 name="email"
                 value={email}
+                placeholder="you@example.com"
                 autoComplete="email"
                 autoFocus
                 disabled={pending}
+                hint="We’ll ask the security question you chose when you signed up."
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <SubmitButton pending={pending} pendingLabel="Looking up…">
+              {error ? (
+                <div className="auth-error" role="alert">
+                  {error}
+                </div>
+              ) : null}
+              <AuthSubmit pending={pending} pendingLabel="Looking up…">
                 Continue
-              </SubmitButton>
+              </AuthSubmit>
             </form>
-          </>
-        ) : null}
+          ) : null}
 
-        {stage.step === 'answer' ? (
-          <>
-            <p className="auth-card__subtitle">{stage.question}</p>
-            <form onSubmit={submitAnswer} noValidate>
-              <TextField
-                label="Your answer"
+          {stage.step === 'answer' ? (
+            <form className="auth-form" onSubmit={submitAnswer} noValidate>
+              <AuthTextField
+                label={stage.question}
                 name="answer"
                 value={answer}
+                placeholder="Your answer"
                 autoComplete="off"
                 autoFocus
                 disabled={pending}
+                hint="Case-insensitive — extra spaces are ignored."
                 onChange={(e) => setAnswer(e.target.value)}
               />
-              <SubmitButton pending={pending} pendingLabel="Checking…">
+              {error ? (
+                <div className="auth-error" role="alert">
+                  {error}
+                </div>
+              ) : null}
+              <AuthSubmit pending={pending} pendingLabel="Checking…">
                 Verify answer
-              </SubmitButton>
+              </AuthSubmit>
             </form>
-          </>
-        ) : null}
+          ) : null}
 
-        {stage.step === 'reset' ? (
-          <>
-            <p className="auth-card__subtitle">Choose a new password.</p>
-            <form onSubmit={submitNewPassword} noValidate>
-              <TextField
-                label="New password"
-                type="password"
+          {stage.step === 'reset' ? (
+            <form className="auth-form" onSubmit={submitNewPassword} noValidate>
+              <AuthPasswordField
+                label="New Password"
                 name="newPassword"
                 value={newPassword}
+                placeholder="Create a password"
                 autoComplete="new-password"
                 autoFocus
                 disabled={pending}
-                hint="At least 8 characters."
+                hint="Must be at least 8 characters"
                 onChange={(e) => setNewPassword(e.target.value)}
               />
-              <TextField
-                label="Confirm new password"
-                type="password"
+              <AuthPasswordField
+                label="Confirm New Password"
                 name="confirmPassword"
                 value={confirmPassword}
+                placeholder="Re-enter your password"
                 autoComplete="new-password"
                 disabled={pending}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
-              <SubmitButton pending={pending} pendingLabel="Saving…">
+              {error ? (
+                <div className="auth-error" role="alert">
+                  {error}
+                </div>
+              ) : null}
+              <AuthSubmit pending={pending} pendingLabel="Saving…">
                 Reset password
-              </SubmitButton>
+              </AuthSubmit>
             </form>
-          </>
-        ) : null}
+          ) : null}
 
-        <p className="auth-card__footer">
-          Remembered it? <Link to="/login">Back to sign in</Link>
-        </p>
-      </div>
-    </main>
+          <div className="divider">
+            <span>or</span>
+          </div>
+
+          <p className="signup">
+            Remembered it? <Link to="/login">Back to sign in</Link>
+          </p>
+
+          <p className="copyright">© 2026 TrailPack</p>
+        </div>
+      </main>
+    </div>
   );
 }

@@ -83,59 +83,6 @@ body {
   font-size: 1.4rem;
 }
 
-/* --------------------------------------------------------------- auth card */
-
-.auth-layout {
-  display: grid;
-  place-items: center;
-  min-height: 100vh;
-  padding: 2rem 1rem;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 26rem;
-  padding: 2rem;
-  background: var(--tp-surface);
-  border: 1px solid var(--tp-border);
-  border-radius: var(--radius-lg);
-}
-
-.auth-card__brand {
-  margin: 0 0 0.25rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--tp-green-700);
-  letter-spacing: -0.01em;
-}
-
-.auth-card__title {
-  margin: 0 0 0.35rem;
-  font-size: 1.55rem;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.auth-card__subtitle {
-  margin: 0 0 1.5rem;
-  color: var(--tp-ink-muted);
-  font-size: 0.94rem;
-}
-
-.auth-card__footer {
-  margin: 1.5rem 0 0;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--tp-border);
-  font-size: 0.92rem;
-  color: var(--tp-ink-muted);
-  text-align: center;
-}
-
-.auth-card__footer a {
-  color: var(--tp-green-700);
-  font-weight: 600;
-}
-
 /* ------------------------------------------------------------------ fields */
 
 .field {
@@ -287,12 +234,6 @@ body {
 .placeholder-page__meta dd {
   margin: 0 0 0.75rem;
   font-weight: 600;
-}
-
-@media (max-width: 480px) {
-  .auth-card {
-    padding: 1.5rem;
-  }
 }
 
 /* ============================================================ app shell === */

@@ -3,7 +3,13 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
 import { SECURITY_QUESTIONS, type SecurityQuestion } from '../api/auth';
-import { FormError, SelectField, SubmitButton, TextField } from '../components/Field';
+import { BrandPanel, PaneMobileLogo } from '../components/BrandPanel';
+import {
+  AuthPasswordField,
+  AuthSelectField,
+  AuthSubmit,
+  AuthTextField,
+} from '../components/AuthField';
 
 /**
  * Registration.
@@ -25,7 +31,7 @@ export function RegisterPage() {
     securityQuestion: SECURITY_QUESTIONS[0] as SecurityQuestion,
     securityAnswer: '',
   });
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
 
   useEffect(() => () => clearError(), [clearError]);
 
@@ -33,36 +39,35 @@ export function RegisterPage() {
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
   }
 
   function validate(): boolean {
-    const next: Record<string, string> = {};
-    if (!form.name.trim()) next.name = 'Enter your name.';
-    if (!form.email.trim()) next.email = 'Enter your email address.';
+    const next: Record<string, string | undefined> = {};
+    if (!form.name.trim()) next.name = 'Please enter your name.';
+    if (!form.email.trim()) next.email = 'Please enter a valid email.';
 
     // 8 is this form's rule, NOT the server's — POST /auth/register enforces no
     // minimum length at all, so the API accepts a one-character password today.
     // The rest of the backend disagrees with itself too: PUT /auth/password
     // requires 6, POST /auth/forgot/reset-password requires 8, and the vanilla
-    // register.html asks for 6 client-side only. 8 is chosen here to match the
-    // strictest existing rule rather than add a fourth number.
+    // register.html asks for 6 client-side only. 8 matches the strictest
+    // existing rule rather than adding a fourth number.
     //
-    // This is client-side only and therefore not a control — anyone posting
-    // directly to the API bypasses it. Worth fixing server-side in its own
-    // change; doing it here would be a silent behaviour change to a running
-    // product from inside a frontend migration.
-    if (!form.password) next.password = 'Choose a password.';
+    // Client-side length is not a control — anyone posting directly to the API
+    // bypasses it. Worth fixing server-side in its own change.
+    if (!form.password) next.password = 'Please choose a password.';
     else if (form.password.length < 8) next.password = 'Use at least 8 characters.';
 
     if (form.confirmPassword !== form.password) {
       next.confirmPassword = 'Passwords do not match.';
     }
     if (!form.securityAnswer.trim()) {
-      next.securityAnswer = 'Answer the security question so you can recover your account.';
+      next.securityAnswer = 'Please answer the security question.';
     }
 
     setFieldErrors(next);
-    return Object.keys(next).length === 0;
+    return Object.values(next).every((v) => v === undefined);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -77,8 +82,7 @@ export function RegisterPage() {
         securityAnswer: form.securityAnswer,
       });
       // Registration deliberately does not sign you in — the API answers 201
-      // with a message and no token. Hand off to the login page and say so,
-      // rather than silently landing on a form with no explanation.
+      // with a message and no token. Hand off to sign-in and say so.
       navigate('/login', {
         replace: true,
         state: { notice: 'Your account is ready. Sign in to get started.' },
@@ -89,94 +93,115 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="auth-layout">
-      <div className="auth-card">
-        <p className="auth-card__brand">TrailPack</p>
-        <h1 className="auth-card__title">Create your account</h1>
-        <p className="auth-card__subtitle">Plan a trip and pack for it in one place.</p>
+    <div className="auth-shell">
+      <BrandPanel />
 
-        <FormError message={error} />
+      <main className="pane">
+        <div className="form-wrap">
+          <PaneMobileLogo />
 
-        <form onSubmit={handleSubmit} noValidate>
-          <TextField
-            label="Name"
-            name="name"
-            value={form.name}
-            autoComplete="name"
-            autoFocus
-            disabled={isSubmitting}
-            error={fieldErrors.name}
-            onChange={(e) => update('name', e.target.value)}
-          />
+          <header className="pane__intro">
+            <p className="pane__greeting">Welcome to TrailPack 🎒</p>
+            <h1>Create your account</h1>
+          </header>
 
-          <TextField
-            label="Email"
-            type="email"
-            name="email"
-            value={form.email}
-            autoComplete="email"
-            disabled={isSubmitting}
-            error={fieldErrors.email}
-            onChange={(e) => update('email', e.target.value)}
-          />
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <AuthTextField
+              label="Full Name"
+              name="name"
+              value={form.name}
+              placeholder="Enter your full name"
+              autoComplete="name"
+              autoFocus
+              disabled={isSubmitting}
+              error={fieldErrors.name}
+              onChange={(e) => update('name', e.target.value)}
+            />
 
-          <TextField
-            label="Password"
-            type="password"
-            name="password"
-            value={form.password}
-            autoComplete="new-password"
-            disabled={isSubmitting}
-            error={fieldErrors.password}
-            hint="At least 8 characters."
-            onChange={(e) => update('password', e.target.value)}
-          />
+            <AuthTextField
+              label="Email"
+              type="email"
+              name="email"
+              value={form.email}
+              placeholder="you@example.com"
+              autoComplete="email"
+              disabled={isSubmitting}
+              error={fieldErrors.email}
+              onChange={(e) => update('email', e.target.value)}
+            />
 
-          <TextField
-            label="Confirm password"
-            type="password"
-            name="confirmPassword"
-            value={form.confirmPassword}
-            autoComplete="new-password"
-            disabled={isSubmitting}
-            error={fieldErrors.confirmPassword}
-            onChange={(e) => update('confirmPassword', e.target.value)}
-          />
+            <AuthPasswordField
+              label="Password"
+              name="password"
+              value={form.password}
+              placeholder="Create a password"
+              autoComplete="new-password"
+              disabled={isSubmitting}
+              error={fieldErrors.password}
+              hint="Must be at least 8 characters"
+              onChange={(e) => update('password', e.target.value)}
+            />
 
-          <SelectField
-            label="Security question"
-            name="securityQuestion"
-            value={form.securityQuestion}
-            disabled={isSubmitting}
-            hint="Used to recover your account if you forget your password."
-            onChange={(e) => update('securityQuestion', e.target.value as SecurityQuestion)}
-          >
-            {SECURITY_QUESTIONS.map((question) => (
-              <option key={question} value={question}>
-                {question}
-              </option>
-            ))}
-          </SelectField>
+            <AuthPasswordField
+              label="Confirm Password"
+              name="confirmPassword"
+              value={form.confirmPassword}
+              placeholder="Re-enter your password"
+              autoComplete="new-password"
+              disabled={isSubmitting}
+              error={fieldErrors.confirmPassword}
+              onChange={(e) => update('confirmPassword', e.target.value)}
+            />
 
-          <TextField
-            label="Your answer"
-            name="securityAnswer"
-            value={form.securityAnswer}
-            autoComplete="off"
-            disabled={isSubmitting}
-            error={fieldErrors.securityAnswer}
-            onChange={(e) => update('securityAnswer', e.target.value)}
-          />
+            <AuthSelectField
+              label="Security Question"
+              name="securityQuestion"
+              value={form.securityQuestion}
+              disabled={isSubmitting}
+              hint="Used to recover your account if you forget your password."
+              onChange={(e) => update('securityQuestion', e.target.value as SecurityQuestion)}
+            >
+              {SECURITY_QUESTIONS.map((question) => (
+                <option key={question} value={question}>
+                  {question}
+                </option>
+              ))}
+            </AuthSelectField>
 
-          <SubmitButton pending={isSubmitting} pendingLabel="Creating account…">
-            Create account
-          </SubmitButton>
-        </form>
+            <AuthTextField
+              label="Your Answer"
+              name="securityAnswer"
+              value={form.securityAnswer}
+              placeholder="Your answer"
+              autoComplete="off"
+              disabled={isSubmitting}
+              error={fieldErrors.securityAnswer}
+              hint="Case-insensitive — extra spaces are ignored."
+              onChange={(e) => update('securityAnswer', e.target.value)}
+            />
 
-        <p className="auth-card__footer">
-          Already have an account? <Link to="/login">Sign in</Link>
-        </p>
-      </div>
-    </main>
+            {error ? (
+              <div className="auth-error" role="alert">
+                {error}
+              </div>
+            ) : null}
+
+            <AuthSubmit pending={isSubmitting} pendingLabel="Creating account…">
+              Create Account
+            </AuthSubmit>
+          </form>
+
+          <div className="divider">
+            <span>or</span>
+          </div>
+
+          <p className="signup">
+            Already have an account? <Link to="/login">Sign in</Link>
+          </p>
+
+          <p className="copyright">© 2026 TrailPack</p>
+        </div>
+      </main>
+    </div>
   );
 }
