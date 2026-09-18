@@ -202,6 +202,10 @@ body {
   gap: 0.5rem;
   width: 100%;
   min-height: 44px; /* pointer target floor */
+  /* .btn is applied to <Link> as well as <button> — "Plan a trip" on the trips
+     list and in the empty state are both anchors. Without this they rendered
+     as underlined text inside a green button. */
+  text-decoration: none;
   padding: 0.7rem 1.1rem;
   font: inherit;
   font-weight: 600;
@@ -288,5 +292,396 @@ body {
 @media (max-width: 480px) {
   .auth-card {
     padding: 1.5rem;
+  }
+}
+
+/* ============================================================ app shell === */
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.6rem 1rem;
+  background: var(--tp-green-900);
+  color: #fff;
+  border-radius: 0 0 var(--radius-sm) 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}
+
+.appbar {
+  background: var(--tp-surface);
+  border-bottom: 1px solid var(--tp-border);
+}
+
+.appbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0.75rem var(--content-gutter);
+}
+
+.appbar__brand {
+  font-weight: 700;
+  color: var(--tp-green-700);
+  text-decoration: none;
+  letter-spacing: -0.01em;
+}
+
+.appbar__nav {
+  display: flex;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.appbar__link {
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius-sm);
+  color: var(--tp-ink-muted);
+  text-decoration: none;
+  font-size: 0.93rem;
+  font-weight: 600;
+}
+
+.appbar__link:hover {
+  background: var(--tp-green-100);
+  color: var(--tp-green-900);
+}
+
+/* react-router sets .active on a matching NavLink. aria-current is set too,
+   so this is decoration rather than the only signal. */
+.appbar__link.active {
+  background: var(--tp-green-100);
+  color: var(--tp-green-900);
+}
+
+.appbar__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.appbar__name {
+  font-size: 0.9rem;
+  color: var(--tp-ink-muted);
+}
+
+.app-main {
+  min-height: calc(100vh - 57px);
+}
+
+/* ================================================================ pages === */
+
+.page {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 2rem var(--content-gutter) 4rem;
+}
+
+.page--narrow {
+  max-width: 44rem;
+}
+
+.page__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.page__title {
+  margin: 0;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+}
+
+.page__subtitle {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+}
+
+.page__lede {
+  margin: 0 0 1.25rem;
+  color: var(--tp-ink-muted);
+}
+
+.page__section {
+  margin-top: 2.5rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--tp-border);
+}
+
+.page__section--danger .page__subtitle {
+  color: var(--tp-danger);
+}
+
+.breadcrumb {
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.breadcrumb a {
+  color: var(--tp-green-700);
+}
+
+/* ============================================================ trip cards === */
+
+/* auto-fill rather than auto-fit: auto-fit stretches a single card to the full
+   row width, which makes one trip look like a banner. */
+.trip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem 1.2rem;
+  background: var(--tp-surface);
+  border: 1px solid var(--tp-border);
+  border-radius: var(--radius);
+}
+
+.trip-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.trip-card__title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.3;
+}
+
+.trip-card__title a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.trip-card__title a:hover {
+  text-decoration: underline;
+}
+
+.trip-card__meta {
+  margin: 0.9rem 0 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.trip-card__meta dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tp-ink-muted);
+}
+
+.trip-card__meta dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.92rem;
+}
+
+.pill {
+  flex-shrink: 0;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-full);
+  background: var(--tp-border);
+  color: var(--tp-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.pill--active {
+  background: var(--tp-green-100);
+  color: var(--tp-green-900);
+}
+
+.pill--done {
+  background: var(--tp-green-500);
+  color: #fff;
+}
+
+.pill--muted {
+  background: var(--tp-border);
+  color: var(--tp-ink-muted);
+  text-decoration: line-through;
+}
+
+/* ================================================================ detail === */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1.1rem;
+  margin: 0;
+  padding: 1.25rem;
+  background: var(--tp-surface);
+  border: 1px solid var(--tp-border);
+  border-radius: var(--radius);
+}
+
+.detail-grid dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tp-ink-muted);
+}
+
+.detail-grid dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+}
+
+/* Only the status value is a lowercase enum needing presentation casing.
+   Applying capitalize to every dd turned "5 nights" into "5 Nights", "6 people"
+   into "6 People" and "Not set" into "Not Set" — it capitalises every word, not
+   just the first. */
+.detail-grid dd.detail-grid__status {
+  text-transform: capitalize;
+}
+
+/* ================================================================= forms === */
+
+.trip-form {
+  padding: 1.5rem;
+  background: var(--tp-surface);
+  border: 1px solid var(--tp-border);
+  border-radius: var(--radius-lg);
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-actions,
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* .btn defaults to width:100%, which is right for a lone button in a narrow
+   auth card but wrong in a row: the submit took the whole line and pushed
+   Cancel underneath, where its transparent ghost styling read as stray text
+   rather than a control. Inside a row, buttons size to their content. */
+.form-actions .btn,
+.button-row .btn {
+  width: auto;
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+}
+
+.btn--auto {
+  width: auto;
+}
+
+.btn--secondary {
+  background: var(--tp-canvas);
+  border-color: var(--tp-border);
+  color: var(--tp-ink);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  border-color: var(--tp-green-500);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--tp-ink-muted);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--tp-canvas);
+}
+
+.btn--danger {
+  background: var(--tp-danger);
+  color: #fff;
+}
+
+.btn--danger:hover:not(:disabled) {
+  filter: brightness(0.92);
+}
+
+/* ================================================================ states === */
+
+.skeleton {
+  background: linear-gradient(90deg, var(--tp-border) 25%, var(--tp-canvas) 50%, var(--tp-border) 75%);
+  background-size: 200% 100%;
+  border-radius: var(--radius-sm);
+  animation: tp-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes tp-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.trip-card--skeleton {
+  pointer-events: none;
+}
+
+.state-panel {
+  padding: 2rem;
+  background: var(--tp-surface);
+  border: 1px solid var(--tp-border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.state-panel--error {
+  border-color: var(--tp-danger);
+  background: var(--tp-danger-bg);
+}
+
+.state-panel__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.state-panel__body {
+  margin: 0 0 1.25rem;
+  color: var(--tp-ink-muted);
+}
+
+.state-panel--error .state-panel__body {
+  color: var(--tp-danger);
+}
+
+@media (max-width: 600px) {
+  :root {
+    --content-gutter: 16px;
+  }
+
+  .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .appbar__inner {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .page__head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

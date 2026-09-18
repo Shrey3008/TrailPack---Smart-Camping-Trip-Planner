@@ -109,6 +109,21 @@ export interface Trip {
   updatedAt?: string;
 }
 
+/**
+ * The terrain and season values the vanilla create-trip form offers. The API
+ * does NOT validate either — POST /trips accepts any non-empty string — so
+ * these are the app's vocabulary, not the server's.
+ *
+ * Worth knowing: the rule-based checklist generator in routes/trips.js only
+ * branches on Mountain, Forest and Desert. A Beach or Lake trip gets the base
+ * items and the season rules, but no terrain-specific gear.
+ */
+export const TERRAINS = ['Mountain', 'Forest', 'Desert', 'Beach', 'Lake'] as const;
+export const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'] as const;
+
+export type Terrain = (typeof TERRAINS)[number];
+export type Season = (typeof SEASONS)[number];
+
 /** Fields POST /trips accepts. name/terrain/season/duration are required. */
 export interface CreateTripInput {
   name: string;
@@ -265,9 +280,33 @@ export interface MeResponse {
   user: CurrentUser;
 }
 
-/** GET /trips — wrapped. Contrast GET /trips/:id, which is bare. */
+/**
+ * GET /trips — wrapped, and only trips the caller OWNS, newest first.
+ * Trips shared with them come from GET /shared-trips/mine instead.
+ * Contrast GET /trips/:id and PUT /trips/:id, which both answer a bare Trip.
+ */
 export interface TripsResponse {
   trips: Trip[];
+}
+
+/**
+ * POST /trips — 201. The trip is nested under `trip`, unlike the bare object
+ * that GET and PUT return for the same resource.
+ *
+ * The clone fields appear only when `cloneFromTripId` was sent and the source
+ * trip existed, which is why they are optional rather than a separate type:
+ * the caller cannot tell from the request alone which shape comes back.
+ */
+export interface CreateTripResponse {
+  message: string;
+  trip: Trip;
+  checklistSource?: 'cloned';
+  clonedFrom?: string;
+  counts?: {
+    copied: number;
+    assignmentsKept: number;
+    assignmentsCleared: number;
+  };
 }
 
 /** GET /shared-trips/mine */

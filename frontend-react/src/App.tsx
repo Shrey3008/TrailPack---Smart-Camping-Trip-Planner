@@ -11,10 +11,13 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
 import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute, RequireRole } from './auth/ProtectedRoute';
+import { AppLayout } from './components/AppLayout';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
-import { DashboardPlaceholder } from './pages/DashboardPlaceholder';
+import { TripsPage } from './pages/TripsPage';
+import { NewTripPage } from './pages/NewTripPage';
+import { TripDetailPage } from './pages/TripDetailPage';
 
 /** Phase 6 fills this in; here now so the guard itself is exercised. */
 function AdminPlaceholder() {
@@ -39,14 +42,22 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-          {/* Requires a verified session */}
+          {/* Requires a verified session. AppLayout is nested inside the guard
+              so the nav never renders for a signed-out visitor, not even for
+              the frame before the redirect commits. */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<DashboardPlaceholder />} />
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<TripsPage />} />
+              <Route path="/trips/new" element={<NewTripPage />} />
+              <Route path="/trips/:tripId" element={<TripDetailPage />} />
+            </Route>
           </Route>
 
           {/* Requires a session AND a role */}
           <Route element={<RequireRole roles={['admin']} />}>
-            <Route path="/admin" element={<AdminPlaceholder />} />
+            <Route element={<AppLayout />}>
+              <Route path="/admin" element={<AdminPlaceholder />} />
+            </Route>
           </Route>
 
           {/* Unknown paths go home; the guard then decides where that is. */}
