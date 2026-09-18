@@ -302,6 +302,80 @@ describe('GET /trips/:id (access control)', () => {
     expect(res.status).toBe(200);
     expect(res.body.tripId).toBe(TRIP_ID);
   });
+
+  // The regression. This answered 404 to a collaborator, while the same
+  // collaborator could read the trip's items and participants — so the
+  // checklist, which fetches the trip and its items together, failed outright
+  // for everyone who had accepted an invitation.
+  test('a collaborator can fetch a trip shared with them', async () => {
+    await Collaborator.create({ tripId: TRIP_ID, userId: INVITEE.userId, email: INVITEE.email });
+
+    const res = await request(app)
+      .get(`/trips/${TRIP_ID}`)
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.tripId).toBe(TRIP_ID);
+    // The owner is still identifiable, which is how a client decides whether
+    // to offer owner-only controls.
+    expect(res.body.userId).toBe(OWNER.userId);
+  });
+
+  test('what a collaborator gets here matches what /shared-trips/mine already gave them', async () => {
+    // The widening is only safe because it exposes nothing new. Pin that: every
+    // field this route returns to a collaborator was already in their
+    // shared-trips listing.
+    await Collaborator.create({ tripId: TRIP_ID, userId: INVITEE.userId, email: INVITEE.email });
+
+    const [one, listing] = await Promise.all([
+      request(app).get(`/trips/${TRIP_ID}`).set('Authorization', `Bearer ${tokenFor(INVITEE)}`),
+      request(app).get('/shared-trips/mine').set('Authorization', `Bearer ${tokenFor(INVITEE)}`),
+    ]);
+    const shared = listing.body.trips.find((t) => t.tripId === TRIP_ID);
+
+    expect(one.status).toBe(200);
+    expect(shared).toBeDefined();
+    for (const key of Object.keys(one.body)) {
+      expect(shared).toHaveProperty(key);
+    }
+  });
+
+  test('a stranger gets 404, not 403, so the id cannot be probed', async () => {
+    const res = await request(app)
+      .get(`/trips/${TRIP_ID}`)
+      .set('Authorization', `Bearer ${tokenFor(STRANGER)}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  test('a collaborator who has been removed loses access', async () => {
+    await Collaborator.create({ tripId: TRIP_ID, userId: INVITEE.userId, email: INVITEE.email });
+    await Collaborator.deleteOne({ tripId: TRIP_ID, userId: INVITEE.userId });
+
+    const res = await request(app)
+      .get(`/trips/${TRIP_ID}`)
+      .set('Authorization', `Bearer ${tokenFor(INVITEE)}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  test('widening the read did not widen the writes', async () => {
+    await Collaborator.create({ tripId: TRIP_ID, userId: INVITEE.userId, email: INVITEE.email });
+    const auth = { Authorization: `Bearer ${tokenFor(INVITEE)}` };
+
+    const put = await request(app).put(`/trips/${TRIP_ID}`).set(auth).send({ name: 'Hijacked' });
+    const status = await request(app).put(`/trips/${TRIP_ID}/status`).set(auth).send({ status: 'cancelled' });
+    const del = await request(app).delete(`/trips/${TRIP_ID}`).set(auth);
+
+    expect(put.status).toBe(404);
+    expect(status.status).toBe(404);
+    expect(del.status).not.toBe(200);
+
+    const stored = await Trip.findOne({ tripId: TRIP_ID }).lean();
+    expect(stored).not.toBeNull();
+    expect(stored.name).not.toBe('Hijacked');
+    expect(stored.status).not.toBe('cancelled');
+  });
 });
 
 describe('GET /shared-trips/mine', () => {

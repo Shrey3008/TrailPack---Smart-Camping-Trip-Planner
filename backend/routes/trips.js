@@ -554,17 +554,40 @@ router.get('/:id/weight', authenticate, async (req, res) => {
 });
 
 // GET /trips/:id - Get a single trip
+// Readable by the owner AND by collaborators.
+//
+// This used to query `{ tripId, userId }`, so only the owner could read a trip.
+// Every other trip-scoped read — the checklist items, the participant list —
+// already accepted collaborators through assertTripAccess, so a collaborator
+// could read and pack a checklist but not load the trip it belonged to. The
+// checklist page fetches both with Promise.all, so the trip's 404 failed the
+// whole page: someone who had accepted an invitation to pack a trip opened it
+// and got "Could not load checklist".
+//
+// Widening this exposes nothing new. GET /shared-trips/mine already returns
+// the full trip document to every collaborator; this is the same row, reached
+// by id. Writes stay owner-only — PUT, DELETE and PUT /:id/status all still
+// scope on { tripId, userId }.
+//
+// A caller with no access gets 404, not the 403 assertTripAccess raises: a
+// distinct "exists but not yours" answer would let anyone holding a candidate
+// id confirm that the trip exists.
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
 
-    const trip = await Trip.findOne({ tripId, userId }).select('-_id -__v').lean();
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
+    let access;
+    try {
+      access = await sharedTrips.assertTripAccess(tripId, userId);
+    } catch (e) {
+      if (e.status === 403 || e.status === 404) {
+        return res.status(404).json({ message: 'Trip not found' });
+      }
+      throw e;
     }
 
-    res.json(trip);
+    res.json(access.trip);
   } catch (error) {
     console.error('Error fetching trip:', error);
     res.status(500).json({ message: 'Error fetching trip' });
