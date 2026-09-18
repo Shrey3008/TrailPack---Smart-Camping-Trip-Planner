@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import './styles/tokens.css';
 import './styles/app.css';
 import './styles/auth.css';
+import './styles/checklist.css';
 import App from './App';
 
 const container = document.getElementById('root');

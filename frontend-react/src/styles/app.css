@@ -626,3 +626,17 @@ body {
     align-items: flex-start;
   }
 }
+
+/* A button that reads as an inline link, for secondary actions inside a line
+   of text — "Dismiss" in an error banner. A <button>, because it does not
+   navigate. */
+.link-button {
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}

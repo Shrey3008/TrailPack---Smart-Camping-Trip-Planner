@@ -31,10 +31,11 @@ export function TripCard({ trip }: { trip: Trip }) {
     <li className="trip-card">
       <div className="trip-card__head">
         <h3 className="trip-card__title">
-          {/* The whole card is not a link: it would swallow any control added
-              inside it later, and a nested interactive element inside an <a>
-              is invalid. The title is the link. */}
-          <Link to={`/trips/${trip.tripId}`}>{trip.name}</Link>
+          {/* The title is the link, not the whole card: a card-sized <a> would
+              swallow any control added inside it later. It opens the checklist
+              because packing is what a trip is opened for, as on the vanilla
+              dashboard; trip settings are one link away, and owner-only. */}
+          <Link to={`/trips/${trip.tripId}/checklist`}>{trip.name}</Link>
         </h3>
         <span className={statusClass(trip.status)}>{statusLabel(trip.status)}</span>
       </div>

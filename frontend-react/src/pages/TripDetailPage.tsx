@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { ApiError } from '../api/client';
+import { useAuth } from '../auth/useAuth';
 import { tripsApi } from '../api/trips';
 import { useAsync } from '../hooks/useAsync';
 import { ErrorState, Skeleton } from '../components/States';
@@ -20,6 +21,7 @@ export function TripDetailPage() {
   const { tripId = '' } = useParams();
   const navigate = useNavigate();
 
+  const { user } = useAuth();
   const trip = useAsync<Trip>((signal) => tripsApi.get(tripId, signal), [tripId]);
 
   const [isEditing, setIsEditing] = useState(false);
@@ -111,7 +113,7 @@ export function TripDetailPage() {
           {...(notFound
             ? {
                 description:
-                  'This trip may have been deleted, or it belongs to someone else. Trips shared with you appear under “Shared with you” on your trips page.',
+                  'This trip may have been deleted, or you may no longer have access to it.',
               }
             : {})}
         />
@@ -123,6 +125,11 @@ export function TripDetailPage() {
 
   const current = trip.data;
   const dates = formatDateRange(current.startDate, current.endDate);
+  // Collaborators can read this page since GET /trips/:id accepted them, but
+  // every write here — edit, status, delete — is still owner-only on the
+  // server. Offering those controls to a collaborator would mean a page of
+  // buttons that all fail, so they are not rendered.
+  const isOwner = user?.userId === current.userId;
 
   return (
     <div className="page page--narrow">
@@ -149,13 +156,15 @@ export function TripDetailPage() {
         <>
           <div className="page__head">
             <h1 className="page__title">{current.name}</h1>
-            <button
-              type="button"
-              className="btn btn--secondary btn--auto"
-              onClick={() => setIsEditing(true)}
-            >
-              Edit
-            </button>
+            {isOwner ? (
+              <button
+                type="button"
+                className="btn btn--secondary btn--auto"
+                onClick={() => setIsEditing(true)}
+              >
+                Edit
+              </button>
+            ) : null}
           </div>
 
           <dl className="detail-grid">
@@ -200,58 +209,62 @@ export function TripDetailPage() {
           ) : null}
 
           <section className="page__section">
-            <h2 className="page__subtitle">Status</h2>
-            <div className="button-row">
-              {STATUS_ACTIONS.filter((action) => action.status !== current.status).map((action) => (
-                <button
-                  key={action.status}
-                  type="button"
-                  className="btn btn--secondary btn--auto"
-                  disabled={busyStatus !== null}
-                  onClick={() => handleStatus(action.status)}
-                >
-                  {busyStatus === action.status ? 'Saving…' : action.label}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="page__section">
             <h2 className="page__subtitle">Checklist</h2>
-            <p className="page__lede">
-              The packing checklist for this trip arrives in Phase 4 of the migration. For now it
-              lives on the existing site.
-            </p>
+            <p className="page__lede">Pack, assign and track who is carrying what.</p>
+            <Link to={`/trips/${current.tripId}/checklist`} className="btn btn--primary btn--auto">
+              Open checklist
+            </Link>
           </section>
 
-          <section className="page__section page__section--danger">
-            <h2 className="page__subtitle">Delete this trip</h2>
-            <p className="page__lede">
-              Deleting a trip also deletes its checklist items. This cannot be undone.
-            </p>
-            {confirmingDelete ? (
+          {isOwner ? (
+            <section className="page__section">
+              <h2 className="page__subtitle">Status</h2>
               <div className="button-row">
-                <button type="button" className="btn btn--danger btn--auto" onClick={handleDelete}>
-                  Yes, delete “{current.name}”
-                </button>
+                {STATUS_ACTIONS.filter((action) => action.status !== current.status).map((action) => (
+                  <button
+                    key={action.status}
+                    type="button"
+                    className="btn btn--secondary btn--auto"
+                    disabled={busyStatus !== null}
+                    onClick={() => handleStatus(action.status)}
+                  >
+                    {busyStatus === action.status ? 'Saving…' : action.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {isOwner ? (
+            <section className="page__section page__section--danger">
+              <h2 className="page__subtitle">Delete this trip</h2>
+              <p className="page__lede">
+                Deleting a trip also deletes its checklist items. This cannot be undone.
+              </p>
+              {confirmingDelete ? (
+                <div className="button-row">
+                  <button type="button" className="btn btn--danger btn--auto" onClick={handleDelete}>
+                    Yes, delete “{current.name}”
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--auto"
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Keep it
+                  </button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  className="btn btn--ghost btn--auto"
-                  onClick={() => setConfirmingDelete(false)}
+                  className="btn btn--danger btn--auto"
+                  onClick={() => setConfirmingDelete(true)}
                 >
-                  Keep it
+                  Delete trip
                 </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="btn btn--danger btn--auto"
-                onClick={() => setConfirmingDelete(true)}
-              >
-                Delete trip
-              </button>
-            )}
-          </section>
+              )}
+            </section>
+          ) : null}
         </>
       )}
     </div>

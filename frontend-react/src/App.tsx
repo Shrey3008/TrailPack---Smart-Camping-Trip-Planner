@@ -18,6 +18,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { TripsPage } from './pages/TripsPage';
 import { NewTripPage } from './pages/NewTripPage';
 import { TripDetailPage } from './pages/TripDetailPage';
+import { ChecklistPage } from './pages/ChecklistPage';
 
 /** Phase 6 fills this in; here now so the guard itself is exercised. */
 function AdminPlaceholder() {
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="/" element={<TripsPage />} />
               <Route path="/trips/new" element={<NewTripPage />} />
               <Route path="/trips/:tripId" element={<TripDetailPage />} />
+              <Route path="/trips/:tripId/checklist" element={<ChecklistPage />} />
             </Route>
           </Route>
 
