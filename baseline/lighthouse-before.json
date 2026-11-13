@@ -1,0 +1,784 @@
+{
+  "capturedAt": "2026-09-17T21:47:51.396Z",
+  "purpose": "Pre-React-migration baseline for TrailPack. Phase 7 compares the React app against these numbers.",
+  "commit": "564474f832dbe9724346ef5664881f178ab975c2",
+  "branch": "dev",
+  "method": {
+    "tool": "Lighthouse 13.4.1",
+    "preset": "Lighthouse default (mobile emulation, simulated slow-4G throttling)",
+    "runsPerPage": 3,
+    "aggregation": "median of clean runs; failed runs discarded and re-run, not averaged in",
+    "chromeFlags": "--headless=new --disable-gpu",
+    "authenticatedMethod": "puppeteer-core seeds sessionStorage authToken/currentUser via evaluateOnNewDocument, then Lighthouse startFlow navigates the same tab with disableStorageReset:true. Each authenticated report was verified to have a finalDisplayedUrl on the intended page, not a redirect to /login."
+  },
+  "knownIssuesFoundDuringCapture": [
+    "PRODUCTION BUG: the Cloudflare Worker origin (https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev) is NOT in the backend's CORS_ALLOWED_ORIGINS. Preflight OPTIONS /trips from that origin answers 403, so every authenticated feature is broken on that deployment. The Vercel origin is allowed and works. Authenticated baselines were therefore captured on Vercel only.",
+    "Unauthenticated Lighthouse runs are flaky in this environment: 6 of the first 24 runs failed NO_FCP and were re-run with spacing between launches."
+  ],
+  "caveats": [
+    "Worker and Vercel serve byte-identical HTML; any difference between them is CDN/network only.",
+    "Authenticated pages were measured against a throwaway account seeded via the public API and deleted immediately afterward. The trip held 36 checklist items, 11 marked packed.",
+    "The checklist page fetches weather, provisions and risk data from external services at load, so its numbers include third-party latency that is outside the frontend code."
+  ],
+  "pages": {
+    "vercel:auth-checklist": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/checklist?tripId=989d6d7f-7a78-4ad3-9cdd-80bc111f561f",
+      "authenticated": true,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.68,
+        "accessibility": 0.9,
+        "bestPractices": 1,
+        "seo": 0.54
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 3747.34,
+          "unit": "millisecond",
+          "all": [
+            3789.99,
+            3747.34,
+            3586.67
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 5629.8,
+          "unit": "millisecond",
+          "all": [
+            5629.8,
+            5601.83,
+            8454.89
+          ]
+        },
+        "total-blocking-time": {
+          "median": 70,
+          "unit": "millisecond",
+          "all": [
+            84,
+            70,
+            54
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0.1,
+          "unit": "unitless",
+          "all": [
+            0.1,
+            0.1,
+            0.4
+          ]
+        },
+        "speed-index": {
+          "median": 3747.34,
+          "unit": "millisecond",
+          "all": [
+            3789.99,
+            3747.34,
+            3586.67
+          ]
+        },
+        "interactive": {
+          "median": 5629.8,
+          "unit": "millisecond",
+          "all": [
+            5629.8,
+            5601.83,
+            8454.89
+          ]
+        }
+      },
+      "totalByteWeightKB": 1313.58
+    },
+    "vercel:auth-dashboard": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/dashboard",
+      "authenticated": true,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.65,
+        "accessibility": 0.92,
+        "bestPractices": 1,
+        "seo": 0.58
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 2928.4,
+          "unit": "millisecond",
+          "all": [
+            3124.95,
+            2928.4,
+            2899.93
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 3124.95,
+          "unit": "millisecond",
+          "all": [
+            3124.95,
+            2928.4,
+            3199.93
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0.61,
+          "unit": "unitless",
+          "all": [
+            0.61,
+            0.61,
+            0.61
+          ]
+        },
+        "speed-index": {
+          "median": 2928.4,
+          "unit": "millisecond",
+          "all": [
+            3124.95,
+            2928.4,
+            2899.93
+          ]
+        },
+        "interactive": {
+          "median": 3124.95,
+          "unit": "millisecond",
+          "all": [
+            3124.95,
+            2928.4,
+            3199.93
+          ]
+        }
+      },
+      "totalByteWeightKB": 463.79
+    },
+    "vercel:auth-my-trips": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/my-trips",
+      "authenticated": true,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.95,
+        "accessibility": 0.96,
+        "bestPractices": 1,
+        "seo": 0.54
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 2394.29,
+          "unit": "millisecond",
+          "all": [
+            2402.71,
+            2394.29,
+            2385.96
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 2394.29,
+          "unit": "millisecond",
+          "all": [
+            2402.71,
+            2394.29,
+            2385.96
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 2394.29,
+          "unit": "millisecond",
+          "all": [
+            2402.71,
+            2394.29,
+            2385.96
+          ]
+        },
+        "interactive": {
+          "median": 2394.29,
+          "unit": "millisecond",
+          "all": [
+            2402.71,
+            2394.29,
+            2385.96
+          ]
+        }
+      },
+      "totalByteWeightKB": 289.82
+    },
+    "vercel:checklist-preview": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/checklist-preview",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.78,
+        "accessibility": 0.77,
+        "bestPractices": 1,
+        "seo": 0.91
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 2818.64,
+          "unit": "millisecond",
+          "all": [
+            2818.64,
+            2835.32,
+            1782.66
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 4452.94,
+          "unit": "millisecond",
+          "all": [
+            4452.94,
+            4443.51,
+            4538.75
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 4514.74,
+          "unit": "millisecond",
+          "all": [
+            4377.8,
+            4514.74,
+            5970.42
+          ]
+        },
+        "interactive": {
+          "median": 4452.94,
+          "unit": "millisecond",
+          "all": [
+            4452.94,
+            4443.51,
+            4538.75
+          ]
+        }
+      },
+      "totalByteWeightKB": 579.11
+    },
+    "vercel:login": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/login",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.9,
+        "accessibility": 0.95,
+        "bestPractices": 1,
+        "seo": 0.91
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 2914.75,
+          "unit": "millisecond",
+          "all": [
+            2914.75,
+            2911.24,
+            3315.09
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 2914.75,
+          "unit": "millisecond",
+          "all": [
+            2914.75,
+            2911.24,
+            3315.09
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 2914.75,
+          "unit": "millisecond",
+          "all": [
+            2914.75,
+            2911.24,
+            3315.09
+          ]
+        },
+        "interactive": {
+          "median": 2914.75,
+          "unit": "millisecond",
+          "all": [
+            2914.75,
+            2911.24,
+            3315.09
+          ]
+        }
+      },
+      "totalByteWeightKB": 100.01
+    },
+    "vercel:register": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/register",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.9,
+        "accessibility": 0.96,
+        "bestPractices": 1,
+        "seo": 0.91
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 2931.87,
+          "unit": "millisecond",
+          "all": [
+            2983.63,
+            2906.24,
+            2931.87
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 2931.87,
+          "unit": "millisecond",
+          "all": [
+            2983.63,
+            2906.24,
+            2931.87
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 2931.87,
+          "unit": "millisecond",
+          "all": [
+            2983.63,
+            2906.24,
+            2931.87
+          ]
+        },
+        "interactive": {
+          "median": 2931.87,
+          "unit": "millisecond",
+          "all": [
+            2983.63,
+            2906.24,
+            2931.87
+          ]
+        }
+      },
+      "totalByteWeightKB": 99.79
+    },
+    "vercel:root": {
+      "status": "ok",
+      "url": "https://trailpack-smart-camping.vercel.app/",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.99,
+        "accessibility": 0.87,
+        "bestPractices": 1,
+        "seo": 1
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 1671.49,
+          "unit": "millisecond",
+          "all": [
+            2978.45,
+            1669.63,
+            1671.49
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 1671.49,
+          "unit": "millisecond",
+          "all": [
+            2978.45,
+            1669.63,
+            1671.49
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0.01,
+          "unit": "unitless",
+          "all": [
+            0.01,
+            0.01,
+            0.01
+          ]
+        },
+        "speed-index": {
+          "median": 1671.49,
+          "unit": "millisecond",
+          "all": [
+            3040.17,
+            1669.63,
+            1671.49
+          ]
+        },
+        "interactive": {
+          "median": 1671.49,
+          "unit": "millisecond",
+          "all": [
+            2978.45,
+            1669.63,
+            1671.49
+          ]
+        }
+      },
+      "totalByteWeightKB": 100.02
+    },
+    "worker:checklist-preview": {
+      "status": "ok",
+      "url": "https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev/checklist-preview",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.83,
+        "accessibility": 0.77,
+        "bestPractices": 1,
+        "seo": 0.91
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 1813.49,
+          "unit": "millisecond",
+          "all": [
+            2879.42,
+            1813.49,
+            1754.39
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 4610.02,
+          "unit": "millisecond",
+          "all": [
+            5178.92,
+            4570.43,
+            4610.02
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 1813.49,
+          "unit": "millisecond",
+          "all": [
+            4737.85,
+            1813.49,
+            1754.39
+          ]
+        },
+        "interactive": {
+          "median": 4610.02,
+          "unit": "millisecond",
+          "all": [
+            5178.92,
+            4570.43,
+            4610.02
+          ]
+        }
+      },
+      "totalByteWeightKB": 580.47
+    },
+    "worker:login": {
+      "status": "ok",
+      "url": "https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev/login",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.92,
+        "accessibility": 0.95,
+        "bestPractices": 1,
+        "seo": 0.91
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 2707.5,
+          "unit": "millisecond",
+          "all": [
+            2707.5,
+            2636.53,
+            2979.44
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 2707.5,
+          "unit": "millisecond",
+          "all": [
+            2707.5,
+            2636.53,
+            2979.44
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 2707.5,
+          "unit": "millisecond",
+          "all": [
+            2707.5,
+            2636.53,
+            2979.44
+          ]
+        },
+        "interactive": {
+          "median": 2707.5,
+          "unit": "millisecond",
+          "all": [
+            2707.5,
+            2636.53,
+            2979.44
+          ]
+        }
+      },
+      "totalByteWeightKB": 101.82
+    },
+    "worker:register": {
+      "status": "ok",
+      "url": "https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev/register",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.89,
+        "accessibility": 0.96,
+        "bestPractices": 1,
+        "seo": 0.91
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 3018.56,
+          "unit": "millisecond",
+          "all": [
+            3018.56,
+            3026.36,
+            2817.46
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 3018.56,
+          "unit": "millisecond",
+          "all": [
+            3018.56,
+            3026.36,
+            2817.46
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 3018.56,
+          "unit": "millisecond",
+          "all": [
+            3018.56,
+            3026.36,
+            2817.46
+          ]
+        },
+        "interactive": {
+          "median": 3018.56,
+          "unit": "millisecond",
+          "all": [
+            3018.56,
+            3026.36,
+            2817.46
+          ]
+        }
+      },
+      "totalByteWeightKB": 101.61
+    },
+    "worker:root": {
+      "status": "ok",
+      "url": "https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev/",
+      "authenticated": false,
+      "cleanRuns": 3,
+      "scores": {
+        "performance": 0.87,
+        "accessibility": 0.87,
+        "bestPractices": 1,
+        "seo": 1
+      },
+      "metrics": {
+        "first-contentful-paint": {
+          "median": 3059.54,
+          "unit": "millisecond",
+          "all": [
+            3059.54,
+            3152.87,
+            3031.5
+          ]
+        },
+        "largest-contentful-paint": {
+          "median": 3059.54,
+          "unit": "millisecond",
+          "all": [
+            3059.54,
+            3152.87,
+            3031.5
+          ]
+        },
+        "total-blocking-time": {
+          "median": 0,
+          "unit": "millisecond",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "cumulative-layout-shift": {
+          "median": 0,
+          "unit": "unitless",
+          "all": [
+            0,
+            0,
+            0
+          ]
+        },
+        "speed-index": {
+          "median": 3152.87,
+          "unit": "millisecond",
+          "all": [
+            4484.07,
+            3152.87,
+            3057.62
+          ]
+        },
+        "interactive": {
+          "median": 3059.54,
+          "unit": "millisecond",
+          "all": [
+            3059.54,
+            3152.87,
+            3031.5
+          ]
+        }
+      },
+      "totalByteWeightKB": 101.37
+    }
+  }
+}

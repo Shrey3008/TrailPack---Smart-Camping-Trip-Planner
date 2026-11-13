@@ -59,3 +59,10 @@ screenshots/
 
 # Local dev server config for the Claude Code browser preview (not shared).
 .claude/launch.json
+
+# Raw Lighthouse reports behind baseline/lighthouse-before.json (~18 MB across
+# 33 files). The committed summary carries every number that is actually cited —
+# medians, per-run spreads, and the method — so the raw reports are evidence to
+# keep locally, not repository content. Regenerate them rather than committing:
+# they are a point-in-time capture of a deployed site, not a build artifact.
+baseline/raw/

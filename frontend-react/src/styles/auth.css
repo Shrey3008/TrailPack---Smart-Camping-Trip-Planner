@@ -1,0 +1,598 @@
+/* ============================================================================
+   Auth pages — the two-panel split.
+
+   Values copied from frontend/login.html and frontend/register.html, which
+   carry these styles inline. Copied rather than approximated: the first React
+   version of these pages was rebuilt from a description and came out a plain
+   centred card, which shared the palette but not the design.
+
+   The vanilla pages deliberately load no shared stylesheet ("so legacy global
+   rules can't leak in and break the layout"), so their `:root` block is local
+   to them. It is reproduced here scoped to .auth-shell rather than :root, so
+   these names cannot collide with the app-wide tokens in tokens.css.
+   ========================================================================== */
+
+.auth-shell {
+  --bg-card: #ffffff;
+  --green: #2d6a4f;
+  --green-dark: #1b4332;
+  --green-light: #40916c;
+  --green-soft: #52b788;
+  --green-pale: #e6f2eb;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b7280;
+  --text-faint: #9aa3af;
+  --border: #e8e8e4;
+  --border-strong: #d8d8d2;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  /* The vanilla page uses height:100vh + overflow:hidden. min-height is used
+     here so the taller register form can extend the page instead of being
+     clipped at viewport height. */
+  font-size: 15px;
+}
+
+/* The vanilla page writes this as a bare `a { }`, specificity (0,0,1), so any
+   single class below it wins. Scoping it to .auth-shell to avoid leaking into
+   the app pages raises it to (0,1,1) — which silently beat `.forgot-link`
+   (0,1,0) and rendered that link in body colour instead of green. The reset is
+   therefore applied at :where(), which contributes zero specificity, keeping
+   the vanilla cascade intact while still being scoped. */
+:where(.auth-shell) a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ------------------------------------------------------- LEFT: brand panel */
+
+.brand {
+  position: relative;
+  width: 50%;
+  box-sizing: border-box;
+  background: var(--green);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 60px 56px;
+  overflow: hidden;
+}
+
+/* Soft radial wash, lifting the flat green. */
+.brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 600px at 85% -10%, rgba(82, 183, 136, 0.3), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(27, 67, 50, 0.55), transparent 55%);
+  pointer-events: none;
+}
+
+.brand__inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  /* Matches the form panel's content height so both vertically-centred blocks
+     share a top y-position; without it the shorter brand cluster sits lower. */
+  min-height: 460px;
+}
+
+.brand__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 48px;
+}
+
+.brand__logo-mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand__logo-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+  color: #ffffff;
+}
+
+.brand__quote {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 2.05rem;
+  line-height: 1.3;
+  color: #ffffff;
+  margin: 0 0 18px;
+  letter-spacing: -0.005em;
+  transition: opacity 0.4s ease;
+}
+
+.brand__quote-attr {
+  font-family: 'Inter', sans-serif;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0 0 32px;
+  letter-spacing: 0.01em;
+  transition: opacity 0.4s ease;
+}
+
+.brand__features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.brand__features li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.98rem;
+  font-weight: 500;
+}
+
+.brand__features svg {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  padding: 4px;
+  border-radius: 50%;
+  background: rgba(82, 183, 136, 0.25);
+  color: #c8f0d8;
+}
+
+/* Mountain + tent illustration, anchored bottom. */
+.brand__art {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 220px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* -------------------------------------------------------- RIGHT: form pane */
+
+.pane {
+  width: 50%;
+  box-sizing: border-box;
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 40px;
+}
+
+/* The vanilla pane animates in with `fadeIn 0.5s both`, whose from-state is
+   opacity:0. That is why Lighthouse intermittently recorded NO_FCP on /login
+   and /register — with the only content transparent, Chrome had no contentful
+   paint to report (see baseline/lighthouse-before.json). The animation is
+   reproduced, but starting at a non-zero opacity so there is always something
+   painted, and skipped entirely under prefers-reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .pane {
+    animation: auth-fade-in 0.5s ease-out both;
+  }
+}
+
+@keyframes auth-fade-in {
+  from {
+    opacity: 0.01;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-wrap {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Compact logo for mobile, where the brand panel is hidden. */
+.pane__mobile-logo {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.pane__mobile-logo-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.pane__intro h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 4px 0 0;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+.pane__greeting {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+  margin: 0;
+  font-weight: 500;
+}
+
+/* -------------------------------------------------------------- form parts */
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.auth-field__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.005em;
+}
+
+.auth-field__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-field__input,
+.auth-field__select {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 0.95rem;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+/* Native select chevron replaced with the same inline SVG the vanilla
+   register page uses, so the control matches the text inputs. */
+.auth-field__select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+}
+
+.auth-field__input::placeholder {
+  color: var(--text-faint);
+}
+
+.auth-field__input:hover:not(:focus),
+.auth-field__select:hover:not(:focus) {
+  border-color: var(--border-strong);
+}
+
+.auth-field__input:focus,
+.auth-field__select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.12);
+}
+
+.auth-field--password .auth-field__input {
+  padding-right: 44px;
+}
+
+.auth-field__hint {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  margin: 2px 0 0;
+  line-height: 1.45;
+}
+
+.auth-field__toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.auth-field__toggle:hover {
+  background: #f3f4f0;
+  color: var(--text-primary);
+}
+
+.auth-field__toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Error state */
+.auth-field--error .auth-field__input,
+.auth-field--error .auth-field__select {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.auth-field--error .auth-field__input:focus,
+.auth-field--error .auth-field__select:focus {
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12);
+}
+
+.auth-field__error {
+  font-size: 0.78rem;
+  color: var(--danger);
+  margin-top: 2px;
+}
+
+/* Banners */
+.auth-success {
+  background: var(--green-pale);
+  color: var(--green);
+  border: 1px solid rgba(45, 106, 79, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.auth-error {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Remember me + forgot password */
+.form-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -4px;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
+.forgot-link {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--green);
+  transition: color 0.15s ease;
+}
+
+.forgot-link:hover {
+  color: var(--green-dark);
+  text-decoration: underline;
+}
+
+/* Submit */
+.btn-submit {
+  height: 48px;
+  width: 100%;
+  background: var(--green);
+  color: #ffffff;
+  border: 0;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 1px 2px rgba(45, 106, 79, 0.18);
+  transition:
+    background-color 0.15s ease,
+    transform 0.08s ease,
+    box-shadow 0.15s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: var(--green-dark);
+  box-shadow: 0 4px 14px rgba(27, 67, 50, 0.22);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-submit:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.22);
+}
+
+.btn-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+/* The vanilla page draws its spinner from :disabled::before. Reproduced with
+   an explicit class instead: the button is also disabled while a form is
+   merely invalid, and a spinner then would claim work that is not happening. */
+.btn-submit__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #ffffff;
+  animation: auth-spin 0.7s linear infinite;
+}
+
+@keyframes auth-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-shell a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.22);
+  border-radius: 4px;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Bottom links */
+.signup {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.signup a {
+  color: var(--green);
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+
+.signup a:hover {
+  color: var(--green-dark);
+  text-decoration: underline;
+}
+
+.copyright {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin: 24px 0 0;
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------- responsive, as vanilla */
+
+@media (max-width: 880px) {
+  .auth-shell {
+    flex-direction: column;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .pane {
+    width: 100%;
+    min-height: 100vh;
+    padding: 32px 20px 48px;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .pane__mobile-logo {
+    display: inline-flex;
+  }
+
+  .form-wrap {
+    gap: 22px;
+    margin-top: 24px;
+  }
+
+  .pane__intro h1 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 1100px) and (min-width: 881px) {
+  .brand {
+    padding: 48px 44px;
+  }
+
+  .brand__quote {
+    font-size: 1.75rem;
+  }
+}

@@ -1,0 +1,565 @@
+/* ============================================================================
+   Checklist.
+
+   Values from frontend/checklist.html's later redesign layer ("clean white,
+   Inter title", "airy rows, subtle done state"). That layer is written as
+   !important overrides on top of an earlier stylesheet in the same file; here
+   the final computed values are taken directly, so none of the !important
+   survives.
+
+   One deliberate departure: the vanilla cards use a 14px radius, which
+   FRONTEND_PLAN.md already records as drift off the 8 / 12 / 16 scale.
+   Cards here take --radius (12px) instead of reproducing the drift.
+   ========================================================================== */
+
+.checklist {
+  --cl-ink: #111111;
+  --cl-muted: #6b7280;
+  --cl-line: rgba(0, 0, 0, 0.08);
+  --cl-row-line: #f3f3ef;
+  --cl-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --cl-shadow-hi: 0 6px 20px rgba(0, 0, 0, 0.1);
+  --cl-green: #2d6a4f;
+  --cl-green-pale: #d8f3dc;
+}
+
+/* ------------------------------------------------------------------ header */
+
+.checklist__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.checklist__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cl-muted);
+}
+
+.checklist__meta {
+  margin: 0.35rem 0 0;
+  color: var(--cl-muted);
+  font-size: 0.92rem;
+}
+
+/* --------------------------------------------------------------- progress */
+
+.progress {
+  margin-bottom: 1.5rem;
+  padding: 18px 22px;
+  background: #ffffff;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--radius);
+  box-shadow: var(--cl-shadow);
+}
+
+.progress__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 8px;
+  font-size: 0.88rem;
+  color: var(--cl-muted);
+}
+
+.progress__label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.progress__pct {
+  color: var(--cl-green);
+  font-weight: 700;
+}
+
+.progress__track {
+  height: 10px;
+  background: var(--cl-green-pale);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  background: var(--cl-green);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+/* A finished checklist is worth marking. */
+.progress--complete .progress__pct::after {
+  content: ' — all packed';
+  font-weight: 600;
+}
+
+/* ------------------------------------------------ save indicator (ct-saved) */
+
+.save-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--cl-muted);
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 1px solid transparent;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease,
+    background-color 0.25s ease,
+    color 0.25s ease,
+    border-color 0.25s ease;
+  user-select: none;
+}
+
+.save-pill[data-state='saving'],
+.save-pill[data-state='saved'],
+.save-pill[data-state='error'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.save-pill[data-state='saving'] {
+  background: #f4f4f0;
+  border-color: #e8e8e4;
+}
+
+.save-pill[data-state='saved'] {
+  color: #15803d;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.save-pill[data-state='error'] {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.save-pill__icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.save-pill[data-state='saving'] .save-pill__icon {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: tp-spin 0.7s linear infinite;
+}
+
+.save-pill[data-state='idle'] .save-pill__icon {
+  display: none;
+}
+
+/* -------------------------------------------------------------- categories */
+
+.categories {
+  display: grid;
+  gap: 14px;
+}
+
+.category {
+  background: #ffffff;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--radius);
+  box-shadow: var(--cl-shadow);
+  padding: 20px 22px;
+  transition: box-shadow 0.18s ease;
+}
+
+.category:hover {
+  box-shadow: var(--cl-shadow-hi);
+}
+
+.category__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cl-row-line);
+}
+
+.category__title {
+  margin: 0;
+  flex: 1;
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.005em;
+  color: var(--cl-ink);
+}
+
+.category__count {
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: #f3f4f6;
+  color: var(--cl-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* The pack-all box in the header. A real checkbox, so it is reachable and
+   announces its state; `indeterminate` is set from script for a part-packed
+   category, which a checkbox cannot express in markup. */
+.category__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--cl-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.category__all input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cl-green);
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------------- rows */
+
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 6px;
+  border-radius: var(--radius-sm);
+  border-bottom: 1px solid var(--cl-row-line);
+  transition: background-color 0.15s ease;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item:hover:not(.item--packed) {
+  background: #fafaf6;
+}
+
+/* The checkbox itself is visually replaced but stays a real, focusable input —
+   the box drawn beside it is decoration driven by its :checked state. */
+.item__check {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.item__check input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.item__box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #ffffff;
+  color: transparent;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.item__box svg {
+  width: 12px;
+  height: 12px;
+}
+
+.item__check input:checked + .item__box {
+  background: var(--cl-green);
+  border-color: var(--cl-green);
+  color: #ffffff;
+}
+
+.item__check input:focus-visible + .item__box {
+  outline: 3px solid var(--tp-green-500);
+  outline-offset: 2px;
+}
+
+.item__check input:disabled {
+  cursor: not-allowed;
+}
+
+.item__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.92rem;
+  color: var(--cl-ink);
+  overflow-wrap: anywhere;
+}
+
+.item--packed .item__name {
+  color: var(--cl-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+/* A row the API has not confirmed yet — added, or restored by undo. */
+.item--unsaved {
+  opacity: 0.55;
+}
+
+/* Waiting on the API. Deliberately faint: the change is already shown, and a
+   loud pending state on every tap would make a fast packer's list flicker. */
+.item--saving .item__name::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--tp-green-300);
+}
+
+.item__assignee {
+  flex-shrink: 0;
+  max-width: 11rem;
+  padding: 5px 26px 5px 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--cl-muted);
+  background-color: transparent;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--radius-full);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.item__assignee:hover:not(:disabled) {
+  border-color: var(--tp-green-300);
+}
+
+/* An assigned item reads as assigned at a glance. */
+.item__assignee--set {
+  color: var(--tp-green-900);
+  background-color: var(--tp-green-100);
+  border-color: transparent;
+}
+
+.item__assignee:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.item__remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #9aa3af;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.item__remove:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.item__remove:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.item__remove svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---------------------------------------------------------------- add item */
+
+.add-item {
+  margin-top: 10px;
+}
+
+.add-item__open {
+  width: 100%;
+  padding: 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--cl-muted);
+  background: transparent;
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.add-item__open:hover {
+  border-color: var(--cl-green);
+  color: var(--cl-green);
+  background: rgba(45, 106, 79, 0.04);
+}
+
+.add-item__form {
+  display: flex;
+  gap: 8px;
+}
+
+.add-item__input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 0.9rem;
+  border: 1px solid var(--cl-line);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+}
+
+.add-item__input:focus {
+  outline: none;
+  border-color: var(--cl-green);
+  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.12);
+}
+
+.add-item__form .btn {
+  width: auto;
+  min-height: 0;
+  padding: 10px 18px;
+}
+
+/* ------------------------------------------------------------------ toasts */
+
+/* Fixed to the viewport so undo is reachable wherever the user has scrolled
+   to — the row they removed may be far below the top of the page. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 32px);
+  padding: 12px 14px 12px 18px;
+  color: #ffffff;
+  background: #1c1b18;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  font-size: 0.9rem;
+  transform: translateX(-50%);
+}
+
+.toast__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toast__action {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--tp-green-300);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.toast__action:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.toast__close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.toast__close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ------------------------------------------------------------------ mobile */
+
+@media (max-width: 600px) {
+  .category {
+    padding: 16px 14px;
+  }
+
+  .item {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* On a phone the picker drops under the name rather than squeezing it to a
+     few characters. It aligns with the name, past the checkbox. */
+  .item__assignee {
+    order: 3;
+    max-width: none;
+    margin-left: 34px;
+  }
+
+  .checklist__head {
+    flex-direction: column;
+  }
+
+  .progress {
+    padding: 16px;
+  }
+}

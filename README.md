@@ -11,6 +11,13 @@ A web app that helps campers and backpackers plan trips by generating smart pack
 
 The frontend is a static site on Cloudflare Workers; the backend is a Node/Express API on Render backed by MongoDB Atlas. The backend is on Render's free tier, so the first request after a period of inactivity can take 30–60s to wake up.
 
+## React frontend (migration in progress)
+
+A React + TypeScript (Vite) rewrite of the UI lives in [`frontend-react/`](frontend-react/).
+Sign-in, trips (list, create, detail, edit, delete) and the packing checklist are ported
+so far. The deployed site is still the vanilla frontend in `frontend/`; both talk to the
+same API.
+
 ## Features
 
 ### Trips & checklists
@@ -167,7 +174,7 @@ cd backend
 npm test
 ```
 
-Jest runs the route + service suite (78 tests).
+Jest runs the route + service suite (684 tests across 34 files; CI runs it on Node 20 and 24).
 
 Tests need **no configuration and no running database** — `mongodb-memory-server`
 spins up a throwaway MongoDB in memory, and the real Mongoose models run against
@@ -348,9 +355,25 @@ The backend allowlist ([backend/server.js](backend/server.js)) is built from:
    unconditional, so local development works with nothing configured
 
 There is **no hardcoded production origin**. Adding a frontend origin is a
-config change, not a code change. The Cloudflare frontend is allowed through
-**(1)**: `CORS_ALLOWED_ORIGINS` holds the exact Worker origin. Two details of
-the parser are easy to get wrong and fail silently:
+config change, not a code change. Both deployed frontends must therefore appear
+in **(1)**:
+
+```
+https://trailpack-smart-camping.vercel.app
+https://trailpack---smart-camping-trip-planner.shrey30patel.workers.dev
+```
+
+> This section previously stated that `CORS_ALLOWED_ORIGINS` already held the
+> exact Worker origin. Measured against production on 2026-09-17, it did not: a
+> preflight `OPTIONS /trips` from the Vercel origin answered 204 and the same
+> request from the Worker origin answered 403, so every authenticated feature on
+> the Worker deployment — login, trips, checklist — was failing while its static
+> pages looked healthy. Because the value lives only in the Render dashboard,
+> nothing in this repository could contradict the claim. `__tests__/cors.test.js`
+> now pins both origins against the required config so the pair cannot drift
+> again unnoticed.
+
+Two details of the parser are easy to get wrong and fail silently:
 
 - It splits on **commas only**. Space, semicolon and newline separators produce
   one entry that matches nothing.

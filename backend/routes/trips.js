@@ -554,17 +554,40 @@ router.get('/:id/weight', authenticate, async (req, res) => {
 });
 
 // GET /trips/:id - Get a single trip
+// Readable by the owner AND by collaborators.
+//
+// This used to query `{ tripId, userId }`, so only the owner could read a trip.
+// Every other trip-scoped read — the checklist items, the participant list —
+// already accepted collaborators through assertTripAccess, so a collaborator
+// could read and pack a checklist but not load the trip it belonged to. The
+// checklist page fetches both with Promise.all, so the trip's 404 failed the
+// whole page: someone who had accepted an invitation to pack a trip opened it
+// and got "Could not load checklist".
+//
+// Widening this exposes nothing new. GET /shared-trips/mine already returns
+// the full trip document to every collaborator; this is the same row, reached
+// by id. Writes stay owner-only — PUT, DELETE and PUT /:id/status all still
+// scope on { tripId, userId }.
+//
+// A caller with no access gets 404, not the 403 assertTripAccess raises: a
+// distinct "exists but not yours" answer would let anyone holding a candidate
+// id confirm that the trip exists.
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const userId = req.user.userId;
     const tripId = req.params.id;
 
-    const trip = await Trip.findOne({ tripId, userId }).select('-_id -__v').lean();
-    if (!trip) {
-      return res.status(404).json({ message: 'Trip not found' });
+    let access;
+    try {
+      access = await sharedTrips.assertTripAccess(tripId, userId);
+    } catch (e) {
+      if (e.status === 403 || e.status === 404) {
+        return res.status(404).json({ message: 'Trip not found' });
+      }
+      throw e;
     }
 
-    res.json(trip);
+    res.json(access.trip);
   } catch (error) {
     console.error('Error fetching trip:', error);
     res.status(500).json({ message: 'Error fetching trip' });
@@ -618,6 +641,57 @@ router.put('/:id', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error updating trip:', error);
     res.status(500).json({ message: 'Error updating trip: ' + error.message });
+  }
+});
+
+// PUT /trips/:id/status - Change only a trip's status (owner only).
+//
+// frontend/organizer.js has called this since the organizer page was written,
+// but it was never implemented: the Complete / Cancel / Reactivate buttons sent
+// a request that fell through every route in this file and 404'd, and the page
+// reported "Failed to update trip status" with nothing on the server to explain
+// why. PUT /trips/:id can already set status as one of many fields; this route
+// exists because the caller is a single-purpose control, and validating one
+// field lets a bad value be rejected here instead of being written verbatim.
+//
+// The accepted set is the one models/Trip.js documents. There is deliberately
+// no enum on the schema — adding one would invalidate existing rows — so the
+// vocabulary is enforced at the edge that writes it.
+const TRIP_STATUSES = new Set([
+  'planned', 'planning', 'active', 'in_progress', 'completed', 'cancelled',
+]);
+
+router.put('/:id/status', authenticate, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const tripId = req.params.id;
+    const { status } = req.body || {};
+
+    if (!status) {
+      return res.status(400).json({ message: 'status is required' });
+    }
+    if (!TRIP_STATUSES.has(status)) {
+      return res.status(400).json({
+        message: `Invalid status. Expected one of: ${[...TRIP_STATUSES].join(', ')}`,
+      });
+    }
+
+    // Scoped to { tripId, userId } like every other write in this file, so a
+    // collaborator cannot change the status of a trip they do not own.
+    const updated = await Trip.findOneAndUpdate(
+      { tripId, userId },
+      { $set: { status } },
+      { new: true }
+    ).select('-_id -__v').lean();
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Trip not found' });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating trip status:', error);
+    res.status(500).json({ message: 'Error updating trip status' });
   }
 });
 
@@ -739,7 +813,14 @@ router.delete('/:id/participants/:userId', authenticate, async (req, res) => {
 
 // GET /trips/organizer/dashboard - Stats + trips list for the organizer page.
 // Response shape: { stats: {...}, trips: [...] }.
-router.get('/organizer/dashboard', authenticate, async (req, res) => {
+//
+// The role check used to live only in the frontend (frontend/organizer.js's
+// checkOrganizerAccess), so the route itself answered any authenticated caller.
+// That leaked no data — every query below is scoped to req.user.userId, so a
+// plain user saw only their own trips — but it meant the organizer tier was a
+// UI convention rather than an enforced boundary, and a client-side gate is not
+// a gate. Authorization now matches the pattern the admin routes already use.
+router.get('/organizer/dashboard', authenticate, authorize('organizer', 'admin'), async (req, res) => {
   try {
     const userId = req.user.userId;
 
