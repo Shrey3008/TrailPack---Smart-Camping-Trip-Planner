@@ -11,6 +11,13 @@ A web app that helps campers and backpackers plan trips by generating smart pack
 
 The frontend is a static site on Cloudflare Workers; the backend is a Node/Express API on Render backed by MongoDB Atlas. The backend is on Render's free tier, so the first request after a period of inactivity can take 30–60s to wake up.
 
+## React frontend (migration in progress)
+
+A React + TypeScript (Vite) rewrite of the UI lives in [`frontend-react/`](frontend-react/).
+Sign-in, trips (list, create, detail, edit, delete) and the packing checklist are ported
+so far. The deployed site is still the vanilla frontend in `frontend/`; both talk to the
+same API.
+
 ## Features
 
 ### Trips & checklists
@@ -167,7 +174,7 @@ cd backend
 npm test
 ```
 
-Jest runs the route + service suite (78 tests).
+Jest runs the route + service suite (684 tests across 34 files; CI runs it on Node 20 and 24).
 
 Tests need **no configuration and no running database** — `mongodb-memory-server`
 spins up a throwaway MongoDB in memory, and the real Mongoose models run against
